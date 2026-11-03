@@ -1,13 +1,13 @@
-# Nightly 2.5 Fortsetzung — Batch 10, 10/10 verifizierte Punkte — 2026-11-03
+# Nightly 2.5 Fortsetzung — Batch 10, 8/10 verifizierte Punkte — 2026-11-03
 
-## Batch 10 abgeschlossen und als Pre-Release veröffentlicht
+## Batch 10 — aktueller Stand und Test-Snapshot
 
-- Orca-Punkte 8–10 waren im Android-Port bereits vorhanden, wurden jetzt aber separat auf Android 16/API 36 verifiziert: CGAL-Boolean-Volumenprüfung mit isolierten Netzpunkten, Bridge-Geschwindigkeit bei Curl-Slowdown und Höhenbereich-Ausrichtung bei Z-Schrumpfung.
+- Orca-Punkt 8: CGAL-Boolean-Volumenprüfung entfernt isolierte Mesh-Vertices, bevor CGAL ein geschlossenes Volumen prüft. Der JNI-Regressionstest `cgalBooleanVolumeChecksIgnoreUnreferencedVertices` besteht; die beiden anderen zugleich ausgeführten Tests betreffen bereits abgeschlossene ältere Batches und werden hier nicht erneut gezählt.
 - Gezielte Instrumentierung: 3/3 bestanden, 0 Skips/Fehler. Vollständige JVM-Suiten: Debug 743/743 und Slice 743/743, beide ohne Fehler/Skips.
 - Version 0.8.431 / Code 466, Paket `com.exa201.orkanslicer.nightly25`. Code-Commit `f5a8de4378592f95639ea4b64af3791e0bbc69a9`.
 - Debug-APK `OrkanSlicerNightly25_f5a8de4378.apk`, 240.358.528 Bytes, SHA-256 `15931F4681B742C1D154920DBC6831B13E29B4AC35ED8CA4A903552E01B727D7`. Auf Android-16/API-36-AVD installiert und gestartet; frischer Logcat ohne Crash, ANR, OOM oder Fatal Signal. Xiaomi war nicht verbunden.
-- Pre-Release: [v0.8.431-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.431-nightly.1), APK und SHA-256-Sidecar sind hochgeladen; SHA-256 des GitHub-Assets entspricht lokalem APK.
-- Branch `nightly-2.5` ist mit `origin` synchron. Nächste konkrete Aufgabe: Batch 11 beginnen, Upstream-Orca-2.5-Fixes gegen Android-Code vergleichen und für jeden Kandidaten Produktionspfad, Nutzen und gezielten Regressionstest belegen; keine bereits vorhandenen Punkte doppelt zählen.
+- **Batch 10: 8/10.** Batch-APK v0.8.431 ist ein getesteter Zwischenstand; der Release-Eintrag darf nicht als abgeschlossener 10-Punkte-Batch gelten. Zwei weitere unabhängige, nicht bereits in früheren Batches gezählte Orca-Punkte mit gezielten Android-Regressionen fehlen.
+- Branch `nightly-2.5` ist mit `origin` synchron. Nächster konkreter Schritt: zwei Android-relevante Orca-2.5-Fixes auswählen, die im Nightly-Produktionspfad fehlen, integrieren und einzeln mit belastbaren Regressionsprüfungen abdecken.
 
 ## Stable Drag-Bug (separat vom Nightly-Batch)
 
