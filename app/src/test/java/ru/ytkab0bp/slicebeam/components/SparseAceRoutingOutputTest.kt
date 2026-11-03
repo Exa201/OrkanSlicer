@@ -139,4 +139,35 @@ class SparseAceRoutingOutputTest {
             output.delete()
         }
     }
+
+    @Test fun rewrittenGcodeUsesSelectedPhysicalGateForOneThroughSixteenTools() {
+        for (count in 1..16) {
+            val source = File.createTempFile("ace-count-source", ".gcode")
+            val output = File.createTempFile("ace-count-output", ".gcode")
+            try {
+                val commands = (0 until count).joinToString("\n") { "T$it\nG1 X$it E1" }
+                source.writeText("; HEADER_BLOCK_START\n; HEADER_BLOCK_END\n$commands\nM400\n")
+                val scan = AnycubicGCodeProcessor.scan(source)
+                val selectedGates = IntArray(count) { count - it - 1 }
+                val routing = ru.ytkab0bp.slicebeam.utils.AnycubicAceRoutingPolicy.resolve(
+                    toolCount = count,
+                    usedTools = scan.usedTools,
+                    loadedGates = IntArray(16) { it },
+                    toolToGate = IntArray(16) { it },
+                    selectedGates = selectedGates,
+                )
+                assertNull("unavailable tool count=$count", routing.unavailableTool)
+                assertTrue("rewrite count=$count", AnycubicGCodeProcessor.rewrite(source, output, scan,
+                    AnycubicGCodeProcessor.Options().apply {
+                        remappedTools = routing.toolCommands
+                        gates = routing.gates
+                    }))
+                assertEquals("commands count=$count", selectedGates.map { "T$it" },
+                    output.readLines().filter { it.matches(Regex("T[0-9]+")) })
+            } finally {
+                source.delete()
+                output.delete()
+            }
+        }
+    }
 }
