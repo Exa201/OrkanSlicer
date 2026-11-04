@@ -2,6 +2,8 @@
 
 Batch 11 ist mit 10/10 als `v0.8.434-nightly.1` veröffentlicht. Batch 12 hat vier unabhängig verifizierte Orca-Verhaltenspunkte. Es gibt noch keine APK oder Veröffentlichung für Batch 12; das Release-Gate bleibt bei 10/10 plus gebündelter Regression.
 
+Ein weiterer Kandidat ist implementiert, aber **nicht gezählt**: Orca `3bda653448` vereinheitlicht die Drucker-Tagwahl für Prime-Tower-G-Code und verhindert dadurch fehlende Tower-Filamentstatistiken bei Type 1 auf Nicht-Bambu-Druckern. ARM64-Code und neuer Type-1/Type-2-Slice-Test kompilieren. Der Laufzeittest wartet auf ARM64-Hardware; das x86_64-AVD kann den benötigten ARM64-System-Image-Typ nicht ausführen, und ein temporärer x86_64-Testbuild findet kein vorgebautes `libtbb.a`. Fortschritt bleibt daher 4/10.
+
 ### Punkt 4/10 — Gelöschtes Filament bei Shared-Nozzle-MMU nicht wiederherstellen
 
 Port von Orca `e2590f7559`: Die Mindestzahl der Filament-Presets richtet sich bei `single_extruder_multi_material` nach einem geteilten Düsenpfad nach **einem** Filament statt nach der physischen Düsenanzahl. Damit fügt die Preset-Bundle-Normalisierung ein bewusst entferntes Filament nicht erneut hinzu; unabhängige Tool-Changer-Düsen behalten weiterhin ein Preset je Düse.

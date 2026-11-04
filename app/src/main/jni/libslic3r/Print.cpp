@@ -3304,6 +3304,9 @@ bool Print::enable_timelapse_print() const
 
 void Print::_make_wipe_tower()
 {
+    // Wipe-tower analyzer tags must match the current printer. Setting this in each
+    // writer selects the wrong tag dialect for non-Bambu printers using Type 1 towers.
+    GCodeProcessor::s_IsBBLPrinter = is_BBL_printer();
     m_wipe_tower_data.clear();
 
     // BBS

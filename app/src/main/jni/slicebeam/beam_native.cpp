@@ -3555,14 +3555,20 @@ extern "C" {
     JNIEXPORT jdouble JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_gcoderesult_1get_1used_1filament_1mm(JNIEnv* env, jclass, jlong ptr, jint role) {
         GCodeResultRef* ref = (GCodeResultRef*) (intptr_t) ptr;
 
-        std::pair<double, double> info = ref->result.print_statistics.used_filaments_per_role.find(mapGCodeRole(role))->second;
+        const auto it = ref->result.print_statistics.used_filaments_per_role.find(mapGCodeRole(role));
+        if (it == ref->result.print_statistics.used_filaments_per_role.end())
+            return 0.0;
+        const std::pair<double, double>& info = it->second;
         return info.first * 1000.0 / 25.4;
     }
 
     JNIEXPORT jdouble JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_gcoderesult_1get_1used_1filament_1g(JNIEnv* env, jclass, jlong ptr, jint role) {
         GCodeResultRef* ref = (GCodeResultRef*) (intptr_t) ptr;
 
-        std::pair<double, double> info = ref->result.print_statistics.used_filaments_per_role.find(mapGCodeRole(role))->second;
+        const auto it = ref->result.print_statistics.used_filaments_per_role.find(mapGCodeRole(role));
+        if (it == ref->result.print_statistics.used_filaments_per_role.end())
+            return 0.0;
+        const std::pair<double, double>& info = it->second;
         return info.second;
     }
 

@@ -18,6 +18,7 @@ import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.AdaptivePAModelValidator
 import ru.ytkab0bp.slicebeam.config.Kobra3V2ProfileMigration
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
+import ru.ytkab0bp.slicebeam.slic3r.GCodeViewer
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.Model
@@ -2794,6 +2795,47 @@ class NativeSliceDeviceTest {
             nextModel.release()
             source.delete()
             SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test(timeout = 120_000)
+    fun wipeTowerUsageIsCountedForThePrinterTagDialectOnBothTowerTypes() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        process.put("enable_prime_tower", "1")
+        val source = copyCube(context, "wipe-tower-printer-tag-source.stl")
+        val model = Model(source)
+        val configFile = SliceBeam.getCurrentConfigFile()
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 35.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+
+            for (towerType in listOf("type1", "type2")) {
+                process.put("wipe_tower_type", towerType)
+                SliceBeam.genCurrentConfig(model)
+                val gcodeFile = File(context.cacheDir, "wipe-tower-printer-tag-$towerType.gcode")
+                var result: GCodeProcessorResult? = null
+                try {
+                    result = model.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
+                    val gcode = gcodeFile.readText()
+                    assertHasExtrusion(gcode)
+                    assertTrue("$towerType must emit prime-tower extrusion", gcode.contains("Prime tower", ignoreCase = true))
+                    val wipeTowerUsage = result.getUsedFilamentMM(GCodeViewer.EXTRUSION_ROLE_WIPE_TOWER)
+                    assertTrue(
+                        "$towerType tower filament must be classified using the non-Bambu printer tag dialect; usage=$wipeTowerUsage",
+                        wipeTowerUsage > 0.0,
+                    )
+                } finally {
+                    result?.release()
+                    gcodeFile.delete()
+                }
+            }
+        } finally {
+            model.release()
+            source.delete()
+            configFile.delete()
         }
     }
 
