@@ -1,5 +1,9 @@
 ## Nightly Batch 11 — Punkt 8/10 (Stand 2026-11-04)
 
+> **Aktueller Fortschrittshinweis (2026-11-04):** Die folgenden Batch-11-Abschnitte sind historische Arbeitsnotizen und ihr jeweiliger Punktestand ist nicht mehr der aktuelle. Batch 11 wurde mit 10/10 Punkten als `v0.8.434-nightly.1` veröffentlicht. Batch 12 steht bei **1/10**; der aktuelle gepushte Code-HEAD ist `f7b39929e087805900b69e41f860df7662414539`. Die maßgebliche Fortsetzung und jüngsten Prüfungen stehen in `docs/UI2_EXECUTION_STATE.md`.
+
+Der Nightly-Branch enthält bereits die geprüften Orca-Kernänderungen `533d4c3e9e` (Bridge-Speed bei Curling-Slowdown), `fa5f7e3db4` (Körpernamen beim STEP/AMF/3MF-Import), `896557bce5` (Spiralvase mit Höhenbereichen), `041df4031e`/`05a92cd0cf`/`8cdc68a6a0`/`a30ca5e54a` (By-Object-Anordnung und Kollisionsreihenfolge), `5191a5efeb` (stabile Tree-Support-Reihenfolge) und `1c9f6f9318` (Prime-Tower-Sliver bei präzisem Z). Diese bereits vorhandenen Implementierungen werden nicht erneut als Batch-Punkte gezählt.
+
 ### Punkt 8/10 — Wipe-Inward mit korrekter Retraktionsaufteilung und Sandwich-Wandversatz
 
 Port von Orca `0b041740b1`: Der Android-Slicer übernimmt die Wipe-Inward-Einstellungen in den nativen
