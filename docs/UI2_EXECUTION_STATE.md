@@ -1,4 +1,24 @@
-# Nightly 2.5 Fortsetzung — Batch 11, Punkt 3/10 verifiziert — 2026-11-03
+# Nightly 2.5 Fortsetzung — Batch 11, Punkt 3/10 verifiziert — 2026-11-04
+
+## ACE-Routing-Zwischenrelease 0.8.433 — 2026-11-04
+
+- Nightly-Branch `nightly-2.5` enthält den Fix für sparse ACE-Werkzeugmengen; Release
+  `v0.8.433-nightly.1`: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.433-nightly.1 .
+- APK `OrkanSlicerNightly25_bcb1a1157f.apk`, Paket `com.exa201.orkanslicer.nightly25`,
+  240,361,747 Bytes, SHA-256 `DFDCA6D6A2B717BF6B8597FF03D6C427AE9A7A11436C8758BA3632D82422BE12`;
+  Build-Codecommit `bcb1a1157fc2f23982f41caa6ee476d972286461`. Auf dem API-36-AVD installiert
+  und gestartet; der erfasste frische Logcat enthielt keinen Crash, ANR, OOM oder Fatal Signal.
+- Fokusierte JVM-Prüfung: `AnycubicAceRoutingPolicyTest` 8/8 und `SparseAceRoutingOutputTest`
+  5/5. Die G-Code-Matrix prüft 1–16 Werkzeuge mit nichtidentischer Firmware-Gate-Zuordnung;
+  ein separater Fall prüft ausdrücklich T0 → ACE-Fach 2 → Firmwarebefehl T1.
+- Compose-Instrumentierung `SlicePrintPreparationComposeDeviceTest`: 10/11. Die individuelle
+  ACE-Auswahl sowie weitere Send-/Abbruchpfade bestanden. `sharedAceGateWarningResolvesItsPluralResource`
+  scheiterte im Klassenlauf und isoliert beim Warten auf den aktiven MESSAGE_DIALOG, obwohl der
+  Workspace-Host bereit war. Ursache noch nicht geklärt; nicht als ACE-Routing-Fehler gewertet.
+- Kein physischer Xiaomi-/Druckertest in diesem Durchgang. Orca-Batch 11 bleibt 3/10; der
+  ACE-Zwischenrelease zählt nicht als Orca-Portierung. Nächster Schritt: den separaten
+  Compose-Warnungsdialog-Test/Hostzustand untersuchen und danach den nächsten fehlenden
+  Orca-2.5-Verhaltenspunkt in Batch 11 portieren.
 
 ## Batch 11 — Punkt 3/10: Originale 3MF-Körpernamen in importierten Baugruppen
 
