@@ -1,12 +1,18 @@
-# Aktueller Stand — Nightly Batch 12, 2/10 — 2026-11-04
+# Aktueller Stand — Nightly Batch 12, 3/10 — 2026-11-04
 
-Batch 11 ist mit 10/10 als `v0.8.434-nightly.1` veröffentlicht. Batch 12 hat zwei unabhängig verifizierte Orca-Verhaltenspunkte. Es gibt noch keine APK oder Veröffentlichung für Batch 12; das Release-Gate bleibt bei 10/10 plus gebündelter Regression.
+Batch 11 ist mit 10/10 als `v0.8.434-nightly.1` veröffentlicht. Batch 12 hat drei unabhängig verifizierte Orca-Verhaltenspunkte. Es gibt noch keine APK oder Veröffentlichung für Batch 12; das Release-Gate bleibt bei 10/10 plus gebündelter Regression.
+
+### Punkt 3/10 — Support-Malen nur auf Überhängen
+
+Orca `e105d3c587` schließt die eingestellte Überhang-Winkelgrenze ein, indem die Facettenauswahl einen Grad Toleranz erhält. Android bietet jetzt im Support-Malmodus einen optionalen „Nur Überhänge bemalen“-Filter mit einstellbarem Winkel. Der Filter gilt für Pinsel, Bucket und Höhenbereich; die Bucket-Ausbreitung stoppt an Facetten außerhalb des Overhang-Winkels. Ohne aktivierten Filter bleibt das bisherige Verhalten unverändert.
+
+Verifikation: ARM64-SliceTest- und Instrumentierungs-APK erfolgreich erstellt; API-36-Gerätetest `supportPaintOverhangFilterRestrictsBrushBucketAndHeightToDownwardFaces` 1/1 und Compose-Test `supportPaintShowsOverhangFilterAndThresholdOnlyWhenEnabled` 1/1 bestanden. Der native Grenzwinkel-Probe prüft eine 45°-Fläche bei 45° (angenommen) und 43,5° (abgelehnt). `git diff --check` erfolgreich. Code-Commit `bcdac02ba2` ist auf `nightly25/codex/nightly-batch11-next` gepusht. Batch 12: **3/10**.
 
 ### Punkt 2/10 — Ungültige Layer-Sequenzkonfiguration sicher ignorieren
 
 Port von Orca `7e3d5d4d04` in `get_other_layers_print_sequence`: nichtpositive Gruppenzähler, nicht teilbare Wertevektoren und Gruppen ohne Layerbereich plus Extruder werden vor jedem Indexzugriff verworfen. Damit kann ein inkonsistenter 3MF-/Projektwert den nativen Tool-Ordering-/Slice-Pfad nicht mehr über leere oder unvollständige Gruppen lesen lassen.
 
-`NativeSliceDeviceTest#malformedOtherLayerPrintSequenceIsIgnoredAndStillSlices` bestand auf Android 16/API 36 (1/1). Der Produktionshelper wurde direkt mit Zähler 0/negativ, zu kurzen und nicht teilbaren Gruppen sowie gültigen Gruppen geprüft; zusätzlich slicet ein Würfel mit absichtlich inkonsistentem gespeicherten Zähler und erzeugt weiterhin gültigen extrudierenden G-Code. Debug- und Slice-Unit-Suiten: jeweils 749/749, 0 Fehler/Skips. Code-Commit `9ac5d504e0` ist lokal erstellt; Push steht noch aus. Kein APK-/Release-Gate ausgelöst.
+`NativeSliceDeviceTest#malformedOtherLayerPrintSequenceIsIgnoredAndStillSlices` bestand auf Android 16/API 36 (1/1). Der Produktionshelper wurde direkt mit Zähler 0/negativ, zu kurzen und nicht teilbaren Gruppen sowie gültigen Gruppen geprüft; zusätzlich slicet ein Würfel mit absichtlich inkonsistentem gespeicherten Zähler und erzeugt weiterhin gültigen extrudierenden G-Code. Debug- und Slice-Unit-Suiten: jeweils 749/749, 0 Fehler/Skips. Code-Commit `9ac5d504e0` ist in den gepushten Branch integriert. Kein APK-/Release-Gate ausgelöst.
 
 ### Punkt 1/10 — Orca-Infill-Verbindungsoptimierung
 
@@ -14,7 +20,7 @@ Port von Orca `69193d5681` für multiline-bewusste Infill-Verknüpfung, stabile 
 
 ## Nightly Batch 11 — Punkt 8/10 (Stand 2026-11-04)
 
-> **Aktueller Fortschrittshinweis (2026-11-04):** Die folgenden Batch-11-Abschnitte sind historische Arbeitsnotizen und ihr jeweiliger Punktestand ist nicht mehr der aktuelle. Batch 11 wurde mit 10/10 Punkten als `v0.8.434-nightly.1` veröffentlicht. Batch 12 steht bei **1/10**; der aktuelle gepushte Code-HEAD ist `f7b39929e087805900b69e41f860df7662414539`. Die maßgebliche Fortsetzung und jüngsten Prüfungen stehen in `docs/UI2_EXECUTION_STATE.md`.
+> **Aktueller Fortschrittshinweis (2026-11-04):** Die folgenden Batch-11-Abschnitte sind historische Arbeitsnotizen und ihr jeweiliger Punktestand ist nicht mehr der aktuelle. Batch 11 wurde mit 10/10 Punkten als `v0.8.434-nightly.1` veröffentlicht. Batch 12 steht bei **3/10**; aktueller gepushter Code-HEAD `bcdac02ba266330f20c81a2016df2a106bc860da`. Die maßgebliche Fortsetzung und jüngsten Prüfungen stehen in `docs/UI2_EXECUTION_STATE.md`.
 
 Der Nightly-Branch enthält bereits die geprüften Orca-Kernänderungen `533d4c3e9e` (Bridge-Speed bei Curling-Slowdown), `fa5f7e3db4` (Körpernamen beim STEP/AMF/3MF-Import), `896557bce5` (Spiralvase mit Höhenbereichen), `041df4031e`/`05a92cd0cf`/`8cdc68a6a0`/`a30ca5e54a` (By-Object-Anordnung und Kollisionsreihenfolge), `5191a5efeb` (stabile Tree-Support-Reihenfolge) und `1c9f6f9318` (Prime-Tower-Sliver bei präzisem Z). Diese bereits vorhandenen Implementierungen werden nicht erneut als Batch-Punkte gezählt.
 
