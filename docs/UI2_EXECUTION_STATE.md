@@ -28,6 +28,10 @@ Batch 11 stand bei 3/10; Punkt 4 war noch nicht getestet.
   ACE-Auswahl sowie weitere Send-/Abbruchpfade bestanden. `sharedAceGateWarningResolvesItsPluralResource`
   scheiterte im Klassenlauf und isoliert beim Warten auf den aktiven MESSAGE_DIALOG, obwohl der
   Workspace-Host bereit war. Ursache noch nicht geklärt; nicht als ACE-Routing-Fehler gewertet.
+- Nachuntersuchung: Der Testcallback schloss beim Bestätigen nicht den äußeren Workspace-Dialog.
+  Im echten Ablauf schließt „OK“ zunächst nur die innere Warnung. Der Callback wurde testseitig
+  an den Workspace-Dismiss gebunden; der isolierte Android-16/API-36-Test besteht nun 1/1.
+  Kein Produktfehler und keine Änderung am ACE-Routing.
 - Kein physischer Xiaomi-/Druckertest in diesem Durchgang. Orca-Batch 11 bleibt 3/10; der
   ACE-Zwischenrelease zählt nicht als Orca-Portierung. Nächster Schritt: den separaten
   Compose-Warnungsdialog-Test/Hostzustand untersuchen und danach den nächsten fehlenden

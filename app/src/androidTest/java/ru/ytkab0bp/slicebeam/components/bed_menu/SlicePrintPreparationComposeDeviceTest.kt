@@ -66,11 +66,14 @@ class SlicePrintPreparationComposeDeviceTest {
         val acknowledged = AtomicInteger()
         compose.waitUntil(timeoutMillis = 15_000) { bed.canShowWorkspaceComposeDialog() }
         activity.runOnUiThread {
-            bed.showWorkspaceComposeDialog {
+            bed.showWorkspaceComposeDialog { dismiss ->
                 PrintPreparationWarningDialog(
                     warning = PrintPreparationWarning.SharedAceGate(tool = 1),
-                    onDismiss = {},
-                    onAcknowledge = { acknowledged.incrementAndGet() },
+                    onDismiss = dismiss,
+                    onAcknowledge = {
+                        acknowledged.incrementAndGet()
+                        dismiss()
+                    },
                     onUploadOnly = {},
                     onFirmwareChecked = {},
                 )
