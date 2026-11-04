@@ -3944,6 +3944,159 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun liftedNozzleDescendsOnlyAfterReachingTravelDestination() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.20mm Standard"))
+        val filament = requireNotNull(config.findFilament("Generic PLA"))
+        filament.put("filament_retract_lift", "0.4")
+        process.put("enable_prime_tower", "1")
+        process.put("z_hop_types", "Normal Lift")
+        process.put("skirt_loops", "0")
+        process.put("brim_type", "no_brim")
+
+        val source = copyCube(context, "orca25-lifted-travel-source.stl")
+        val output = File(context.cacheDir, "orca25-lifted-travel.gcode")
+        val model = Model(source)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 35.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            SliceBeam.genCurrentConfig(model)
+            val configFile = SliceBeam.getCurrentConfigFile()
+            val configText = configFile.readText()
+            assertTrue("the real slice must use a 0.4 mm retraction lift", Regex("(?m)^filament_z_hop\\s*=\\s*0.4(?:,0.4)*\\s*$").containsMatchIn(configText))
+            assertTrue("the real slice must use normal lift: ${configText.lines().filter { it.contains("z_hop_types") }}",
+                Regex("(?m)^z_hop_types\\s*=\\s*Normal Lift(?:,Normal Lift)*\\s*$").containsMatchIn(configText))
+            result = model.slice(configFile.absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the fixture must switch between both assigned tools",
+                Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode) && Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            val descendingTravels = descendingXyTravelMoves(gcode)
+            val gcodeLines = gcode.lines()
+            val travelContexts = descendingTravels.joinToString("\n") { move ->
+                val index = Regex("line=(\\d+)").find(move)!!.groupValues[1].toInt() - 1
+                "$move\n" + gcodeLines.subList((index - 16).coerceAtLeast(0), (index + 17).coerceAtMost(gcodeLines.size)).joinToString("\n")
+            }
+            assertEquals("travel must stay at the lifted height until its destination: $travelContexts", 0, descendingTravels.size)
+        } finally {
+            result?.release()
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun liftedNozzleStaysUpAcrossAvoidCrossingDetours() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        process.put("reduce_crossing_wall", "1")
+        process.put("retract_layer_change", "1")
+        process.put("retract_before_travel", "1")
+        process.put("retract_lift_above", "0.0")
+        process.put("retract_lift_below", "0.0")
+        filament.put("filament_retract_lift", "0.4")
+        process.put("z_hop_types", "Normal Lift")
+        process.put("seam_position", "random")
+        process.put("skirt_loops", "0")
+        process.put("brim_type", "no_brim")
+
+        val source = copyCube(context, "orca25-lifted-detour-cube.stl")
+        val output = File(context.cacheDir, "orca25-lifted-detour-cube.gcode")
+        val model = Model(source)
+        var result: GCodeProcessorResult? = null
+        try {
+            // Keep this travel-focused fixture short so avoid-crossing routing stays fast on mobile CPUs.
+            model.scale(0, 1.0, 1.0, 0.25)
+            model.addObject(model, 0)
+            model.scale(1, 1.0, 1.0, 0.25)
+            model.translate(1, 8.0, 0.0, 0.0)
+            process.put("layer_height", "0.2")
+            SliceBeam.genCurrentConfig(model)
+            val configFile = SliceBeam.getCurrentConfigFile()
+            val configText = configFile.readText()
+            assertTrue("the detour slice must enable avoid-crossing walls",
+                Regex("(?m)^reduce_crossing_wall\\s*=\\s*1\\s*$").containsMatchIn(configText))
+            assertTrue("the detour slice must use 0.4 mm lift",
+                Regex("(?m)^filament_z_hop\\s*=\\s*0.4(?:,0.4)*\\s*$").containsMatchIn(configText))
+            result = model.slice(configFile.absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the multi-object fixture should generate many travels",
+                Regex("(?m)^G[01]\\s+[^;\\n]*(?:X|Y)").findAll(gcode).count() > 20)
+            val descendingTravels = descendingXyTravelMoves(gcode)
+            assertEquals("a lifted detour must not descend while crossing XY: ${descendingTravels.take(5)}",
+                0, descendingTravels.size)
+        } finally {
+            result?.release()
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun liftedNozzleStaysUpOnConcaveLShapeAvoidCrossingTravel() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        process.put("reduce_crossing_wall", "1")
+        process.put("retract_layer_change", "1")
+        process.put("retract_before_travel", "1")
+        process.put("retract_lift_above", "0.0")
+        process.put("retract_lift_below", "0.0")
+        filament.put("filament_retract_lift", "0.4")
+        process.put("z_hop_types", "Normal Lift")
+        process.put("seam_position", "random")
+        process.put("layer_height", "0.2")
+        process.put("skirt_loops", "0")
+        process.put("brim_type", "no_brim")
+
+        val source = createLPrismFixture("orca25-lifted-concave-l.stl", 26.0, 6.0, 2.4)
+        val output = File(context.cacheDir, "orca25-lifted-concave-l.gcode")
+        val model = Model(source)
+        var result: GCodeProcessorResult? = null
+        try {
+            SliceBeam.genCurrentConfig(model)
+            val configFile = SliceBeam.getCurrentConfigFile()
+            val configText = configFile.readText()
+            assertTrue("the L-shape slice must enable avoid-crossing walls",
+                Regex("(?m)^reduce_crossing_wall\\s*=\\s*1\\s*$").containsMatchIn(configText))
+            assertTrue("the L-shape slice must use 0.4 mm lift",
+                Regex("(?m)^filament_z_hop\\s*=\\s*0.4(?:,0.4)*\\s*$").containsMatchIn(configText))
+            result = model.slice(configFile.absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            val travelMoves = Regex("(?m)^G[01]\\s+[^;\\n]*(?:X|Y)").findAll(gcode).count()
+            assertTrue("the concave fixture must generate enough path travel to exercise routing: $travelMoves",
+                travelMoves > 80)
+            val liftMoves = Regex("(?m)^G[01]\\s+Z[0-9.]+(?:\\s|$)").findAll(gcode).count()
+            assertTrue("layer-change retraction must produce real Z lift moves", liftMoves > 3)
+            val elevatedTravelRun = maxConsecutiveElevatedTravelXyMoves(gcode)
+            assertTrue("the L fixture must exercise a multi-waypoint travel while lifted; longest elevated XY run=$elevatedTravelRun",
+                elevatedTravelRun >= 2)
+            val descendingTravels = descendingXyTravelMoves(gcode)
+            assertEquals("the lifted nozzle must stay high across the concave L detour: ${descendingTravels.take(5)}",
+                0, descendingTravels.size)
+        } finally {
+            result?.release()
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun monotonicTopSurfaceGapFillIsInterleavedWithoutReorderingSurfaceLines() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
@@ -7377,6 +7530,38 @@ class NativeSliceDeviceTest {
         return File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name).also { it.writeText(stl) }
     }
 
+    private fun createLPrismFixture(name: String, size: Double, arm: Double, height: Double): File {
+        require(size > arm * 2 && arm > 0.0 && height > 0.0)
+        val polygon = arrayOf(
+            doubleArrayOf(0.0, 0.0), doubleArrayOf(size, 0.0), doubleArrayOf(size, arm),
+            doubleArrayOf(arm, arm), doubleArrayOf(arm, size), doubleArrayOf(0.0, size),
+        )
+        val capTriangles = arrayOf(intArrayOf(0, 1, 2), intArrayOf(0, 2, 3), intArrayOf(0, 3, 5), intArrayOf(3, 4, 5))
+        fun vertex(index: Int, z: Double) = "vertex ${polygon[index][0]} ${polygon[index][1]} $z\n"
+        val stl = buildString {
+            append("solid concave_l_prism\n")
+            capTriangles.forEach { triangle ->
+                append("facet normal 0 0 -1\nouter loop\n")
+                triangle.reversed().forEach { append(vertex(it, 0.0)) }
+                append("endloop\nendfacet\n")
+                append("facet normal 0 0 1\nouter loop\n")
+                triangle.forEach { append(vertex(it, height)) }
+                append("endloop\nendfacet\n")
+            }
+            polygon.indices.forEach { index ->
+                val next = (index + 1) % polygon.size
+                append("facet normal 0 0 0\nouter loop\n")
+                append(vertex(index, 0.0)); append(vertex(next, 0.0)); append(vertex(next, height))
+                append("endloop\nendfacet\n")
+                append("facet normal 0 0 0\nouter loop\n")
+                append(vertex(index, 0.0)); append(vertex(next, height)); append(vertex(index, height))
+                append("endloop\nendfacet\n")
+            }
+            append("endsolid concave_l_prism\n")
+        }
+        return File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name).also { it.writeText(stl) }
+    }
+
     private fun createOverhangWallFixture(name: String): File {
         val faces = arrayOf(
             intArrayOf(0, 2, 1), intArrayOf(0, 3, 2), intArrayOf(4, 5, 6), intArrayOf(4, 6, 7),
@@ -7770,6 +7955,109 @@ class NativeSliceDeviceTest {
             gcodeFile.delete()
             generatedConfig?.delete()
         }
+    }
+
+    private fun descendingXyTravelMoves(gcode: String): List<String> {
+        var absolute = true
+        var x = 0.0
+        var y = 0.0
+        var z = 0.0
+        var slicingLayersStarted = false
+        var inWipeTower = false
+        var lineNumber = 0
+        val descendingMoves = mutableListOf<String>()
+        val token = Regex("([XYZ])(-?\\d+(?:\\.\\d+)?)", RegexOption.IGNORE_CASE)
+        for (rawLine in gcode.lineSequence()) {
+            lineNumber++
+            val line = rawLine.substringBefore(';').trim().uppercase()
+            if (rawLine.substringAfter(';', "").trim().equals("LAYER_CHANGE", ignoreCase = true)) {
+                slicingLayersStarted = true
+                continue
+            }
+            val comment = rawLine.substringAfter(';', "").trim()
+            if (comment.equals("WIPE_TOWER_START", ignoreCase = true)) {
+                inWipeTower = true
+                continue
+            }
+            // Printer start/purge macros may deliberately wipe diagonally down to the bed.
+            // The Orca behavior under test applies to generated model travels, not that macro.
+            if (!slicingLayersStarted) continue
+            when (line.substringBefore(' ')) {
+                "G90" -> { absolute = true; continue }
+                "G91" -> { absolute = false; continue }
+                "G92" -> {
+                    val values = token.findAll(line).associate { it.groupValues[1] to it.groupValues[2].toDouble() }
+                    values["X"]?.let { x = it }
+                    values["Y"]?.let { y = it }
+                    values["Z"]?.let { z = it }
+                    continue
+                }
+            }
+            val command = line.substringBefore(' ')
+            if (inWipeTower && Regex("T\\d+").matches(command)) {
+                inWipeTower = false
+                continue
+            }
+            if (command !in setOf("G0", "G00", "G1", "G01", "G2", "G02", "G3", "G03")) continue
+            val values = token.findAll(line).associate { it.groupValues[1] to it.groupValues[2].toDouble() }
+            val nextX = values["X"]?.let { if (absolute) it else x + it } ?: x
+            val nextY = values["Y"]?.let { if (absolute) it else y + it } ?: y
+            val nextZ = values["Z"]?.let { if (absolute) it else z + it } ?: z
+            val hasXyMove = kotlin.math.abs(nextX - x) > 1e-6 || kotlin.math.abs(nextY - y) > 1e-6
+            // The wipe-tower generator intentionally ramps through Z while shaping its purge path.
+            // This Orca regression concerns travel back from the tower to model geometry.
+            if (!inWipeTower && !line.contains(Regex("(?:^|\\s)E-?\\d")) && hasXyMove && nextZ < z - 1e-6)
+                descendingMoves += "line=$lineNumber z=$z->$nextZ ${rawLine.trim()}"
+            x = nextX
+            y = nextY
+            z = nextZ
+        }
+        return descendingMoves
+    }
+
+    private fun maxConsecutiveElevatedTravelXyMoves(gcode: String): Int {
+        var absolute = true
+        var x = 0.0
+        var y = 0.0
+        var z = 0.0
+        var nominalLayerZ = 0.0
+        var currentRun = 0
+        var longestRun = 0
+        val token = Regex("([XYZ])(-?\\d+(?:\\.\\d+)?)", RegexOption.IGNORE_CASE)
+        for (rawLine in gcode.lineSequence()) {
+            Regex(";Z:([0-9]+(?:\\.[0-9]+)?)").find(rawLine)?.groupValues?.get(1)?.toDoubleOrNull()?.let {
+                nominalLayerZ = it
+            }
+            val line = rawLine.substringBefore(';').trim().uppercase()
+            when (line.substringBefore(' ')) {
+                "G90" -> { absolute = true; continue }
+                "G91" -> { absolute = false; continue }
+                "G92" -> {
+                    val values = token.findAll(line).associate { it.groupValues[1] to it.groupValues[2].toDouble() }
+                    values["X"]?.let { x = it }
+                    values["Y"]?.let { y = it }
+                    values["Z"]?.let { z = it }
+                    continue
+                }
+            }
+            val command = line.substringBefore(' ')
+            if (command !in setOf("G0", "G00", "G1", "G01", "G2", "G02", "G3", "G03")) continue
+            val values = token.findAll(line).associate { it.groupValues[1] to it.groupValues[2].toDouble() }
+            val nextX = values["X"]?.let { if (absolute) it else x + it } ?: x
+            val nextY = values["Y"]?.let { if (absolute) it else y + it } ?: y
+            val nextZ = values["Z"]?.let { if (absolute) it else z + it } ?: z
+            val hasXyMove = kotlin.math.abs(nextX - x) > 1e-6 || kotlin.math.abs(nextY - y) > 1e-6
+            if (!line.contains(Regex("(?:^|\\s)E-?\\d")) && hasXyMove && nextZ > nominalLayerZ + 0.15) {
+                currentRun++
+                longestRun = maxOf(longestRun, currentRun)
+            } else {
+                currentRun = 0
+            }
+            x = nextX
+            y = nextY
+            z = nextZ
+        }
+        return longestRun
     }
 
     private fun layerZValues(gcode: String): List<Double> =

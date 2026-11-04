@@ -779,22 +779,24 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
         this->set_current_position_clear(true);
         return this->travel_to_xy(to_2d(point));
     }
-    else {
-        /*  In all the other cases, we perform an actual XYZ move and cancel
-            the lift. */
-        m_lifted = 0;
-    }
+    // When a lifted nozzle must finish below its current height, keep it lifted over the print
+    // and descend only after reaching the target XY position.
+    const bool descend_after_xy = m_lifted > EPSILON && point(2) < m_pos(2) - EPSILON &&
+        this->is_current_position_clear() && (to_2d(point) - to_2d(m_pos)).norm() > EPSILON;
+    // Otherwise move to the requested Z in one operation, as before.
+    m_lifted = 0;
 
     //BBS: take plate offset into consider
     Vec3d point_on_plate = { dest_point(0) - m_x_offset, dest_point(1) - m_y_offset, dest_point(2) };
     std::string out_string;
     GCodeG1Formatter w(this->high_precision());
-    if (!this->is_current_position_clear())
+    if (!this->is_current_position_clear() || descend_after_xy)
     {
-        //force to move xy first then z after filament change
+        // Move in XY at the current lifted height, then descend vertically at the destination.
         w.emit_xy(Vec2d(point_on_plate.x(), point_on_plate.y()));
         w.emit_f(this->config.travel_speed.value * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+        m_pos = Vec3d(dest_point.x(), dest_point.y(), m_pos(2));
         out_string = w.string() + _travel_to_z(point_on_plate.z(), comment);
     } else {
         GCodeG1Formatter w(this->high_precision());
@@ -807,6 +809,19 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
     m_pos = dest_point;
     this->set_current_position_clear(true);
     return out_string;
+}
+
+std::pair<double, double> GCodeWriter::planned_travel_z(const Vec3d &point, const bool force_z) const
+{
+    double destination_z = point.z();
+    if (std::abs(m_to_lift) > EPSILON) {
+        if ((!this->is_current_position_clear() || m_pos != point) &&
+            m_to_lift + m_pos.z() > point.z())
+            destination_z = m_to_lift + m_pos.z();
+    } else if (!force_z && !this->will_move_z(point.z())) {
+        destination_z = m_pos.z();
+    }
+    return { m_pos.z(), destination_z };
 }
 
 std::string GCodeWriter::travel_to_z(double z, const std::string &comment, bool force)
