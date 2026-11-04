@@ -2,7 +2,7 @@
 
 ## Orca Wipe-Inward-Port — Zwischenstand 2026-11-04
 
-- Ergänzend wurde der Android-Aufrufpfad für Orca-Wipe-Inward begonnen: native Druckoptionen und Invalidierung, Profilkatalog sowie die WipePathHelpers-Geometrie sind lokal integriert.
+- Der Android-Aufrufpfad für Orca-Wipe-Inward ist umgesetzt: native Druckoptionen und Invalidierung, Profilkatalog sowie WipePathHelpers-Geometrie sind integriert. Commit `7a6bdd014d` wurde nach `nightly25` gepusht.
 - Der erste native Link scheiterte, weil die Android-App ihre tatsächliche Slicer-Quelldateiliste in `app/CMakeLists.txt` führt. Nach Ergänzung dort kompiliert `:app:externalNativeBuildSliceTest` erfolgreich für ARM64. Ein Quellkompatibilitätsfehler mit Orkas privater `Polyline::reset_to_linear_move()`-Methode wurde behoben.
 - Verifiziert: native ARM64-Build; Profilkatalog-/Import-Routingtests 15/15 in Debug und 15/15 in Slice; API-36-Emulator-Test `wipeInwardChangesOnlyTheGeneratedWipePathAndKeepsGcodeValid` 1/1. Der echte Würfel-Slice vergleicht markierte Wipe-Extrusionspfade bei deaktivierter/aktivierter Funktion für `inner wall/outer wall` und `inner-outer-inner wall`; beide Reihenfolgen behalten extrudierbare Wipe-Segmente und erzeugen unterschiedliche Wipe-Geometrie. Der Slice-Test prüft außerdem, dass Optionen den nativen Config-Export erreichen.
 - Kein Druck auf physischer Hardware; kein Release. Als verifizierter Orca-Verhaltenspunkt zählt dieser Port jetzt als **Batch 11, 8/10**. Batch-APK/Release bleibt bis 10/10 offen.
@@ -10,11 +10,11 @@
 
 ## Fortsetzung 2026-11-04 — aktueller HEAD nachverifiziert
 
-- Code-HEAD `a5bced9b301632a85815f928608ef36eb98f30cd`, Branch `codex/nightly-batch11-next`; Arbeitsbaum vor dem Nachtest sauber.
+- Code-HEAD zum damaligen Regressionstest `a5bced9b301632a85815f928608ef36eb98f30cd`, Branch `codex/nightly-batch11-next`; der anschließende Wipe-Inward-Port ist `7a6bdd014d`.
 - Auf dem API-36-AVD `solidcraft_port_test_clean_20261101` den bereits portierten Orca-Fix für deterministische organische Tree-Supports erneut gegen den aktuellen HEAD geprüft: `NativeSliceDeviceTest#organicTreeSupportPathsAreStableAcrossRepeatedSlices` 1/1, 0 Fehler/Errors/Skips. XML-Testzeit 84,48 s; drei echte Slices erzeugten identische geordnete Support-Extrusionspfade. Dies ist eine frische Regressionbestätigung, kein neuer Batch-Punkt.
 - Adaptive GPU-Vorschau und Nightly-Paket-/Speicherisolation sind bereits implementiert; keine doppelte Umsetzung oder Batch-Zählung.
-- Upstream-Kandidatenaudit: `0b041740b1` (Wipe-Inward) ist jetzt lokal portiert und durch einen echten Slice-G-Code-Test abgedeckt (siehe oben). Die zuvor geprüften anderen Änderungen im aktuellen Orca-Stapel sind im Nightly bereits enthalten oder an Desktop-/Cloud-Plugin-Komponenten gebunden und zählen nicht als neue Android-Features. Der Upstream wurde am 2026-11-04 bis `9281032fdc` aktualisiert; der neueste Cloud-Plugin-Hinweis ist im Nightly nicht anwendbar.
-- ADB bestätigt nur den Android-16-AVD; ein Xiaomi ist in dieser Ausführung nicht angeschlossen. Batch 11 steht bei 8/10. Nächste konkrete Arbeit: nach einem noch fehlenden Android-erreichbaren Orca-Verhalten mit isoliertem G-Code-/UI-Nachweis suchen; keine APK oder Release vor 10/10 und gebündelter Regression.
+- Upstream-Kandidatenaudit: `0b041740b1` (Wipe-Inward) ist portiert, getestet, committet und gepusht. Der Upstream wurde am 2026-11-04 bis `9281032fdc` aktualisiert; dessen Cloud-Plugin-Benachrichtigung ist für Android nicht anwendbar. Weitere Kandidaten wurden im Android-Code geprüft: Primitive-Größendialog, CGAL-Boolean-Isolated-Vertex-Bereinigung, leere Layer bei Raft, Flow-Ratio-Validierung, Anordnung sowie Filament-für-Features-Normalisierung sind bereits umgesetzt oder verhalten sich aufgrund Android-spezifischer Aufrufpfade anders.
+- ADB bestätigt nur den Android-16-AVD; ein Xiaomi ist in dieser Ausführung nicht angeschlossen. Batch 11 steht bei 8/10; vollständige Batch-Regression, APK und Nightly-Release bleiben offen. Nächste konkrete Arbeit: den Orca-2.5-Änderungsstapel weiter nach einer fehlenden Android-tauglichen Laufzeitfunktion durchsuchen und erst dann gezielt implementieren und verifizieren.
 
 ## Historischer Zwischenstand — Batch 11, Punkt 7/10: Bounds-Schutz für bemalte Multi-Material-Segmentierung
 
