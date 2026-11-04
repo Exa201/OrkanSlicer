@@ -4820,7 +4820,7 @@ extern "C" {
         return result;
     }
 
-    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1brush(JNIEnv* env, jclass, jlong sessionPtr, jdoubleArray hitArr, jint facetStart, jdouble radius, jint filamentIdx, jdoubleArray cameraArr, jboolean sphere) {
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1brush(JNIEnv* env, jclass, jlong sessionPtr, jdoubleArray hitArr, jint facetStart, jdouble radius, jint filamentIdx, jdoubleArray cameraArr, jboolean sphere, jdouble highlightAngle) {
         PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
         if (!s || !hitArr || env->GetArrayLength(hitArr) < 5 || !cameraArr || env->GetArrayLength(cameraArr) < 3) return;
         jdouble* h = env->GetDoubleArrayElements(hitArr, JNI_FALSE);
@@ -4855,10 +4855,10 @@ extern "C" {
             hit, camera_local.cast<float>(), (float)radius,
             sphere ? TriangleSelector::CursorType::SPHERE : TriangleSelector::CursorType::CIRCLE,
             mesh_to_world, TriangleSelector::ClippingPlane());
-        volume->selector->select_patch(facetStart, std::move(cursor), paint_state(filamentIdx), no_translation, true);
+        volume->selector->select_patch(facetStart, std::move(cursor), paint_state(filamentIdx), no_translation, true, (float)highlightAngle);
     }
 
-    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1bucket(JNIEnv* env, jclass, jlong sessionPtr, jdoubleArray hitArr, jint facetStart, jint filamentIdx, jboolean propagate, jdouble angle) {
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1bucket(JNIEnv* env, jclass, jlong sessionPtr, jdoubleArray hitArr, jint facetStart, jint filamentIdx, jboolean propagate, jdouble angle, jdouble highlightAngle) {
         PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
         if (!s || !hitArr || env->GetArrayLength(hitArr) < 5) return;
         jdouble* h = env->GetDoubleArrayElements(hitArr, JNI_FALSE);
@@ -4871,17 +4871,22 @@ extern "C" {
         const Vec3f hit = (volume->mesh_to_world.inverse() * world_hit).cast<float>();
         if (facetStart < 0 || facetStart >= (int)volume->mesh.its.indices.size()) return;
         TriangleSelector::ClippingPlane clipping;
-        volume->selector->bucket_fill_select_triangles(hit, facetStart, clipping, (float)angle, propagate, true);
+        Transform3d no_translation = volume->mesh_to_world;
+        no_translation.translation() = Vec3d::Zero();
+        volume->selector->bucket_fill_select_triangles(hit, facetStart, clipping, (float)angle, propagate, true,
+                                                       (float)highlightAngle, no_translation);
         volume->selector->seed_fill_apply_on_triangles(paint_state(filamentIdx));
     }
 
-    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1height(JNIEnv*, jclass, jlong sessionPtr, jdouble zMin, jdouble zMax, jint filamentIdx) {
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1height(JNIEnv*, jclass, jlong sessionPtr, jdouble zMin, jdouble zMax, jint filamentIdx, jdouble highlightAngle) {
         PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
         if (!s) return;
         const auto state = paint_state(filamentIdx);
         for (const auto& volume_ref : s->volumes) {
             PaintVolumeRef& volume = *volume_ref;
             const auto& its = volume.mesh.its;
+            Transform3d no_translation = volume.mesh_to_world;
+            no_translation.translation() = Vec3d::Zero();
             for (int i = 0; i < (int)its.indices.size(); ++i) {
                 const Vec3i32& tri = its.indices[i];
                 const Vec3d a = volume.mesh_to_world * its.vertices[tri[0]].cast<double>();
@@ -4890,9 +4895,26 @@ extern "C" {
                 const double center_z = (a.z() + b.z() + c.z()) / 3.;
                 if ((center_z >= zMin && center_z <= zMax) ||
                     (a.z() >= zMin && a.z() <= zMax) || (b.z() >= zMin && b.z() <= zMax) ||
-                    (c.z() >= zMin && c.z() <= zMax)) volume.selector->set_facet(i, state);
+                    (c.z() >= zMin && c.z() <= zMax)) {
+                    if (volume.selector->is_overhang_facet(i, (float)highlightAngle, no_translation))
+                        volume.selector->set_facet(i, state);
+                }
             }
         }
+    }
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1overhang_1boundary_1probe(JNIEnv* env, jclass) {
+        const std::vector<Vec3f> vertices{Vec3f(0.f, 0.f, 0.f), Vec3f(1.f, 0.f, 0.f), Vec3f(0.f, -1.f, 1.f)};
+        const std::vector<Vec3i32> faces{Vec3i32(0, 1, 2)};
+        TriangleMesh mesh(vertices, faces);
+        TriangleSelector selector(mesh);
+        const Transform3d identity = Transform3d::Identity();
+        const jint results[] = {
+            selector.is_overhang_facet(0, 45.f, identity) ? 1 : 0,
+            selector.is_overhang_facet(0, 43.5f, identity) ? 1 : 0,
+        };
+        jintArray output = env->NewIntArray(2);
+        env->SetIntArrayRegion(output, 0, 2, results);
+        return output;
     }
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1clear(JNIEnv*, jclass, jlong sessionPtr) {
         PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;

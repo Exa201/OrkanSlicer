@@ -304,8 +304,6 @@ void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&c
         }
     }
 
-    const float highlight_angle_limit = -cos(Geometry::deg2rad(highlight_by_angle_deg));
-
     // BBS
     std::vector<int> start_facets;
     HeightRange* hr_cursor = dynamic_cast<HeightRange*>(m_cursor.get());
@@ -342,7 +340,8 @@ void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&c
             const Vec3f& facet_normal = m_face_normals[m_triangles[facet].source_triangle];
             Matrix3f     normal_matrix = static_cast<Matrix3f>(trafo_no_translate.matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>());
             float        world_normal_z = (normal_matrix* facet_normal).normalized().z();
-            if (!visited[facet] && (highlight_by_angle_deg == 0.f || world_normal_z < highlight_angle_limit)) {
+            const float  inclusive_angle_limit = std::min(highlight_by_angle_deg + 1.f, 90.f);
+            if (!visited[facet] && (highlight_by_angle_deg <= 0.f || world_normal_z < -cos(Geometry::deg2rad(inclusive_angle_limit)))) {
                 if (select_triangle(facet, new_state, triangle_splitting, select_partially)) {
                     // add neighboring facets to list to be processed later
                     for (int neighbor_idx : m_neighbors[facet])
@@ -365,6 +364,20 @@ bool TriangleSelector::is_facet_clipped(int facet_idx, const ClippingPlane &clp)
     return false;
 }
 
+bool TriangleSelector::is_overhang_facet(int facet_idx, float highlight_by_angle_deg, const Transform3d& trafo_no_translate) const
+{
+    if (highlight_by_angle_deg <= 0.f)
+        return true;
+    if (facet_idx < 0 || facet_idx >= int(m_triangles.size()) || !m_triangles[facet_idx].valid())
+        return false;
+    const Vec3f& facet_normal = m_face_normals[m_triangles[facet_idx].source_triangle];
+    const Matrix3f normal_matrix = static_cast<Matrix3f>(trafo_no_translate.matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>());
+    const float world_normal_z = (normal_matrix * facet_normal).normalized().z();
+    // Match Orca's support-paint threshold: include faces exactly on the configured angle.
+    const float inclusive_angle = std::min(highlight_by_angle_deg + 1.f, 90.f);
+    return world_normal_z < -cos(Geometry::deg2rad(inclusive_angle));
+}
+
 void TriangleSelector::seed_fill_select_triangles(const Vec3f &hit, int facet_start, const Transform3d& trafo_no_translate,
                                                   const ClippingPlane &clp, float seed_fill_angle, float highlight_by_angle_deg,
                                                   bool force_reselection)
@@ -382,7 +395,6 @@ void TriangleSelector::seed_fill_select_triangles(const Vec3f &hit, int facet_st
     facet_queue.push(facet_start);
 
     const double facet_angle_limit     = cos(Geometry::deg2rad(seed_fill_angle)) - EPSILON;
-    const float  highlight_angle_limit = -cos(Geometry::deg2rad(highlight_by_angle_deg));
 
     // Depth-first traversal of neighbors of the face hit by the ray thrown from the mouse cursor.
     while (!facet_queue.empty()) {
@@ -392,7 +404,8 @@ void TriangleSelector::seed_fill_select_triangles(const Vec3f &hit, int facet_st
         const Vec3f &facet_normal = m_face_normals[m_triangles[current_facet].source_triangle];
         Matrix3f     normal_matrix  = static_cast<Matrix3f>(trafo_no_translate.matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>());
         float        world_normal_z = (normal_matrix * facet_normal).normalized().z();
-        if (!visited[current_facet] && (highlight_by_angle_deg == 0.f || world_normal_z < highlight_angle_limit)) {
+        const float  inclusive_angle_limit = std::min(highlight_by_angle_deg + 1.f, 90.f);
+        if (!visited[current_facet] && (highlight_by_angle_deg <= 0.f || world_normal_z < -cos(Geometry::deg2rad(inclusive_angle_limit)))) {
             if (m_triangles[current_facet].is_split()) {
                 for (int split_triangle_idx = 0; split_triangle_idx <= m_triangles[current_facet].number_of_split_sides(); ++split_triangle_idx) {
                     assert(split_triangle_idx < int(m_triangles[current_facet].children.size()));
@@ -526,17 +539,25 @@ void TriangleSelector::append_touching_edges(int itriangle, int vertexi, int ver
 }
 
 // BBS: add seed_fill_angle parameter
-void TriangleSelector::bucket_fill_select_triangles(const Vec3f& hit, int facet_start, const ClippingPlane &clp, float seed_fill_angle, bool propagate, bool force_reselection)
+void TriangleSelector::bucket_fill_select_triangles(const Vec3f& hit, int facet_start, const ClippingPlane &clp, float seed_fill_angle, bool propagate, bool force_reselection,
+                                                     float highlight_by_angle_deg, const Transform3d& trafo_no_translate)
 {
     int start_facet_idx = select_unsplit_triangle(hit, facet_start);
-    assert(start_facet_idx != -1);
+    if (start_facet_idx == -1)
+        return;
     // Recompute bucket fill only if the cursor is pointing on facet unselected by bucket fill or a clipping plane is active.
-    if (start_facet_idx == -1 || (m_triangles[start_facet_idx].is_selected_by_seed_fill() && !force_reselection && !clp.is_active()))
+    if (m_triangles[start_facet_idx].is_selected_by_seed_fill() && !force_reselection && !clp.is_active())
         return;
 
     assert(!m_triangles[start_facet_idx].is_split());
     EnforcerBlockerType start_facet_state = m_triangles[start_facet_idx].get_state();
     this->seed_fill_unselect_all_triangles();
+
+    auto is_allowed_overhang = [&](int facet_idx) {
+        return is_overhang_facet(facet_idx, highlight_by_angle_deg, trafo_no_translate);
+    };
+    if (!is_allowed_overhang(start_facet_idx))
+        return;
 
     if (!propagate) {
         m_triangles[start_facet_idx].select_by_seed_fill();
@@ -577,7 +598,7 @@ void TriangleSelector::bucket_fill_select_triangles(const Vec3f& hit, int facet_
 
             std::vector<int> touching_triangles = get_all_touching_triangles(current_facet, neighbors[current_facet], neighbors_propagated[current_facet]);
             for(const int tr_idx : touching_triangles) {
-                if (tr_idx < 0 || visited[tr_idx] || m_triangles[tr_idx].get_state() != start_facet_state || is_facet_clipped(tr_idx, clp))
+                if (tr_idx < 0 || visited[tr_idx] || m_triangles[tr_idx].get_state() != start_facet_state || is_facet_clipped(tr_idx, clp) || !is_allowed_overhang(tr_idx))
                     continue;
 
                 const Vec3f& n1 = m_face_normals[m_triangles[tr_idx].source_triangle];

@@ -347,11 +347,13 @@ class Native {
     @JvmStatic
     external fun paint_raycast(sessionPtr: Long, origin: DoubleArray, dir: DoubleArray): DoubleArray
     @JvmStatic
-    external fun paint_brush(sessionPtr: Long, hit: DoubleArray, facetStart: Int, radius: Double, filamentIdx: Int, cameraPos: DoubleArray, sphere: Boolean): Unit
+    external fun paint_brush(sessionPtr: Long, hit: DoubleArray, facetStart: Int, radius: Double, filamentIdx: Int, cameraPos: DoubleArray, sphere: Boolean, overhangAngle: Double): Unit
     @JvmStatic
-    external fun paint_bucket(sessionPtr: Long, hit: DoubleArray, facetStart: Int, filamentIdx: Int, propagate: Boolean, angle: Double): Unit
+    external fun paint_bucket(sessionPtr: Long, hit: DoubleArray, facetStart: Int, filamentIdx: Int, propagate: Boolean, angle: Double, overhangAngle: Double): Unit
     @JvmStatic
-    external fun paint_height(sessionPtr: Long, zMin: Double, zMax: Double, filamentIdx: Int): Unit
+    external fun paint_height(sessionPtr: Long, zMin: Double, zMax: Double, filamentIdx: Int, overhangAngle: Double): Unit
+    @JvmStatic
+    external fun paint_overhang_boundary_probe(): IntArray
     @JvmStatic
     external fun paint_begin_stroke(sessionPtr: Long): Unit
     @JvmStatic
@@ -369,9 +371,9 @@ class Native {
     @JvmStatic
     external fun paint_clear(sessionPtr: Long): Unit
     @JvmStatic
-    external fun paint_commit(sessionPtr: Long): Unit
-    @JvmStatic
     external fun paint_get_mesh(sessionPtr: Long, filamentIdx: Int): FloatArray
+    @JvmStatic
+    external fun paint_commit(sessionPtr: Long): Unit
     @JvmStatic
     external fun glmodel_init_from_paint(glPtr: Long, sessionPtr: Long, filamentIdx: Int, baseFilamentPreview: Int): Int
     @JvmStatic

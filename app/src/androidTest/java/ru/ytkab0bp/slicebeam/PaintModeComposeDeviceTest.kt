@@ -79,6 +79,25 @@ class PaintModeComposeDeviceTest {
     }
 
     @Test
+    fun supportPaintShowsOverhangFilterAndThresholdOnlyWhenEnabled() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        lateinit var glView: GLView
+        compose.runOnUiThread { glView = GLView(context) }
+        compose.setContent {
+            BeamComposeTheme {
+                PaintModePanel(glView, GLRenderer.PAINT_MODE_SUPPORT, {}, {})
+            }
+        }
+
+        val filter = context.getString(R.string.PaintOverhangOnly)
+        compose.onNodeWithText(filter).assertIsDisplayed().performClick()
+        compose.onNodeWithText(context.getString(R.string.PaintOverhangAngle, 45)).assertIsDisplayed()
+        compose.onNodeWithTag("paint-overhang-angle").assertIsDisplayed()
+        compose.onNodeWithText(filter).performClick()
+        compose.onNodeWithTag("paint-overhang-angle").assertDoesNotExist()
+    }
+
+    @Test
     fun colorPaintUsesOnePaletteAndSeparatesBaseFromBrushColor() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         lateinit var glView: GLView

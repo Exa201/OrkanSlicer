@@ -294,6 +294,9 @@ public:
     // Called by select_patch() internally. Made public for debugging purposes, see TriangleSelectorGUI::render_debug().
     void set_edge_limit(float edge_limit);
 
+    // Test a source facet against a build-plate overhang angle after its world transform.
+    bool is_overhang_facet(int facet_idx, float highlight_by_angle_deg, const Transform3d &trafo_no_translate) const;
+
     // Create new object on a TriangleMesh. The referenced mesh must
     // stay valid, a ptr to it is saved and used.
     explicit TriangleSelector(const TriangleMesh& mesh, float edge_limit = 0.6f);
@@ -324,7 +327,9 @@ public:
                                       const ClippingPlane &clp,                        // Clipping plane to limit painting to not clipped facets only
                                       float                seed_fill_angle,            // BBS: the maximal angle between two facets to be painted by the same color
                                       bool                 propagate,                  // if bucket fill is propagated to neighbor faces or if it fills the only facet of the modified mesh that the hit point belongs to.
-                                      bool                 force_reselection = false); // force reselection of the triangle mesh even in cases that mouse is pointing on the selected triangle
+                                      bool                 force_reselection,
+                                      float                highlight_by_angle_deg,
+                                      const Transform3d   &trafo_no_translate); // Restrict fill to downward-facing overhang facets, in world coordinates.
 
     bool                 has_facets(EnforcerBlockerType state) const;
     static bool          has_facets(const TriangleSplittingData &data, EnforcerBlockerType test_state);

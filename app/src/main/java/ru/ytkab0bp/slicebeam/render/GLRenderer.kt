@@ -187,6 +187,9 @@ var paintTool = PAINT_TOOL_BRUSH
 var paintBrushRadius = 4.0 // mm
 var heightBandWidth = 10.0 // mm
 var bucketAngleThreshold = 30.0 // degrees
+/** Support-paint overhang-only filter; configured by the active Compose paint panel. */
+@Volatile var paintOverhangOnly = false
+@Volatile var paintOverhangAngle = 45.0 // degrees from the build plate
 var isBrushSphere = false
 private var paintPalette = IntArray(0)
 private var previewPaletteModel: Model? = null
@@ -2431,18 +2434,19 @@ if (Prefs.isOrthoProjectionEnabled()) {
 }
 val hit = paintSession!!.raycast(origin.asDoubleArray(), direction.asDoubleArray()) ?: return
 if (hit.size < 5) return
+val overhangAngle = if (paintModeKind == PAINT_MODE_SUPPORT && paintOverhangOnly) paintOverhangAngle else 0.0
 if (paintTool == PAINT_TOOL_BUCKET)
 {
-paintSession!!.bucket(hit, -1, paintFilament, true, bucketAngleThreshold)
+paintSession!!.bucket(hit, -1, paintFilament, true, bucketAngleThreshold, overhangAngle)
 }
 else if (paintTool == PAINT_TOOL_HEIGHT)
 {
 val halfW = heightBandWidth / 2.0
-paintSession!!.height(hit[4] - halfW, hit[4] + halfW, paintFilament)
+paintSession!!.height(hit[4] - halfW, hit[4] + halfW, paintFilament, overhangAngle)
 }
 else
 {
-paintSession!!.brush(hit, -1, paintBrushRadius, paintFilament, camera.position.asDoubleArray(), isBrushSphere)
+paintSession!!.brush(hit, -1, paintBrushRadius, paintFilament, camera.position.asDoubleArray(), isBrushSphere, overhangAngle)
 }
 // Keep the native draft live while avoiding a full palette rebuild for every interpolated
 // point of a coalesced touch segment. Stroke completion always forces one final refresh.

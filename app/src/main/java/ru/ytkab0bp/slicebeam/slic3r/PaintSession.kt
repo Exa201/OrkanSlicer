@@ -22,12 +22,17 @@ open class PaintSession(model: Model, objIdx: Int, mode: Int) {
         filamentIdx: Int,
         cameraPos: DoubleArray,
         sphere: Boolean,
-    ) = Native.paint_brush(ptr, hit, facetStart, radius, filamentIdx, cameraPos, sphere)
+        overhangAngle: Double = 0.0,
+    ) = Native.paint_brush(ptr, hit, facetStart, radius, filamentIdx, cameraPos, sphere, overhangAngle)
 
-    open fun bucket(hit: DoubleArray, facetStart: Int, filamentIdx: Int, propagate: Boolean, angle: Double) =
-        Native.paint_bucket(ptr, hit, facetStart, filamentIdx, propagate, angle)
+    open fun bucket(hit: DoubleArray, facetStart: Int, filamentIdx: Int, propagate: Boolean, angle: Double, overhangAngle: Double = 0.0) =
+        Native.paint_bucket(ptr, hit, facetStart, filamentIdx, propagate, angle, overhangAngle)
 
-    open fun height(zMin: Double, zMax: Double, filamentIdx: Int) = Native.paint_height(ptr, zMin, zMax, filamentIdx)
+    open fun height(zMin: Double, zMax: Double, filamentIdx: Int, overhangAngle: Double = 0.0) =
+        Native.paint_height(ptr, zMin, zMax, filamentIdx, overhangAngle)
+
+    /** Mesh preview for one facet state (1=enforcer, 2=blocker, 0=erase). */
+    open fun getMesh(filamentIdx: Int): FloatArray = Native.paint_get_mesh(ptr, filamentIdx)
 
     /** Stroke boundaries are owned by the GL touch stream; snapshots stay bounded in native memory. */
     open fun beginStroke() = Native.paint_begin_stroke(ptr)

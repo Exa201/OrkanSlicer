@@ -66,6 +66,8 @@ internal fun PaintModePanel(
     var brushRadius by remember { mutableFloatStateOf(4f) }
     var heightBand by remember { mutableFloatStateOf(10f) }
     var bucketAngle by remember { mutableFloatStateOf(30f) }
+    var overhangOnly by remember { mutableStateOf(false) }
+    var overhangAngle by remember { mutableFloatStateOf(45f) }
     var canUndoStroke by remember { mutableStateOf(false) }
     var canRedoStroke by remember { mutableStateOf(false) }
     val historyObserver: (Boolean, Boolean) -> Unit = remember(glView) {
@@ -79,13 +81,15 @@ internal fun PaintModePanel(
         }
     }
 
-    LaunchedEffect(glView, mode) {
+    LaunchedEffect(glView, mode, overhangOnly, overhangAngle) {
         onGl {
             glView.renderer.paintFilament = selectedFilament
             glView.renderer.paintTool = selectedTool
             glView.renderer.paintBrushRadius = brushRadius.toDouble()
             glView.renderer.heightBandWidth = heightBand.toDouble()
             glView.renderer.bucketAngleThreshold = bucketAngle.toDouble()
+            glView.renderer.paintOverhangOnly = mode == GLRenderer.PAINT_MODE_SUPPORT && overhangOnly
+            glView.renderer.paintOverhangAngle = overhangAngle.toDouble()
             glView.renderer.isBrushSphere = brushSphere
         }
     }
@@ -159,6 +163,29 @@ internal fun PaintModePanel(
                             selected = selectedFilament == value,
                             onClick = { selectedFilament = value; onGl { glView.renderer.paintFilament = value } },
                             label = { Text(stringResource(label)) },
+                        )
+                    }
+                }
+                if (mode == GLRenderer.PAINT_MODE_SUPPORT) {
+                    FilterChip(
+                        selected = overhangOnly,
+                        onClick = {
+                            overhangOnly = !overhangOnly
+                            onGl { glView.renderer.paintOverhangOnly = overhangOnly }
+                        },
+                        label = { Text(stringResource(R.string.PaintOverhangOnly)) },
+                        modifier = Modifier.testTag("paint-overhang-only"),
+                    )
+                    if (overhangOnly) {
+                        Text(stringResource(R.string.PaintOverhangAngle, overhangAngle.toInt()))
+                        Slider(
+                            value = overhangAngle,
+                            onValueChange = {
+                                overhangAngle = it
+                                onGl { glView.renderer.paintOverhangAngle = it.toDouble() }
+                            },
+                            valueRange = 15f..90f,
+                            modifier = Modifier.testTag("paint-overhang-angle"),
                         )
                     }
                 }

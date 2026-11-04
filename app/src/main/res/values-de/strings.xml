@@ -1274,6 +1274,8 @@
     <string name="MeasureValueMillimeters">%1$s mm</string>
     <string name="PaintHeightBand">Höhenbereich: %1$.1f mm</string>
     <string name="PaintAngleLimit">Winkelgrenze: %1$d°</string>
+    <string name="PaintOverhangOnly">Nur Überhänge bemalen</string>
+    <string name="PaintOverhangAngle">Überhangwinkel: %1$d°</string>
     <string name="EmbossTitle">Text prägen</string>
     <string name="EmbossFontLabel">Schriftart für 3D-Text</string>
     <string name="EmbossFontRoboto">Sans</string>

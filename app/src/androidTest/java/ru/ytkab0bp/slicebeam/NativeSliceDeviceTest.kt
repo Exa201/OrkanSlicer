@@ -4959,6 +4959,64 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun supportPaintOverhangFilterRestrictsBrushBucketAndHeightToDownwardFaces() = withKobraProfile {
+        assertArrayEquals(
+            "The overhang-angle tolerance includes a face on the configured threshold but not one 1.5 degrees below it",
+            intArrayOf(1, 0),
+            Native.paint_overhang_boundary_probe(),
+        )
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = copyCube(context, "support-overhang-paint-cube.stl")
+        val model = Model(source)
+        try {
+            model.ensureOnBed(0)
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val paint = PaintSession(model, 0, GLRenderer.PAINT_MODE_SUPPORT)
+            try {
+                assertTrue("The cube must initialize a support paint session", paint.isValid())
+                fun ray(z: Double, direction: Double): DoubleArray = requireNotNull(
+                    paint.raycast(
+                        doubleArrayOf((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, z),
+                        doubleArrayOf(0.0, 0.0, direction),
+                    ),
+                ) { "The vertical ray must hit the cube surface" }
+
+                val top = ray(max.z + 5.0, -1.0)
+                paint.brush(top, -1, 3.0, 1, doubleArrayOf(top[2], top[3], max.z + 5.0), false, 45.0)
+                assertTrue("The overhang filter must reject the upward-facing top for brush paint", paint.getMesh(1).isEmpty())
+                paint.bucket(top, -1, 1, false, 30.0, 45.0)
+                assertTrue("The overhang filter must reject the upward-facing top for bucket paint", paint.getMesh(1).isEmpty())
+
+                paint.clear()
+                val bottom = ray(min.z - 5.0, 1.0)
+                paint.bucket(bottom, -1, 1, false, 30.0, 45.0)
+                assertTrue("The overhang filter must accept the downward-facing bottom for bucket paint", paint.getMesh(1).isNotEmpty())
+
+                paint.clear()
+                paint.height(min.z - 0.1, max.z + 0.1, 1)
+                val unfilteredHeightMeshSize = paint.getMesh(1).size
+                assertTrue("The unfiltered height band must select the cube surfaces", unfilteredHeightMeshSize > 0)
+                paint.clear()
+                paint.height(min.z - 0.1, min.z + 0.1, 1, 45.0)
+                val filteredHeightMeshSize = paint.getMesh(1).size
+                assertTrue("Height paint must retain bottom overhang facets", filteredHeightMeshSize > 0)
+                assertTrue("Height paint must reject the vertical sides selected by its unfiltered range",
+                    filteredHeightMeshSize < unfilteredHeightMeshSize)
+
+                paint.clear()
+                paint.brush(top, -1, 3.0, 1, doubleArrayOf(top[2], top[3], max.z + 5.0), false, 0.0)
+                assertTrue("A disabled angle filter must preserve ordinary top-face painting", paint.getMesh(1).isNotEmpty())
+            } finally {
+                paint.end()
+            }
+        } finally {
+            model.release()
+            source.delete()
+        }
+    }
+
+    @Test
     fun booleanUnionPreservesExistingEngravedNegativeVolumeThroughReloadAndSlice() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val cubeFile = copyCube(context, "boolean-negative-volume-cube.stl")
