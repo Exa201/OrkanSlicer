@@ -196,6 +196,39 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun fillBedStillTriesExactPackingWhenGridEstimateIsZero() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "fill-bed-zero-estimate-cube.stl")
+        val model = Model(modelFile)
+        try {
+            model.setUniformFilament(0, 2)
+            val copies = FillBedModelOperation.run(
+                activeModel = model,
+                objectIndex = 0,
+                viewerEnabled = false,
+                estimatedCapacity = 0,
+            ) { candidate ->
+                // Simulates a rotated/concave exact footprint succeeding after the coarse grid
+                // estimator rejected its unrotated bounding rectangle.
+                candidate.translate(1, 20.0, 0.0, 0.0)
+                true
+            }
+
+            assertEquals("zero coarse capacity must still permit one exact-fit copy", 1, copies)
+            assertEquals("the accepted source and copy must both be committed", 2, model.objectsCount)
+            assertEquals("the source material assignment must remain intact", listOf(2),
+                model.getUsedFilaments(0).toList())
+            assertEquals("the copied material assignment must remain intact", listOf(2),
+                model.getUsedFilaments(1).toList())
+            val source = Vec3d().also { model.getTranslation(0, it) }
+            val copy = Vec3d().also { model.getTranslation(1, it) }
+            assertEquals("the exact placement from the accepted packing trial must be kept",
+                20.0, copy.x - source.x, 0.001)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun fillBedExceptionRollsBackTrialCopiesAndSourcePlacement() {
         val modelFile = copyAsset("models/xyz_cube.stl", "fill-bed-exception-cube.stl")
         val model = Model(modelFile)

@@ -19,9 +19,10 @@ internal object FillBedModelOperation {
         if (viewerEnabled || objectIndex !in 0 until activeModel.objectsCount) return 0
         val maxAttempts = FillBedPlanner.copyAttemptsForLimit(activeModel.objectsCount, MAX_OBJECTS)
         if (maxAttempts == 0) return 0
-        if (estimatedCapacity == 0) return 0
-        // Allow one conservative trial for heterogeneous plates, but never add hundreds of
-        // speculative copies when an estimate is invalid or no grid capacity remains.
+        // The grid estimate is only a search hint. A zero can mean the object's axis-aligned
+        // bounds exceed the plate even though its rotated or concave footprint still packs.
+        // Always ask the exact native arranger about at least one copy before reporting no room.
+        // Never add hundreds of speculative copies when an estimate is invalid.
         val copiesToAdd = minOf(maxOf(estimatedCapacity - activeModel.objectsCount, 1), maxAttempts)
         val originalCount = activeModel.objectsCount
         val originalTranslations = ArrayList<Vec3d>(originalCount)

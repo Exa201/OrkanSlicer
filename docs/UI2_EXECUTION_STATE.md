@@ -1,5 +1,12 @@
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 
+## „Druckplatte füllen“ bricht bei Null-Kapazitätsschätzung zu früh ab — 2026-11-05
+
+- Ursache: `FillBedModelOperation` behandelte die grobe, achsenparallele Rasterkapazität `0` als endgültiges Packversagen und übersprang damit die native exakte Anordnung. Bei gedrehten oder nicht rechteckigen Modellumrissen kann diese Schätzung zu pessimistisch sein.
+- Änderung: Eine Nullschätzung löst jetzt einen einzelnen sicheren nativen Packversuch aus. Die vorhandene atomare Rücksetzung bleibt aktiv; Kopien werden nur bei erfolgreicher Platzierung übernommen.
+- Verifikation: `ModelEditingNativeDeviceTest#fillBedStillTriesExactPackingWhenGridEstimateIsZero` 1/1 sowie `InitialProjectMenuDeviceTest#fillBedRejectsOversizedObjectWithoutChangingItsPlacement` und `#fillBedCopiesPreserveFilamentsAndDistinctPlacementsWithUndoRedo` 2/2 auf Android-16-AVD `solidcraft_clean_api36`. Kein physischer Xiaomi-Test und kein Produkt-APK-Build in diesem Schritt.
+- Nächster Schritt: Mit den tatsächlich betroffenen Modellen „Druckplatte füllen“ und „Alle anordnen“ getrennt auf dem Xiaomi prüfen; bei Bedarf die echte Meshgeometrie als Regression-Fixture ergänzen.
+
 ## Falscher „kein Platz“-Abbruch beim Anordnen/Füllen — 2026-11-04
 
 - Ursache: Die sichtbare Meldung „kein Platz für weitere Kopien“ gehört zum Befehl „Druckplatte füllen“. Dieser Pfad und das explizite Anordnen vertrauten zuerst auf 6 mm Modellabstand; bei dichten, kleinen Teilen konnte der NFP-Packer trotz sichtbarer Restfläche scheitern. Die Füllkapazität wurde außerdem nur aus der ungedrehten Bounding-Box geschätzt.
