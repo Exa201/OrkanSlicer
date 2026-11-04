@@ -1,11 +1,11 @@
-# Nightly 2.5 Fortsetzung — Batch 11, Punkt 5/10 verifiziert — 2026-11-04
+# Nightly 2.5 Fortsetzung — Batch 11, Punkt 6/10 verifiziert — 2026-11-04
 
-## Batch 11 — Punkt 6 in Arbeit: Precise-Z-Sliver-Layer am Prime Tower zusammenführen
+## Batch 11 — Punkt 6/10: Precise-Z-Sliver-Layer am Prime Tower zusammenführen
 
 - Teilportierung von Orca `1c9f6f9318`: ToolOrdering ordnet zu dünne Tower-Layer dem vorherigen Tower-Z zu; Tower-Planung und G-Code-Ausgabe verwenden diese gemeinsame Höhe, erhalten den Tower-Layer-Finish-Zustand und vermeiden Abstieg über das Modell.
-- Regression `NativeSliceDeviceTest#preciseZSliverLayersJoinThePrimeTowerLayerBelowAndStillSlice` ergänzt. ARM64-Native- und Slice-Instrumentierungs-APK-Builds sind erfolgreich; `:app:testSliceTestUnitTest` und `git diff --check` ebenfalls erfolgreich.
-- Der tatsächliche Verhaltenstest ist noch **nicht ausgeführt**: einzig verbundener Emulator ist x86_64, das Nightly paketiert und baut native Bibliotheken nur für ARM64. Der vorhandene ARM64-AVD kann auf diesem x86_64-Host nicht gestartet werden; kein physisches ARM-Gerät ist derzeit per ADB sichtbar. Punkt 6 bleibt daher unbestätigt und zählt noch nicht zu den verifizierten Batch-Punkten.
-- Nächster Schritt: bei verfügbarem ARM64-Gerät den gezielten Sliver-Test ausführen und G-Code-Z-Aussagen prüfen; falls die ARM64-Laufzeit weiter fehlt, Batcharbeit mit unabhängig verifizierbaren Kandidaten fortsetzen und Punkt 6 offen halten.
+- Regression `NativeSliceDeviceTest#preciseZSliverLayersJoinThePrimeTowerLayerBelowAndStillSlice`: echter Slice auf API-36-x86_64-AVD mit ARM64-Übersetzung (`libndk_translation`) bestanden. Der Test prüft T0/T1, Tower-Extrusion, vollständigen G-Code und dass alle Prime-Tower-Extrusions-Z-Werte an tatsächliche Objekt-Layer-Z-Werte angepasst sind. Ergebnis: 1/1 bestanden, 0 Fehler/Skips.
+- ARM64-Native- und Slice-Instrumentierungs-APK-Builds, `:app:testSliceTestUnitTest` und `git diff --check` sind ebenfalls erfolgreich. Der Testlauf installierte und entfernte die isolierten Testpakete erfolgreich.
+- Nächster Schritt: einen noch nicht portierten Orca-Verhaltenspunkt mit aktivem Nightly-Pfad identifizieren; Batch 11 steht bei 6/10. Vollständige Batch-Regression, Debug-APK und Nightly-Release bleiben bis 10/10 aus.
 
 ## Batch 11 — Punkt 5/10: By-object-Rod-Kollisionen anhand der wirklich erreichbaren Geometrie
 
@@ -70,7 +70,7 @@ Batch 11 stand bei 3/10; Punkt 4 war noch nicht getestet.
 - `MainActivityTouchDeviceTest#tappingGeneratedM12AndEmptyPlateDoesNotCrashAndLongPressKeepsActionsCollapsed` prüft die nativen Bounds des tatsächlich gezeichneten Rahmens gegen das bewegte Mesh; Android 16/API 36: 1/1 bestanden, 0 Fehler/Skips. `git diff --check` sauber.
 - Dies ist ein Stabilitätsfix, kein Orca-Nightly-Funktionspunkt. Batch 11 wird separat nach Orca-Verhalten gezählt; APK/Release-Gate unverändert.
 
-## Batch 11 — aktueller Stand
+## Batch 11 — vorheriger Stand vor Punkt 6
 
 - Punkt 1/10 portiert aus Orca `2cb2f0d2e710931b835d1b31282479686d961b47`: vor dem Slicen wird nun gewarnt, wenn Adaptive Pressure Advance für ein tatsächlich verwendetes Filament aktiviert ist, das Modell aber leer ist oder nur Null-Platzhalter enthält. Variantenspalten und verwendete Filament-IDs werden berücksichtigt; die Warnung bleibt eine sichere Fortsetzungsentscheidung und blockiert den Slice nicht.
 - Verifikation: `AdaptivePAModelValidatorTest` 8/8; echter Slice-Gerätetest `NativeSliceDeviceTest#adaptivePressureAdvanceSliceWarnsWhenEnabledFilamentHasNoMeasurements` 1/1 auf Android 16/API 36. Der Slice erzeugt weiterhin G-Code und liefert die erwartete filamentbezogene Warnung. `git diff --check` sauber.
