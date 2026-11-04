@@ -1,4 +1,14 @@
-# Nightly 2.5 Fortsetzung — Batch 11, Punkt 8/10 verifiziert — 2026-11-04
+# Nightly 2.5 Fortsetzung — Batch 11 abgeschlossen, Regression und Release-Gate läuft — 2026-11-04
+
+## Aktueller Nachweis — Batch 11 Punkte 9 und 10 sowie ACE-Routing
+
+- Aktueller Code-HEAD zu Beginn der Prüfung: `f0fb07af9fbd36f55ebc70bdf16c3b45d21e5f5c`, Branch `codex/nightly-batch11-next`, Arbeitsbaum sauber.
+- Orca-Port 9 (`2bd868ecd0`): Referenzen statt Kopien der unveränderlichen `PrintConfig` an den Extrusions-/Stützpfad-Hotspots. ARM64-native Slice-Test-APK gebaut; `NativeSliceDeviceTest#wipeInwardChangesOnlyTheGeneratedWipePathAndKeepsGcodeValid` sowie `#buildPlateOnlyTreeSupportsSliceWithConfiguredObjectClearance` auf Android 16/API 36 mit `libndk_translation` bestanden, je 1/1.
+- Orca-Port 10 (`6aa613ccf0`): Z-Konturierung für mehrere Instanzen eines PrintObject. `NativeSliceDeviceTest#zContouringSlicesMultipleInstancesOfOneObject` auf Android 16/API 36 bestanden, 1/1. Der x86_64-AVD kann die ARM64-App-Bibliotheken über die verfügbare Native-Bridge tatsächlich ausführen.
+- Aktuelle ACE-Routing-Regressions: `:app:testDebugUnitTest` mit `SparseAceRoutingOutputTest`, `MmuColorAssignmentPolicyTest` und `SlicePreparationToolsTest` bestanden. Explizit geprüft wird Slicer-T0 → ACE-Fach 2 → Drucker-/G-Code-Befehl T1; zusätzlich bleibt die 1–16-Werkzeugmatrix im Testbestand.
+- Gebündelte JVM-Regression am selben HEAD: `:app:testDebugUnitTest` 749/749 und `:app:testSliceTestUnitTest` 749/749 bestanden; jeweils 0 Fehler, 0 Errors, 0 Skips.
+- Damit sind alle zehn Batch-11-Punkte verifiziert. Noch offen: Debug-APK frisch für diesen Stand bauen, SHA-256/Metadaten prüfen, Nightly-Prerelease erstellen und Status/Artefakt dort nachweisen. Xiaomi- oder echter Druckertest ist damit nicht belegt.
+- Nächster konkreter Schritt: `:app:assembleDebug`, APK gegen HEAD/Version/isolierte Paket-ID prüfen, danach Nightly-Prerelease hochladen; anschließend Batch 12 anhand des aktuellen Orca-Upstream-Diffs auswählen.
 
 ## Fortsetzung 2026-11-04 — Orca Core Ports 9 und 10 vorbereitet
 
