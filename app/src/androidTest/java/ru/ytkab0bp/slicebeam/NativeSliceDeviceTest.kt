@@ -46,6 +46,37 @@ import java.util.zip.CRC32
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test(timeout = 120_000)
+    fun malformedOtherLayerPrintSequenceIsIgnoredAndStillSlices() = withKobraProfile {
+        assertArrayEquals(
+            "Malformed layer-sequence groups must be ignored while valid groups still parse",
+            intArrayOf(1, 1, 1, 1, 1),
+            Native.other_layers_print_sequence_regression_probe(),
+        )
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        process.put("other_layers_print_sequence_nums", "2")
+        process.put("other_layers_print_sequence", "1")
+        val source = copyCube(context, "malformed-other-layer-sequence.stl")
+        val configFile = SliceBeam.getCurrentConfigFile()
+        var model: Model? = null
+        try {
+            model = Model(source).also { it.ensureOnBed(0) }
+            SliceBeam.genCurrentConfig(model)
+            val generatedConfig = configFile.readText()
+            assertTrue("The malformed group count must reach the native slice config", generatedConfig.contains("other_layers_print_sequence_nums = 2"))
+            assertTrue("The mismatched sequence values must reach the native slice config", generatedConfig.contains("other_layers_print_sequence = 1"))
+
+            val gcode = sliceToGcode(context, model, "malformed-other-layer-sequence.gcode")
+            assertHasExtrusion(gcode)
+        } finally {
+            model?.release()
+            source.delete()
+            configFile.delete()
+        }
+    }
+
+    @Test(timeout = 120_000)
     fun wipeInwardChangesOnlyTheGeneratedWipePathAndKeepsGcodeValid() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)
@@ -6774,7 +6805,7 @@ class NativeSliceDeviceTest {
     }
 
     @Test(timeout = 120_000)
-    fun spiralVaseAcceptsSingleFilamentHeightRangeOverrideAndProducesGcode() = withKobraProfile {
+    fun spiralVaseAcceptsMultipleHeightRangeOverridesAndProducesGcode() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
         process.put("spiral_mode", "1")
@@ -6788,6 +6819,8 @@ class NativeSliceDeviceTest {
             model = Model(source).also { it.ensureOnBed(0) }
             assertTrue("The native model must accept an object-local height-range override",
                 Native.model_add_layer_range_test_config(model.pointer, 0.4, 1.2, 0.2, 42.0))
+            assertTrue("The vase regression must also create a second, disjoint height range",
+                Native.model_add_layer_range_test_config(model.pointer, 1.2, 2.0, 0.2, 48.0))
 
             val gcode = sliceToGcode(context, model, "spiral-height-range-override.gcode")
             assertHasExtrusion(gcode)
@@ -6803,7 +6836,7 @@ class NativeSliceDeviceTest {
             assertTrue("The layer-range vase fixture must slice multiple layers", wallTypesByLayer.size > 3)
             assertTrue("Vase-mode layers above the configured bottom shell must not generate inner walls: $wallTypesByLayer",
                 wallTypesByLayer.filterKeys { it >= 1 }.values.none { "Inner wall" in it })
-            Log.i("NativeSliceDeviceTest", "PASS single-filament spiral vase with height-range speed override")
+            Log.i("NativeSliceDeviceTest", "PASS single-filament spiral vase with multiple height-range overrides")
         } finally {
             model?.release()
             source.delete()

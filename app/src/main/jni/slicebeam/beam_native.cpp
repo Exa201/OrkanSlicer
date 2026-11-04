@@ -25,6 +25,7 @@
 #include "libslic3r/Emboss.hpp"
 #include "libslic3r/NSVGUtils.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/ParameterUtils.hpp"
 #include "libslic3r/CurledExtrusionUtils.hpp"
 #include "libslic3r/PaintedSegmentationPolicy.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
@@ -5914,6 +5915,25 @@ extern "C" {
         jintArray result = env->NewIntArray(4);
         if (result != nullptr)
             env->SetIntArrayRegion(result, 0, 4, checks);
+        return result;
+    }
+
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_other_1layers_1print_1sequence_1regression_1probe(JNIEnv* env, jclass) {
+        jint checks[5] = { 0, 0, 0, 0, 0 };
+        checks[0] = get_other_layers_print_sequence(0, { 1, 2, 3 }).empty();
+        checks[1] = get_other_layers_print_sequence(-1, { 1, 2, 3 }).empty();
+        checks[2] = get_other_layers_print_sequence(2, { 1 }).empty();
+        checks[3] = get_other_layers_print_sequence(2, { 1, 2, 3, 4, 5 }).empty() &&
+            get_other_layers_print_sequence(1, { 10, 20 }).empty();
+
+        const auto valid = get_other_layers_print_sequence(2, { 10, 20, 0, 2, 30, 40, 1, 3 });
+        checks[4] = valid.size() == 2 && valid[0].first == std::make_pair(10, 20) &&
+            valid[0].second == std::vector<int>({ 0, 2 }) && valid[1].first == std::make_pair(30, 40) &&
+            valid[1].second == std::vector<int>({ 1, 3 });
+
+        jintArray result = env->NewIntArray(5);
+        if (result != nullptr)
+            env->SetIntArrayRegion(result, 0, 5, checks);
         return result;
     }
 

@@ -80,6 +80,9 @@ class Native {
     /** Exercises sparse-infill line joining, loop avoidance, and crossing rejection. */
     @JvmStatic
     external fun joined_infill_regression(): IntArray
+    /** Exercises malformed and valid custom layer-sequence parsing through the production helper. */
+    @JvmStatic
+    external fun other_layers_print_sequence_regression_probe(): IntArray
     /** Verifies that opened Lightning overhang samples are included in the update-grid bounds. */
     @JvmStatic
     external fun lightning_distance_field_bounds_probe(): IntArray

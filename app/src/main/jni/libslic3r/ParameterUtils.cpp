@@ -1,4 +1,6 @@
 #include "ParameterUtils.hpp"
+#include "PrintConfig.hpp"
+#include <boost/log/trivial.hpp>
 #include <cassert>
 
 namespace Slic3r {
@@ -6,19 +8,26 @@ namespace Slic3r {
 std::vector<LayerPrintSequence> get_other_layers_print_sequence(int sequence_nums, const std::vector<int> &sequence)
 {
     std::vector<LayerPrintSequence> res;
-    if (sequence_nums == 0 || sequence.empty())
+    if (sequence_nums <= 0 || sequence.empty())
         return res;
 
-    assert(sequence.size() % sequence_nums == 0);
+    // These options are normally written together by the UI, but imported or
+    // manually edited project configs may contain a stale group count. Reject
+    // malformed groups before indexing their layer range or extruder list.
+    const size_t group_count = static_cast<size_t>(sequence_nums);
+    const size_t item_nums = sequence.size() / group_count;
+    if (sequence.size() % group_count != 0 || item_nums < 3) {
+        BOOST_LOG_TRIVIAL(warning) << "other_layers_print_sequence_nums " << sequence_nums << " does not fit the "
+                                   << sequence.size() << " values of other_layers_print_sequence, ignoring the custom sequence";
+        return res;
+    }
 
     res.reserve(sequence_nums);
-    size_t item_nums = sequence.size() / sequence_nums;
 
     for (int i = 0; i < sequence_nums; ++i) {
         std::vector<int> item;
         item.assign(sequence.begin() + i * item_nums, sequence.begin() + ((i + 1) * item_nums));
 
-        assert(item.size() > 2);
         std::pair<std::pair<int, int>, std::vector<int>> res_item;
         res_item.first.first  = item[0];
         res_item.first.second = item[1];
