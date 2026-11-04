@@ -108,7 +108,8 @@ public:
     }
 
     std::string prime(GCode &gcodegen);
-    void next_layer() { ++ m_layer_idx; m_tool_change_idx = 0; }
+    void next_layer() { ++ m_layer_idx; m_tool_change_idx = 0; m_layer_joined = false; }
+    void join_layer() { m_layer_joined = true; }
     std::string tool_change(GCode &gcodegen, int extruder_id, bool finish_layer);
     bool is_empty_wipe_tower_gcode(GCode &gcodegen, int extruder_id, bool finish_layer);
     std::string finalize(GCode &gcodegen);
@@ -127,6 +128,8 @@ private:
     std::string append_tcr(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
     Polyline generate_path_to_wipe_tower(const Point &start_pos, const Point &end_pos, const BoundingBox &avoid_polygon, const BoundingBox &printer_bbx) const;
     std::string append_tcr2(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
+    // Common tower Z for the current group of object layers joined to one tower layer.
+    double joined_tower_z() const { return m_tool_changes[m_layer_idx].front().print_z + m_print_config->z_offset.value; }
 
     // Postprocesses gcode: rotates and moves G1 extrusions and returns result
     std::string post_process_wipe_tower_moves(const WipeTower::ToolChangeResult& tcr, const Vec2f& translation, float angle) const;
@@ -145,6 +148,7 @@ private:
     int                                                          m_layer_idx;
     int                                                          m_tool_change_idx;
     double                                                       m_last_wipe_tower_print_z;
+    bool                                                         m_layer_joined = false;
 
     // BBS
     Vec3d                                                        m_plate_origin;

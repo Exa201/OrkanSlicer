@@ -164,6 +164,9 @@ public:
     // and to support the wipe tower partitions above this one.
     size_t                      wipe_tower_partitions = 0;
     coordf_t 					wipe_tower_layer_height = 0.;
+    coordf_t                    wipe_tower_print_z = 0.;
+    bool                        wipe_tower_layer_ends = true;
+    bool joins_wipe_tower_layer_below() const { return has_wipe_tower && wipe_tower_print_z != print_z; }
     // Custom G-code (color change, extruder switch, pause) to be performed before this layer starts to print.
     const CustomGCode::Item    *custom_gcode = nullptr;
 

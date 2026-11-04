@@ -1,5 +1,12 @@
 # Nightly 2.5 Fortsetzung — Batch 11, Punkt 5/10 verifiziert — 2026-11-04
 
+## Batch 11 — Punkt 6 in Arbeit: Precise-Z-Sliver-Layer am Prime Tower zusammenführen
+
+- Teilportierung von Orca `1c9f6f9318`: ToolOrdering ordnet zu dünne Tower-Layer dem vorherigen Tower-Z zu; Tower-Planung und G-Code-Ausgabe verwenden diese gemeinsame Höhe, erhalten den Tower-Layer-Finish-Zustand und vermeiden Abstieg über das Modell.
+- Regression `NativeSliceDeviceTest#preciseZSliverLayersJoinThePrimeTowerLayerBelowAndStillSlice` ergänzt. ARM64-Native- und Slice-Instrumentierungs-APK-Builds sind erfolgreich; `:app:testSliceTestUnitTest` und `git diff --check` ebenfalls erfolgreich.
+- Der tatsächliche Verhaltenstest ist noch **nicht ausgeführt**: einzig verbundener Emulator ist x86_64, das Nightly paketiert und baut native Bibliotheken nur für ARM64. Der vorhandene ARM64-AVD kann auf diesem x86_64-Host nicht gestartet werden; kein physisches ARM-Gerät ist derzeit per ADB sichtbar. Punkt 6 bleibt daher unbestätigt und zählt noch nicht zu den verifizierten Batch-Punkten.
+- Nächster Schritt: bei verfügbarem ARM64-Gerät den gezielten Sliver-Test ausführen und G-Code-Z-Aussagen prüfen; falls die ARM64-Laufzeit weiter fehlt, Batcharbeit mit unabhängig verifizierbaren Kandidaten fortsetzen und Punkt 6 offen halten.
+
 ## Batch 11 — Punkt 5/10: By-object-Rod-Kollisionen anhand der wirklich erreichbaren Geometrie
 
 - Aus Orca `05a92cd0cf` übernommen: sequenzielles Drucken prüft oberhalb der Führungsstange nur noch die Y-Ausdehnung der tatsächlich darüberliegenden Mesh-Flächen. Draft-Shield, ausreichend hohe Skirts und Raft-Höhe bleiben in der Sicherheitsbetrachtung berücksichtigt.

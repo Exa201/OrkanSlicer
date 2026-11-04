@@ -201,6 +201,14 @@ static FilamentChangeStats calc_filament_change_info_by_toolorder(const PrintCon
     return ret;
 }
 
+static double calc_min_layer_height(const PrintConfig &config)
+{
+    double min_layer_height = std::numeric_limits<double>::max();
+    for (size_t i = 0; i < config.nozzle_diameter.values.size(); ++i)
+        min_layer_height = std::min(min_layer_height, config.min_layer_height.get_at(i));
+    return config.nozzle_diameter.values.empty() ? 0. : min_layer_height;
+}
+
 static void apply_first_layer_order(const DynamicPrintConfig* config, std::vector<unsigned int>& tool_order);
 
 void ToolOrdering::handle_dontcare_extruder(const std::vector<unsigned int>& tool_order_layer0)
@@ -916,13 +924,37 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
             }
     }
 
-    // Calculate the wipe_tower_layer_height values.
+    const double min_tower_layer_height = std::max(calc_min_layer_height(config), 1e-3);
     coordf_t wipe_tower_print_z_last = 0.;
-    for (LayerTools &lt : m_layer_tools)
-        if (lt.has_wipe_tower) {
+    LayerTools *tower_layer_end = nullptr;
+    bool tower_layer_changes = false;
+    unsigned int current_extruder = (unsigned int)-1;
+    for (LayerTools &lt : m_layer_tools) {
+        lt.wipe_tower_layer_ends = true;
+        const bool changes = !lt.extruders.empty() &&
+            (current_extruder == (unsigned int)-1 || lt.extruders.size() > 1 || lt.extruders.front() != current_extruder);
+        if (!lt.extruders.empty())
+            current_extruder = lt.extruders.back();
+        if (!lt.has_wipe_tower)
+            continue;
+        if (tower_layer_end != nullptr && !lt.extruders.empty() && lt.print_z - wipe_tower_print_z_last + EPSILON < min_tower_layer_height) {
+            lt.wipe_tower_print_z = tower_layer_end->wipe_tower_print_z;
+            lt.wipe_tower_layer_height = tower_layer_end->wipe_tower_layer_height;
+            if (changes || !tower_layer_changes) {
+                tower_layer_end->wipe_tower_layer_ends = false;
+                tower_layer_end = &lt;
+            } else {
+                lt.wipe_tower_layer_ends = false;
+            }
+            tower_layer_changes |= changes;
+        } else {
+            lt.wipe_tower_print_z = lt.print_z;
             lt.wipe_tower_layer_height = lt.print_z - wipe_tower_print_z_last;
             wipe_tower_print_z_last = lt.print_z;
+            tower_layer_end = &lt;
+            tower_layer_changes = changes;
         }
+    }
 }
 
 void ToolOrdering::collect_extruder_statistics(bool prime_multi_material)

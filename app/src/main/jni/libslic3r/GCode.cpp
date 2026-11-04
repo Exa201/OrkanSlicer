@@ -749,10 +749,17 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         // BBS: add partplate logic
         Vec2f plate_origin_2d(m_plate_origin(0), m_plate_origin(1));
 
+        double current_z = gcodegen.writer().get_position().z();
+        if (z == -1.) // in case no specific z was provided, print at current_z pos
+            z = current_z;
+        // A precise-Z sliver joined to the tower layer below must travel above the tower
+        // before descending. Descending at the current model XY can hit the just-printed part.
+        const bool joined_below_layer = m_layer_joined && !tcr.priming && current_z - z > EPSILON;
+
         // BBS: toolchange gcode will move to start_pos,
         // so only perform movement when printing sparse partition to support upper layer.
         // start_pos is the position in plate coordinate.
-        if (!tcr.priming && tcr.is_finish_first) {
+        if (!tcr.priming && (tcr.is_finish_first || joined_below_layer)) {
             // Move over the wipe tower.
             gcode += gcodegen.retract();
             gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
@@ -761,10 +768,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             gcode += gcodegen.unretract();
         }
 
-
-        double current_z = gcodegen.writer().get_position().z();
-        if (z == -1.) // in case no specific z was provided, print at current_z pos
-            z = current_z;
         if (!is_approx(z, current_z)) {
             gcode += gcodegen.writer().retract();
             gcode += gcodegen.writer().travel_to_z(z, "Travel down to the last wipe tower layer.");
@@ -845,7 +848,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         const bool tool_may_travel = !change_filament_gcode.empty()
             || (new_extruder_id >= 0 && gcodegen.writer().filament() != nullptr
                 && gcodegen.writer().filament()->extruder_id() != unsigned(new_extruder_id));
-        if (gcodegen.config().wipe_tower_no_sparse_layers.value && tool_may_travel
+        if ((gcodegen.config().wipe_tower_no_sparse_layers.value || joined_below_layer) && tool_may_travel
             && gcodegen.writer().get_position().z() < current_z - EPSILON) {
             restore_layer_z_str = gcodegen.writer().travel_to_z(current_z, "Restore layer Z before toolchange");
             check_add_eol(restore_layer_z_str);
@@ -1549,6 +1552,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                         if (m_tool_change_idx == 0 && !ignore_sparse)
                         wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
                     }
+                    if (m_layer_joined)
+                        wipe_tower_z = joined_tower_z();
 
                     if (!ignore_sparse) {
                         gcode += append_tcr2(gcodegen, m_tool_changes[m_layer_idx][m_tool_change_idx++], extruder_id, wipe_tower_z);
@@ -1569,7 +1574,10 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
             }
 
-            if ((m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print) {
+            if (m_layer_joined)
+                wipe_tower_z = joined_tower_z();
+
+            if ((m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print && !m_layer_joined) {
                 gcode += append_tcr(gcodegen, m_tool_changes[m_layer_idx][0], m_tool_changes[m_layer_idx][0].new_tool, wipe_tower_z);
                 m_tool_change_idx++;
                 m_is_first_print = false;
@@ -3757,8 +3765,12 @@ void GCode::process_layers(
                 const std::pair<coordf_t, std::vector<LayerToPrint>>& layer = layers_to_print[layer_to_print_idx++];
                 const LayerTools& layer_tools = tool_ordering.tools_for_layer(layer.first);
                 print.set_status(80, Slic3r::format(_(L("Generating G-code: layer %1%")), std::to_string(layer_to_print_idx)));
-                if (m_wipe_tower && layer_tools.has_wipe_tower)
-                    m_wipe_tower->next_layer();
+                if (m_wipe_tower && layer_tools.has_wipe_tower) {
+                    if (layer_tools.joins_wipe_tower_layer_below())
+                        m_wipe_tower->join_layer();
+                    else
+                        m_wipe_tower->next_layer();
+                }
                 //BBS
                 check_placeholder_parser_failed();
                 print.throw_if_canceled();
@@ -5205,7 +5217,8 @@ LayerResult GCode::process_layer(
         gcode += insert_timelapse_gcode();
     }
 
-    if (m_wipe_tower)
+    // A joined object layer continues a tower layer whose first print is already done.
+    if (m_wipe_tower && !layer_tools.joins_wipe_tower_layer_below())
         m_wipe_tower->set_is_first_print(true);
 
     auto insert_wrapping_detection_gcode = [this, &print, &print_z, &most_used_extruder]() -> std::string {
@@ -5280,7 +5293,8 @@ LayerResult GCode::process_layer(
 
         std::string gcode_toolchange;
         if (has_wipe_tower) {
-            if (!m_wipe_tower->is_empty_wipe_tower_gcode(*this, extruder_id, extruder_id == layer_tools.extruders.back())) {
+            const bool finish_tower_layer = extruder_id == layer_tools.extruders.back() && layer_tools.wipe_tower_layer_ends;
+            if (!m_wipe_tower->is_empty_wipe_tower_gcode(*this, extruder_id, finish_tower_layer)) {
                 if (need_insert_timelapse_gcode_for_traditional && !has_insert_timelapse_gcode) {
                     bool should_insert = true;
                     if (m_config.nozzle_diameter.values.size() == 2){
@@ -5303,7 +5317,7 @@ LayerResult GCode::process_layer(
                     gcode += insert_wrapping_detection_gcode();
                     has_insert_wrapping_detection_gcode = true;
                 }
-                gcode_toolchange = m_wipe_tower->tool_change(*this, extruder_id, extruder_id == layer_tools.extruders.back());
+                gcode_toolchange = m_wipe_tower->tool_change(*this, extruder_id, finish_tower_layer);
             }
         } else {
             if (need_insert_timelapse_gcode_for_traditional &&

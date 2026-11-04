@@ -2541,6 +2541,74 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test(timeout = 180_000)
+    fun preciseZSliverLayersJoinThePrimeTowerLayerBelowAndStillSlice() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val printer = requireNotNull(config.findPrinter("MyToolChanger 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.20mm Standard"))
+        printer.put("min_layer_height", "0.07,0.07,0.07,0.07,0.07")
+        process.put("layer_height", "0.2")
+        process.put("initial_layer_print_height", "0.2")
+        process.put("precise_z_height", "1")
+        process.put("enable_prime_tower", "1")
+
+        val source = copyCube(context, "orca25-precise-z-prime-tower-source.stl")
+        val output = File(context.cacheDir, "orca25-precise-z-prime-tower.gcode")
+        val model = Model(source)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.addObject(model, 0)
+            // The second copy ends at 10.004 mm. Its final precise-Z layers sit only microns
+            // above the first object's regular layer grid and are below the 0.07 mm nozzle floor.
+            model.scale(1, 1.0, 1.0, 0.5002)
+            model.translate(1, 35.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            SliceBeam.genCurrentConfig(model)
+            val generatedConfig = SliceBeam.getCurrentConfigFile()
+            assertTrue("precise-Z regression must reach the native slicer", generatedConfig.readText().contains("precise_z_height = 1"))
+            result = model.slice(generatedConfig.absolutePath, output.absolutePath, null)
+
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("both assigned tools must be used", Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode) &&
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("the slice must contain prime-tower purge output", gcode.contains("Prime tower", ignoreCase = true))
+            assertTrue("the complete layer table must be emitted", gcode.contains("; total layer number:"))
+            assertTrue("purge tower generation must not report an out-of-bed or invalid-toolchange error",
+                !gcode.contains("partially outside the printable area", ignoreCase = true) &&
+                    !gcode.contains("asked to do a toolchange it didn't expect", ignoreCase = true))
+            val objectLayerZ = layerZValues(gcode)
+            var inPrimeTower = false
+            var currentZ = 0.0
+            val primeTowerExtrusionZ = mutableListOf<Double>()
+            val zToken = Regex("(?:^|\\s)Z(-?[0-9]+(?:\\.[0-9]+)?)")
+            val extrusionToken = Regex("(?:^|\\s)E[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)")
+            gcode.lineSequence().forEach { line ->
+                if (line.startsWith(";TYPE:") || line.startsWith("; FEATURE:"))
+                    inPrimeTower = line.contains("prime tower", ignoreCase = true)
+                zToken.find(line)?.let { currentZ = it.groupValues[1].toDouble() }
+                if (inPrimeTower && line.startsWith("G1 ") && extrusionToken.containsMatchIn(line) &&
+                    (line.contains(" X") || line.contains(" Y")))
+                    primeTowerExtrusionZ += currentZ
+            }
+            assertTrue("the emitted G-code must contain actual prime-tower extrusion moves", primeTowerExtrusionZ.isNotEmpty())
+            primeTowerExtrusionZ.forEach { towerZ ->
+                assertTrue("tower extrusion at Z=$towerZ must sit on an object layer, not on a precise-Z sliver",
+                    objectLayerZ.any { kotlin.math.abs(it - towerZ) <= 0.002 })
+            }
+            Log.i("NativeSliceDeviceTest", "PASS precise-Z prime-tower sliver layers joined; output=${output.length()} bytes")
+            generatedConfig.delete()
+        } finally {
+            result?.release()
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
     @Test
     fun reusedPrintReenablesPrimeTowerWhenNextModelUsesAnotherFilament() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
