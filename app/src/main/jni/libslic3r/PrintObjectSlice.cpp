@@ -8,6 +8,7 @@
 #include "I18N.hpp"
 #include "Layer.hpp"
 #include "MultiMaterialSegmentation.hpp"
+#include "PaintedSegmentationPolicy.hpp"
 #include "Print.hpp"
 //BBS
 #include "ShortestPath.hpp"
@@ -890,7 +891,11 @@ static inline void apply_mm_segmentation(PrintObject &print_object, ThrowOnCance
             const auto  &layer_ranges   = print_object.shared_regions()->layer_ranges;
             double       z              = print_object.get_layer(int(range.begin()))->slice_z;
             auto         it_layer_range = layer_range_first(layer_ranges, z);
-            // BBS
+            // The painted segmentation row is sized from the color palette, while the print
+            // configuration may size filament vectors from the selected presets. Imported
+            // projects can leave those counts temporarily inconsistent. Keep the output region
+            // array sized for the configured filaments, but never index beyond a layer's actual
+            // segmentation row below.
             const size_t num_extruders = print_object.print()->config().filament_diameter.size();
 
             struct ByExtruder {
@@ -914,7 +919,9 @@ static inline void apply_mm_segmentation(PrintObject &print_object, ThrowOnCance
                 by_extruder.assign(num_extruders, ByExtruder());
                 by_region.assign(layer.region_count(), ByRegion());
                 bool layer_split = false;
-                for (size_t extruder_id = 0; extruder_id < num_extruders; ++ extruder_id) {
+                const size_t layer_channels = painted_segmentation_layer_channel_count(
+                    num_extruders, segmentation[layer_id].size());
+                for (size_t extruder_id = 0; extruder_id < layer_channels; ++ extruder_id) {
                     ByExtruder &region = by_extruder[extruder_id];
                     append(region.expolygons, std::move(segmentation[layer_id][extruder_id]));
                     if (! region.expolygons.empty()) {

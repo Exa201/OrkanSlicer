@@ -1,4 +1,22 @@
-## Nightly Batch 11 — Punkt 6/10 (Stand 2026-11-04)
+## Nightly Batch 11 — Punkt 7/10 (Stand 2026-11-04)
+
+### Punkt 7/10 — Bounds-Schutz bei bemalter Multi-Material-Segmentierung
+
+Teilportierung von Orca `08dcc0adfc`: Der native Slice-Pfad begrenzt den Zugriff auf
+bemalte Segmentierungskanäle pro Layer auf die tatsächlich vorhandenen Zeilenkanäle.
+Dadurch bleibt der Pfad sicher, falls importierte Filament-Presetvektoren länger sind als
+die Segmentierung, die aus einer unvollständigen Farbpalette aufgebaut wurde. Die Bounds-
+Policy liegt in einem gemeinsam genutzten nativen Helper.
+
+`NativeSliceDeviceTest#paintedSegmentationUsesFilamentCountWhenColorPaletteIsShorter`
+prüft beide Größenrichtungen direkt über die Produktions-Policy und slicet anschließend
+ein bemaltes Modell trotz verkürzter Projektpalette bis zu T1-Extrusion. Android 16/API 36:
+1/1 bestanden, 0 Fehler/Skips. ARM64-C++- und Instrumentierungsbuild sowie `git diff --check`
+bestanden. Die JNI-Vorbereitung normalisiert übliche Importpaletten; deshalb wird der
+inkonsistente Zeilenfall durch den direkten Policy-Assert und der normale Slice-Roundtrip
+separat abgedeckt.
+
+### Vorherige Punkte 4–6/10
 
 ### Punkt 4/10 — Reihenfolge gleichartiger Kopien beim sequenziellen Drucken
 

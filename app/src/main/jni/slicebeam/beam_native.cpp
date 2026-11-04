@@ -490,10 +490,12 @@ extern "C" {
 
     JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_painted_1segmentation_1state_1count_1probe(
             JNIEnv *env, jclass, jint filamentCount, jint colorCount) {
-        const std::array<jint, 3> values{
+        const std::array<jint, 4> values{
             filamentCount,
             colorCount,
             static_cast<jint>(painted_segmentation_state_count(static_cast<size_t>(std::max(0, filamentCount)))),
+            static_cast<jint>(painted_segmentation_layer_channel_count(
+                static_cast<size_t>(std::max(0, filamentCount)), static_cast<size_t>(std::max(0, colorCount)))),
         };
         jintArray output = env->NewIntArray(static_cast<jsize>(values.size()));
         if (output != nullptr)

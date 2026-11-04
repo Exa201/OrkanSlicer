@@ -1,4 +1,16 @@
-# Nightly 2.5 Fortsetzung — Batch 11, Punkt 6/10 verifiziert — 2026-11-04
+# Nightly 2.5 Fortsetzung — Batch 11, Punkt 7/10 verifiziert — 2026-11-04
+
+## Batch 11 — Punkt 7/10: Bounds-Schutz für bemalte Multi-Material-Segmentierung
+
+- Teilportierung von Orca `08dcc0adfc`: `PrintObjectSlice` begrenzt den Zugriff je Layer auf die tatsächlich vorhandenen Segmentierungskanäle, auch wenn importierte Filamentvektoren mehr Kanäle erwarten.
+- Die gemeinsame Policy wird vom Produktionspfad und Regressionstest verwendet. Der Test prüft sowohl eine kürzere Segmentierungszeile als auch eine kürzere Filamentkonfiguration; der vorhandene echte Slice mit verkürzter 3MF-Farbpalette erzeugt weiterhin T1-Extrusion.
+- API-36-x86_64-AVD mit ARM64-Übersetzung: `NativeSliceDeviceTest#paintedSegmentationUsesFilamentCountWhenColorPaletteIsShorter` bestanden, 1/1, 0 Fehler/Skips; ARM64-C++- und Instrumentierungsbuild erfolgreich; `git diff --check` sauber.
+- Hinweis: Die JNI-Slicevorbereitung normalisiert übliche Importpaletten bereits. Daher prüft der direkte Policy-Assert den inkonsistenten Zeilenfall; der Slice-Roundtrip sichert zusätzlich den regulären Mehrfarbenpfad ab.
+- Batch 11: 7/10. Vollständige Batch-Regression, Debug-APK und Nightly-Release bleiben bis 10/10 offen. Nächster Schritt: einen weiteren ungeporteten Orca-Verhaltenspunkt mit aktivem Android-Aufrufpfad auswählen.
+
+---
+
+# Vorheriger Stand — Batch 11, Punkt 6/10 verifiziert — 2026-11-04
 
 ## Batch 11 — Punkt 6/10: Precise-Z-Sliver-Layer am Prime Tower zusammenführen
 

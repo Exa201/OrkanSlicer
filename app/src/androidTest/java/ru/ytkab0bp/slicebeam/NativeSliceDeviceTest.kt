@@ -4653,8 +4653,10 @@ class NativeSliceDeviceTest {
 
     @Test
     fun paintedSegmentationUsesFilamentCountWhenColorPaletteIsShorter() = withToolChangerProfile {
-        assertArrayEquals("Two filaments and a one-color palette still require three facet states",
-            intArrayOf(2, 1, 3), Native.painted_segmentation_state_count_probe(2, 1))
+        assertArrayEquals("Facet state count follows filaments; layer access is bounded by its one-color row",
+            intArrayOf(2, 1, 3, 1), Native.painted_segmentation_state_count_probe(2, 1))
+        assertArrayEquals("Extra palette entries must not exceed configured filament channels",
+            intArrayOf(2, 4, 3, 2), Native.painted_segmentation_state_count_probe(2, 4))
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "short-color-palette-painted-cube.stl")
         val model = Model(modelFile)
