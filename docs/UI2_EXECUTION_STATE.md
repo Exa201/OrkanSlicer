@@ -1,5 +1,13 @@
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 
+## Druckplatten-Anordnung meldet fälschlich fehlenden Platz — 2026-11-04
+
+- Befund: Der Arrange-Fehlerpfad im Ansichts-/Anordnungsmenü zeigte den Text „kein Platz für weitere Kopien“, obwohl der Nutzer „Alle anordnen“ gewählt hatte. Das war die falsche Meldung für die Aktion.
+- Ursache der Fehlversuche: Nach einem gescheiterten NFP-Packlauf wurde die begrenzte exakte Footprint-Strategie nur bei konkaven/zusammengesetzten Modellen zugelassen. Bei normalen Einzelteilen konnte der Packalgorithmus ebenfalls trotz freier Bettfläche scheitern, ohne einen zweiten Suchlauf zu bekommen.
+- Korrektur: Jeder fehlgeschlagene Arrange-Lauf bis 160 Objekte darf nun die begrenzte zweite Packstrategie mit projizierten Konturen nutzen. Bei weiterhin unmöglicher Anordnung bleiben die Originalpositionen geschützt. Der Fehlerpfad zeigt jetzt `ModelMenuArrangeFailed` statt der Fill-Bed-Meldung.
+- Verifikation auf Android-16-AVD `solidcraft_clean_api36`: `explicitArrangeUsesCompoundVoidsWhenConservativeHullsDoNotFit` 1/1, `modelMenuArrangeBringsOffBedObjectBackIntoWorkspace` 1/1, `arrangeFailureRestoresEveryObjectAndDoesNotCommitAChangedLayout` 1/1. Alle drei Gradle-Läufe erfolgreich.
+- Xiaomi-Hardwaretest steht aus; das Xiaomi war bei der ADB-Abfrage nicht verbunden. Noch kein APK- oder Release-Build für diese Korrektur.
+
 ## Explizites Anordnen nutzt freie Flächen in Mehrteilmodellen — 2026-11-04
 
 - Ursache: Der schnelle NFP-Packlauf behandelt ein getrenntes Mehrteilmodell als konvexe Hülle. Bei U-/Rahmenformen konnte die Hülle die sichtbare Öffnung blockieren und „kein Platz“ melden. Der bisherige Lückenlauf lief erst nach erfolgreichem Haupt-Packlauf und half bei diesem frühen Fehlschlag nicht.

@@ -39,7 +39,9 @@ internal class OrientationMenuItems(
                             fragment.updateModel()
                             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationArrangeFinished))
                         } else {
-                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextFillBedNoRoom))
+                            // Arrange failure is not necessarily a failed Fill Bed copy attempt.
+                            // Report the actual operation so users do not mistake it for a copy limit.
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuArrangeFailed))
                         }
                     }
                 },

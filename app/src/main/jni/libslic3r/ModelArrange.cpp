@@ -234,9 +234,10 @@ bool validate_arrange_placements(ArrangePolygons &polygons, const Points &bed, s
 bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Points &bed,
                                            const ArrangeParams &params)
 {
-    // The regular NFP packer sees one conservative contour per model. For a disconnected
-    // compound that contour is its convex hull, which can reserve large empty regions. Retry
-    // only when exact projected geometry proves that at least one item has such wasted area.
+    // The regular NFP packer can fail to find a layout even when the bed has room. Retry with
+    // actual projected outlines (including concavities and disconnected islands) for every
+    // failed layout, not only compounds: the alternate deterministic search is bounded and
+    // also gives ordinary models a second packing strategy.
     if (bed.size() < 3 || polygons.size() < 2 || polygons.size() > 160)
         return false;
 
@@ -246,7 +247,6 @@ bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Poin
         double exact_area = 0.0;
     };
     std::vector<ItemGeometry> source(polygons.size());
-    bool has_compound_gain = false;
     for (size_t i = 0; i < polygons.size(); ++i) {
         const ArrangePolygon &item = polygons[i];
         if (item.physical_parts.empty()) {
@@ -259,12 +259,7 @@ bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Poin
         source[i].hull_area = std::abs(item.poly.area());
         for (const ExPolygon &part : source[i].parts)
             source[i].exact_area += std::abs(part.area());
-        if (item.physical_parts.size() > 1 ||
-            (source[i].exact_area > 0.0 && source[i].hull_area > source[i].exact_area * 1.10))
-            has_compound_gain = true;
     }
-    if (!has_compound_gain)
-        return false;
 
     const Polygon bed_polygon(bed);
     const BoundingBox bed_bounds(bed);
