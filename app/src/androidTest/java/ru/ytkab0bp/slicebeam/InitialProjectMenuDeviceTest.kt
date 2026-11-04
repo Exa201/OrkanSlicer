@@ -3957,6 +3957,98 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun explicitArrangeUsesCompoundVoidsWhenConservativeHullsDoNotFit() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val frameFile = File(activity.cacheDir, "arrange-exact-frame-${System.nanoTime()}.stl")
+        val insertFile = File(activity.cacheDir, "arrange-exact-insert-${System.nanoTime()}.stl")
+        var insertSource: Model? = null
+        var overlapProbe: Model? = null
+        try {
+            val bedModel = requireNotNull(glView.renderer.bed)
+            val bedMin = requireNotNull(bedModel.getVolumeMin())
+            val bedMax = requireNotNull(bedModel.getVolumeMax())
+            val bedSide = minOf(bedMax.x - bedMin.x, bedMax.y - bedMin.y).toFloat()
+            val outer = bedSide * 0.88f
+            val bar = outer * 0.12f
+            val cornerGap = 0.8f
+            val insertSide = bedSide * 0.55f
+
+            // Three separate bars form a rigid U-shaped STL. Its bounding hull and a second
+            // square cannot fit beside each other, but the square fits in the real open area.
+            writeDisconnectedBoxesStl(activity, frameFile, listOf(
+                BoxSpec(0f, 0f, bar, outer, 8f),
+                BoxSpec(outer - bar, 0f, bar, outer, 8f),
+                BoxSpec(bar + cornerGap, outer - bar, outer - 2f * bar - 2f * cornerGap, bar, 8f),
+            ))
+            writeScaledBoxStl(activity, insertFile, insertSide / 20f, insertSide / 20f, 0.4f)
+            val frame = loadSingleTestModel(bed, frameFile)
+            assertEquals("the frame remains one rigid object", 1, frame.objectsCount)
+            insertSource = Model(insertFile)
+
+            val arranged = AtomicReference<Boolean>()
+            val frameBounds = DoubleArray(6)
+            val insertBounds = DoubleArray(6)
+            val complete = CountDownLatch(1)
+            glView.queueEvent {
+                try {
+                    val model = requireNotNull(glView.renderer.model)
+                    model.addObject(requireNotNull(insertSource), 0)
+                    arranged.set(requireNotNull(glView.renderer.bed).arrange(model))
+                    if (arranged.get() == true) {
+                        val min = Vec3d()
+                        val max = Vec3d()
+                        model.getBoundingBoxExact(0, min, max)
+                        frameBounds[0] = min.x; frameBounds[1] = min.y
+                        frameBounds[2] = max.x; frameBounds[3] = max.y
+                        model.getBoundingBoxExact(1, min, max)
+                        insertBounds[0] = min.x; insertBounds[1] = min.y
+                        insertBounds[2] = max.x; insertBounds[3] = max.y
+                    }
+                    model.resetBoundingBox()
+                    glView.requestRender()
+                } finally {
+                    complete.countDown()
+                }
+            }
+            assertTrue("exact-footprint arrangement should finish on the GL thread",
+                complete.await(30, TimeUnit.SECONDS))
+            assertEquals(
+                "the exact footprint fallback should arrange a square inside the U-shaped compound",
+                true,
+                arranged.get(),
+            )
+            assertTrue("the insert must be inside the frame's reserved bounds",
+                insertBounds[0] >= frameBounds[0] - 0.1 && insertBounds[1] >= frameBounds[1] - 0.1 &&
+                    insertBounds[2] <= frameBounds[2] + 0.1 && insertBounds[3] <= frameBounds[3] + 0.1)
+
+            val probe = Model()
+            overlapProbe = probe
+            val overlapResult = AtomicReference<Int>()
+            val overlapChecked = CountDownLatch(1)
+            glView.queueEvent {
+                try {
+                    val model = requireNotNull(glView.renderer.model)
+                    probe.addObject(model, 0)
+                    probe.addObject(model, 1)
+                    overlapResult.set(probe.booleanObjects(0, 1, BooleanOperation.INTERSECTION))
+                } finally {
+                    overlapChecked.countDown()
+                }
+            }
+            assertTrue("mesh overlap verification should finish", overlapChecked.await(30, TimeUnit.SECONDS))
+            assertTrue("arranged models must remain separate solids",
+                requireNotNull(overlapResult.get()) < 0)
+        } finally {
+            frameFile.delete()
+            insertFile.delete()
+            insertSource?.release()
+            overlapProbe?.release()
+        }
+    }
+
+    @Test
     fun importedObjectsRotateInPlaneToUseAvailableBedSpace() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -10211,6 +10303,64 @@ class InitialProjectMenuDeviceTest {
         compose.waitUntil(timeoutMillis = 5_000) {
             compose.onAllNodesWithTag("workspace-menu-actions-grid").fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    private data class BoxSpec(
+        val x: Float,
+        val y: Float,
+        val width: Float,
+        val depth: Float,
+        val height: Float,
+    )
+
+    /** Creates a binary STL from closed boxes while keeping them in one rigid model object. */
+    private fun writeDisconnectedBoxesStl(
+        activity: MainActivity,
+        destination: File,
+        boxes: List<BoxSpec>,
+    ) {
+        val source = activity.assets.open("models/xyz_cube.stl").use { it.readBytes() }
+        val triangleCount = ByteBuffer.wrap(source, 80, 4).order(ByteOrder.LITTLE_ENDIAN).int
+        assertTrue("bundled STL triangle count must match its binary payload", triangleCount > 0 &&
+            source.size == 84 + triangleCount * 50)
+        val sourceData = ByteBuffer.wrap(source).order(ByteOrder.LITTLE_ENDIAN)
+        val sourceMin = FloatArray(3) { Float.POSITIVE_INFINITY }
+        val sourceMax = FloatArray(3) { Float.NEGATIVE_INFINITY }
+        repeat(triangleCount) { triangle ->
+            val base = 84 + triangle * 50
+            listOf(12, 24, 36).forEach { vertex ->
+                repeat(3) { axis ->
+                    val value = sourceData.getFloat(base + vertex + axis * 4)
+                    sourceMin[axis] = minOf(sourceMin[axis], value)
+                    sourceMax[axis] = maxOf(sourceMax[axis], value)
+                }
+            }
+        }
+        val output = ByteBuffer.allocate(84 + triangleCount * boxes.size * 50).order(ByteOrder.LITTLE_ENDIAN)
+        output.put(source, 0, 80)
+        output.putInt(triangleCount * boxes.size)
+        boxes.forEach { box ->
+            require(box.width > 0f && box.depth > 0f && box.height > 0f)
+            val extents = floatArrayOf(box.width, box.depth, box.height)
+            repeat(triangleCount) { triangle ->
+                val base = 84 + triangle * 50
+                val record = source.copyOfRange(base, base + 50)
+                val data = ByteBuffer.wrap(record).order(ByteOrder.LITTLE_ENDIAN)
+                listOf(12, 24, 36).forEach { vertex ->
+                    val oldX = data.getFloat(vertex)
+                    val oldY = data.getFloat(vertex + 4)
+                    val oldZ = data.getFloat(vertex + 8)
+                    data.putFloat(vertex, box.x + (oldX - sourceMin[0]) * extents[0] /
+                        (sourceMax[0] - sourceMin[0]))
+                    data.putFloat(vertex + 4, box.y + (oldY - sourceMin[1]) * extents[1] /
+                        (sourceMax[1] - sourceMin[1]))
+                    data.putFloat(vertex + 8, (oldZ - sourceMin[2]) * extents[2] /
+                        (sourceMax[2] - sourceMin[2]))
+                }
+                output.put(record)
+            }
+        }
+        destination.writeBytes(output.array())
     }
 
     /** Creates a standard binary STL containing two closed copies separated by 30 mm on X. */

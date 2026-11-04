@@ -26,6 +26,10 @@ ArrangePolygons get_arrange_polys(const Model &model, ModelInstancePtrs &instanc
 ArrangePolygon  get_arrange_poly(const Model &model);
 void fill_compound_arrange_gaps(ArrangePolygons &polygons, const Points &bed, size_t movable_from = 0);
 bool validate_arrange_placements(ArrangePolygons &polygons, const Points &bed, size_t movable_from = 0);
+// Retry a failed single-bed pack using exact projected islands for compound models.
+// This is intentionally a fallback: the normal NFP packer remains the fast first choice.
+bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Points &bed,
+                                           const ArrangeParams &params);
 bool arrange_new_objects(Model &model, size_t first_object, const Points &bed, const ArrangeParams &params);
 bool apply_arrange_polys(ArrangePolygons &polys, ModelInstancePtrs &instances, VirtualBedFn);
 

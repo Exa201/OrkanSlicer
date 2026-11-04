@@ -145,7 +145,7 @@ internal class ModelMenuItems(
                 val activeGlView = glView ?: return@BedComposeMenuAction
                 activeGlView.arrange { arranged ->
                     if (!arranged) {
-                        Toast.makeText(anchor.context, R.string.ModelContextFillBedNoRoom, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(anchor.context, R.string.ModelMenuArrangeFailed, Toast.LENGTH_LONG).show()
                         return@arrange
                     }
                     activeGlView.queueEvent {

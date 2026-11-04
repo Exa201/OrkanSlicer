@@ -1,5 +1,13 @@
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 
+## Explizites Anordnen nutzt freie Flächen in Mehrteilmodellen — 2026-11-04
+
+- Ursache: Der schnelle NFP-Packlauf behandelt ein getrenntes Mehrteilmodell als konvexe Hülle. Bei U-/Rahmenformen konnte die Hülle die sichtbare Öffnung blockieren und „kein Platz“ melden. Der bisherige Lückenlauf lief erst nach erfolgreichem Haupt-Packlauf und half bei diesem frühen Fehlschlag nicht.
+- Änderung: Nach einem fehlgeschlagenen Hauptlauf gibt es jetzt einen begrenzten Fallback mit exakten projizierten Teilflächen, Kontur-/Lochpunkten als Packankern, vier 90°-Drehungen und abschließender Bett-/Kollisionsprüfung. Die Modelltransforms werden erst nach erfolgreicher Gesamtprüfung angewandt. Die Fehlermeldung im Menü „Alle anordnen“ behauptet nicht mehr fälschlich, es passe keine weitere Kopie.
+- Android-16-AVD `solidcraft_clean_api36`: vier gezielte Instrumentierungstests bestanden (4/4): U-förmiger Mehrteilrahmen mit Teil in der Öffnung, absichtlich überfülltes Bett mit unveränderten Transforms, bestehender Compound-Lückenfall und tatsächlicher Menüaufruf „Alle anordnen“ inklusive Undo/Redo.
+- Nachprüfung am 2026-11-04: der U-Rahmen-Fall und der tatsächliche Menüaufruf „Alle anordnen“ jeweils erneut auf dem AVD bestanden (2/2). Xiaomi war in dieser Sitzung nicht per ADB verbunden.
+- `:app:assembleSliceTestAndroidTest` und `:app:assembleDebug` erfolgreich. Lokale Debug-APK `app/build/outputs/apk/debug/OrkanSlicer_cbbf0842e7.apk`, 275,810,946 Bytes, SHA-256 `51788C84955954DFB71D7E1E8D65888BE75A69A59FE296D83B934DF8C924AF15`; gebaut aus HEAD `cbbf0842e7` plus den nicht committeten Änderungen dieses Durchgangs. Xiaomi-Hardwaretest, Commit und Upload stehen aus.
+
 ## Nesting-Abnahme und Nutzerregel — 2026-11-03
 
 - Bestätigte Bedienregel: Beim Import werden neue Modelle automatisch ausgerichtet und auf der Platte angeordnet. Drag/Transform nach dem Import löst keine automatische Neuordnung aus; „Alle anordnen“ startet sie bewusst erneut. Ein weiterer Modellimport ist ein neuer Ladevorgang und arrangiert das aktive Bett erneut, damit die neuen Teile mit den vorhandenen gepackt werden können. Gespeicherte Mehrplatten-3MF-Projektlayouts bleiben erhalten.

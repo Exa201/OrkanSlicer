@@ -3294,13 +3294,28 @@ extern "C" {
             for (ArrangePolygon& ap : input)
                 if (!ap.is_virt_object)
                     ap.inflation = inflation;
-            arrangement::arrange(input, bed, arrange_cfg);
-            fill_compound_arrange_gaps(input, bed);
-            validate_arrange_placements(input, bed);
+            const ArrangePolygons original = input;
+            try {
+                arrangement::arrange(input, bed, arrange_cfg);
+                fill_compound_arrange_gaps(input, bed);
+                if (validate_arrange_placements(input, bed) &&
+                    std::all_of(input.begin(), input.end(), [](const ArrangePolygon& polygon) {
+                        return polygon.bed_idx == 0;
+                    }))
+                    return apply_arrange_polys(input, instances, throw_if_out_of_bed);
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(info) << "Primary bed arrangement could not pack all outlines: " << e.what();
+            }
+
+            // The standard NFP packer uses each model's convex hull. A compound STL can have
+            // large empty gaps inside that hull, so retry those cases using exact projected
+            // islands and validate every final clearance before changing model transforms.
+            input = original;
+            if (!arrange_with_exact_footprint_fallback(input, bed, arrange_cfg))
+                return JNI_FALSE;
             return apply_arrange_polys(input, instances, throw_if_out_of_bed);
         } catch (const std::exception& e) {
-            // If the model cannot fit the bed, it throws "Objects could not fit on the bed".
-            // Catch it here to avoid JNI crash.
+            BOOST_LOG_TRIVIAL(warning) << "Bed arrangement failed: " << e.what();
             return false;
         }
     }

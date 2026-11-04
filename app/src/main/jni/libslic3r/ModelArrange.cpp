@@ -1,6 +1,9 @@
 #include "ModelArrange.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cmath>
+#include <limits>
 #include <numeric>
 #include <libslic3r/Model.hpp>
 #include <libslic3r/Geometry/ConvexHull.hpp>
@@ -226,6 +229,235 @@ bool validate_arrange_placements(ArrangePolygons &polygons, const Points &bed, s
         }
     }
     return true;
+}
+
+bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Points &bed,
+                                           const ArrangeParams &params)
+{
+    // The regular NFP packer sees one conservative contour per model. For a disconnected
+    // compound that contour is its convex hull, which can reserve large empty regions. Retry
+    // only when exact projected geometry proves that at least one item has such wasted area.
+    if (bed.size() < 3 || polygons.size() < 2 || polygons.size() > 160)
+        return false;
+
+    struct ItemGeometry {
+        ExPolygons parts;
+        double hull_area = 0.0;
+        double exact_area = 0.0;
+    };
+    std::vector<ItemGeometry> source(polygons.size());
+    bool has_compound_gain = false;
+    for (size_t i = 0; i < polygons.size(); ++i) {
+        const ArrangePolygon &item = polygons[i];
+        if (item.physical_parts.empty()) {
+            if (item.poly.contour.size() < 3)
+                return false;
+            source[i].parts.emplace_back(item.poly);
+        } else {
+            source[i].parts = item.physical_parts;
+        }
+        source[i].hull_area = std::abs(item.poly.area());
+        for (const ExPolygon &part : source[i].parts)
+            source[i].exact_area += std::abs(part.area());
+        if (item.physical_parts.size() > 1 ||
+            (source[i].exact_area > 0.0 && source[i].hull_area > source[i].exact_area * 1.10))
+            has_compound_gain = true;
+    }
+    if (!has_compound_gain)
+        return false;
+
+    const Polygon bed_polygon(bed);
+    const BoundingBox bed_bounds(bed);
+    const double bed_area = std::abs(bed_polygon.area());
+    if (!bed_bounds.defined || bed_area <= 0.0)
+        return false;
+
+    struct PlacedGeometry { ExPolygons clearance; BoundingBox bounds; };
+    struct Placement { Vec2crd translation{0, 0}; double rotation = 0.0; };
+    const double half_pi = std::acos(-1.0) / 2.0;
+    const std::array<double, 4> rotations{{0.0, half_pi, 2.0 * half_pi, 3.0 * half_pi}};
+    const coord_t inflation = std::max<coord_t>(0, params.min_obj_distance / 2);
+    size_t total_candidate_checks = 0;
+    constexpr size_t MAX_TOTAL_CANDIDATE_CHECKS = 50000;
+
+    // Try hull-heavy objects first, then use true projected area as a second deterministic
+    // ordering. Every attempt is built separately; a failed attempt never mutates the caller.
+    for (int ordering = 0; ordering < 2; ++ordering) {
+        std::vector<size_t> order(polygons.size());
+        std::iota(order.begin(), order.end(), size_t(0));
+        std::stable_sort(order.begin(), order.end(), [&](size_t lhs, size_t rhs) {
+            const double a = ordering == 0 ? source[lhs].hull_area : source[lhs].exact_area;
+            const double b = ordering == 0 ? source[rhs].hull_area : source[rhs].exact_area;
+            return a > b;
+        });
+
+        std::vector<PlacedGeometry> placed;
+        placed.reserve(polygons.size());
+        std::vector<Placement> results(polygons.size());
+        double total_clearance_area = 0.0;
+        bool failed = false;
+
+        for (size_t item_idx : order) {
+            bool found = false;
+            double best_score = std::numeric_limits<double>::infinity();
+            Placement best;
+            PlacedGeometry best_geometry;
+
+            for (double rotation : rotations) {
+                ExPolygons oriented = source[item_idx].parts;
+                for (ExPolygon &part : oriented)
+                    part.rotate(rotation);
+                ExPolygons local_clearance = inflation > 0
+                    ? offset_ex(oriented, float(inflation), ClipperLib::jtSquare)
+                    : std::move(oriented);
+                BoundingBox local_bounds;
+                for (const ExPolygon &part : local_clearance)
+                    local_bounds.merge(part.contour.bounding_box());
+                if (!local_bounds.defined)
+                    continue;
+                const Vec2crd size = local_bounds.size();
+                if (size.x() <= 0 || size.y() <= 0 ||
+                    size.x() > bed_bounds.size().x() || size.y() > bed_bounds.size().y())
+                    continue;
+
+                std::vector<coord_t> xs{bed_bounds.min.x(), bed_bounds.max.x() - size.x()};
+                std::vector<coord_t> ys{bed_bounds.min.y(), bed_bounds.max.y() - size.y()};
+                for (const PlacedGeometry &other : placed) {
+                    for (const ExPolygon &part : other.clearance) {
+                        const BoundingBox bounds = part.contour.bounding_box();
+                        xs.push_back(bounds.max.x());
+                        xs.push_back(bounds.min.x() - size.x());
+                        ys.push_back(bounds.max.y());
+                        ys.push_back(bounds.min.y() - size.y());
+                        // Offsetting may union a compound's nearby islands into one concave
+                        // contour. Its outer bounding box hides openings such as a U-shaped
+                        // frame, so use the actual contour and hole vertices as nest anchors.
+                        const auto add_anchors = [&](const Polygon &contour) {
+                            for (const Point &point : contour.points) {
+                                xs.push_back(point.x());
+                                xs.push_back(point.x() - size.x());
+                                ys.push_back(point.y());
+                                ys.push_back(point.y() - size.y());
+                            }
+                        };
+                        add_anchors(part.contour);
+                        for (const Polygon &hole : part.holes)
+                            add_anchors(hole);
+                    }
+                }
+                auto normalize = [](std::vector<coord_t> &values, coord_t min, coord_t max) {
+                    values.erase(std::remove_if(values.begin(), values.end(), [&](coord_t value) {
+                        return value < min || value > max;
+                    }), values.end());
+                    std::sort(values.begin(), values.end());
+                    values.erase(std::unique(values.begin(), values.end()), values.end());
+                    // Keep candidates across the full bed while bounding runtime on detailed meshes.
+                    constexpr size_t MAX_ANCHORS = 120;
+                    if (values.size() > MAX_ANCHORS) {
+                        std::vector<coord_t> sampled;
+                        sampled.reserve(MAX_ANCHORS);
+                        for (size_t i = 0; i < MAX_ANCHORS; ++i)
+                            sampled.push_back(values[i * (values.size() - 1) / (MAX_ANCHORS - 1)]);
+                        values = std::move(sampled);
+                    }
+                };
+                normalize(xs, bed_bounds.min.x(), bed_bounds.max.x() - size.x());
+                normalize(ys, bed_bounds.min.y(), bed_bounds.max.y() - size.y());
+
+                size_t checked = 0;
+                bool found_orientation = false;
+                for (coord_t target_y : ys) {
+                    for (coord_t target_x : xs) {
+                        if (++checked > 12000 ||
+                            ++total_candidate_checks > MAX_TOTAL_CANDIDATE_CHECKS)
+                            break;
+                        const Vec2crd delta{target_x - local_bounds.min.x(),
+                                           target_y - local_bounds.min.y()};
+                        PlacedGeometry proposed;
+                        proposed.clearance = local_clearance;
+                        bool inside = true;
+                        for (ExPolygon &part : proposed.clearance) {
+                            part.translate(delta.x(), delta.y());
+                            proposed.bounds.merge(part.contour.bounding_box());
+                            for (const Point &point : part.contour.points) {
+                                if (!bed_polygon.contains(point)) {
+                                    inside = false;
+                                    break;
+                                }
+                            }
+                            if (!inside)
+                                break;
+                        }
+                        if (!inside || proposed.bounds.min.x() < bed_bounds.min.x() ||
+                            proposed.bounds.min.y() < bed_bounds.min.y() ||
+                            proposed.bounds.max.x() > bed_bounds.max.x() ||
+                            proposed.bounds.max.y() > bed_bounds.max.y())
+                            continue;
+
+                        bool collision = false;
+                        for (const PlacedGeometry &other : placed) {
+                            if (!proposed.bounds.overlap(other.bounds))
+                                continue;
+                            if (!intersection_ex(proposed.clearance, other.clearance).empty()) {
+                                collision = true;
+                                break;
+                            }
+                        }
+                        if (collision)
+                            continue;
+
+                        const double score = double(target_y - bed_bounds.min.y()) *
+                            double(bed_bounds.size().x() + 1) + double(target_x - bed_bounds.min.x());
+                        if (score < best_score) {
+                            found = true;
+                            best_score = score;
+                            best.translation = delta;
+                            best.rotation = rotation;
+                            best_geometry = std::move(proposed);
+                            found_orientation = true;
+                            break;
+                        }
+                    }
+                    if (found_orientation || checked > 12000 ||
+                        total_candidate_checks > MAX_TOTAL_CANDIDATE_CHECKS)
+                        break;
+                }
+                if (total_candidate_checks > MAX_TOTAL_CANDIDATE_CHECKS)
+                    break;
+            }
+
+            if (total_candidate_checks > MAX_TOTAL_CANDIDATE_CHECKS) {
+                failed = true;
+                break;
+            }
+            if (!found) {
+                failed = true;
+                break;
+            }
+            for (const ExPolygon &part : best_geometry.clearance)
+                total_clearance_area += std::abs(part.area());
+            if (total_clearance_area > bed_area)
+                failed = true;
+            if (failed)
+                break;
+            results[item_idx] = best;
+            placed.emplace_back(std::move(best_geometry));
+        }
+
+        if (failed || placed.size() != polygons.size())
+            continue;
+        ArrangePolygons arranged = polygons;
+        for (size_t i = 0; i < arranged.size(); ++i) {
+            arranged[i].translation = results[i].translation;
+            arranged[i].rotation = results[i].rotation;
+            arranged[i].bed_idx = 0;
+        }
+        if (!validate_arrange_placements(arranged, bed))
+            continue;
+        polygons = std::move(arranged);
+        return true;
+    }
+    return false;
 }
 
 bool arrange_new_objects(Model &model, size_t first_object, const Points &bed, const ArrangeParams &params)
