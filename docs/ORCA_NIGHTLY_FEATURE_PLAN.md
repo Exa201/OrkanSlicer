@@ -1,4 +1,4 @@
-## Nightly Batch 11 — Punkt 4/10 (Stand 2026-11-04)
+## Nightly Batch 11 — Punkt 6/10 (Stand 2026-11-04)
 
 ### Punkt 4/10 — Reihenfolge gleichartiger Kopien beim sequenziellen Drucken
 
@@ -14,11 +14,34 @@ Der erste Testlauf deckte einen zu strengen Test-Assert auf (E-only-Prime wurde 
 XY-Bewegung behandelt); nach Präzisierung bestand der Test. `git diff --check` bestanden.
 Noch kein APK/Release; Batch 11 steht bei 4/10.
 
-Nächster Schritt: den verbleibenden Orca-2.5-Kandidatenbestand erneut gegen die aktiven Android-
-Aufrufpfade prüfen. Die Z-Schrumpfung von Höhenbereichen (`5fd0edf5cc`) wurde bereits in Batch 7
-portiert und verifiziert; High-Precision-G-Code, transparente Vorschau und Sparse-Infill-
-Eckenglättung sind ebenfalls vorhanden und werden nicht doppelt gezählt. Nur ein nachweislich
-fehlendes Verhalten mit eigenständigem Android- oder G-Code-Regressionstest wird Punkt 5.
+### Punkt 5/10 — By-object-Rod-Kollisionen anhand der wirklich erreichbaren Geometrie
+
+Teilportierung von Orca `05a92cd0cf`: Beim sequenziellen Drucken berücksichtigt die
+Rod-Kollisionsprüfung nur Mesh-Flächen, die tatsächlich oberhalb der Führungsstange liegen.
+Draft-Shield, ausreichend hohe Skirts und Raft-Höhe bleiben Teil der Sicherheitsprüfung.
+Der native Konfigurationswert `extruder_clearance_dist_to_rod` wird als Druckerparameter
+gespeichert und in den Druckeroptionen angeboten.
+
+`NativeSliceDeviceTest#byObjectClearanceUsesOnlyGeometryAboveTheRod` slicet getrennte
+Finnenkörper mit `print_sequence=by object`, prüft den Wert in der nativen Konfiguration
+und erzeugt echten G-Code; API-36-AVD 1/1 bestanden. Fokussierte Profil-/Katalog- und
+Rundlauftests 10/10; `git diff --check` sauber.
+
+### Punkt 6/10 — Precise-Z-Sliver-Layer am Prime Tower zusammenführen
+
+Teilportierung von Orca `1c9f6f9318`: Zu dünne Tower-Layer werden dem vorherigen Tower-Z
+zugeordnet. Tower-Planung und G-Code-Ausgabe verwenden die gemeinsame Höhe, bewahren den
+Tower-Finish-Zustand und verhindern einen Abstieg über das Modell.
+
+`NativeSliceDeviceTest#preciseZSliverLayersJoinThePrimeTowerLayerBelowAndStillSlice`
+bestand auf dem API-36-x86_64-AVD mit ARM64-Übersetzung (1/1, 0 Fehler/Skips). Der echte
+Slice prüft T0/T1, Tower-Extrusion, vollständigen G-Code und dass Tower-Extrusions-Z-Werte
+an tatsächlich gedruckte Objekt-Layer-Z-Werte angepasst sind. ARM64-Native- und
+Instrumentierungs-APK-Builds, Slice-JVM-Suite und `git diff --check` bestanden.
+
+Nächster Schritt: Punkt 7 aus einem fehlenden Orca-Verhalten mit aktivem Android-Aufrufpfad
+auswählen und mit einem eigenen Verhaltensregressionstest absichern. Keine Wiederholung
+bereits portierter Änderungen; vollständige Batch-Regression, APK und Release erst bei 10/10.
 
 ---
 
