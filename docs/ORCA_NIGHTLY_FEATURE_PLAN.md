@@ -14,8 +14,11 @@ Der erste Testlauf deckte einen zu strengen Test-Assert auf (E-only-Prime wurde 
 XY-Bewegung behandelt); nach Präzisierung bestand der Test. `git diff --check` bestanden.
 Noch kein APK/Release; Batch 11 steht bei 4/10.
 
-Nächster Schritt: Orca `5fd0edf5cc` zur Anwendung von Z-Schrumpfungskompensation auf
-Höhenbereiche prüfen und bei passendem Android-Aufrufpfad mit echtem Slice-Test portieren.
+Nächster Schritt: den verbleibenden Orca-2.5-Kandidatenbestand erneut gegen die aktiven Android-
+Aufrufpfade prüfen. Die Z-Schrumpfung von Höhenbereichen (`5fd0edf5cc`) wurde bereits in Batch 7
+portiert und verifiziert; High-Precision-G-Code, transparente Vorschau und Sparse-Infill-
+Eckenglättung sind ebenfalls vorhanden und werden nicht doppelt gezählt. Nur ein nachweislich
+fehlendes Verhalten mit eigenständigem Android- oder G-Code-Regressionstest wird Punkt 5.
 
 ---
 

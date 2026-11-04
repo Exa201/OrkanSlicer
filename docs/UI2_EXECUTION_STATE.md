@@ -6,6 +6,8 @@
 - `NativeSliceDeviceTest#sequentialPrintKeepsCopiesOfOneObjectInTheirListOrder` slicet 200 Kopien desselben Objekts, liest deren tatsächliche erste XY-Extrusionsbewegung aus dem erzeugten G-Code und bestätigt Reihenfolge sowie unveränderte 15-Spalten-Anordnung auf Android 16/API 36 (1/1 bestanden).
 - Der erste Testentwurf schlug nur deshalb fehl, weil er einen E-only-Prime-Befehl für einen XY-Pfad hielt; der Assert wurde auf XY-Extrusion präzisiert und der gezielte Test danach bestanden.
 - `git diff --check` bestanden. Kein APK/Release für Teilbatch 4/10. Nächster konkreter Schritt: den Orca-Fix `5fd0edf5cc` für Z-Schrumpfung und Höhenbereichsmodifikatoren auf Android-Aufrufpfad, passende native Schnittstellen und Regressionstestbarkeit prüfen.
+- Nachtest auf demselben Nightly-HEAD: `AnycubicAceRoutingPolicyTest` 8/8 und `SparseAceRoutingOutputTest` 5/5 bestanden. `KromaCutThreeMfDeviceTest` wurde gestartet, aber 4/4 private-fixturegebundene Fälle wurden mangels Fixture übersprungen; kein zusätzlicher KromaCut-Gerätenachweis.
+- Kandidaten-Audit: `5fd0edf5cc` ist bereits in Batch 7 portiert und verifiziert; High-Precision-G-Code, transparente Filamentvorschau und Sparse-Infill-Eckenglättung sind ebenfalls schon in der Nightly-Codebasis. Diese Kandidaten werden nicht doppelt gezählt. Nächster Schritt: übrige Orca-2.5-Kandidaten anhand des tatsächlichen Android-Aufrufpfads abgleichen und den nächsten fehlenden, end-to-end testbaren Punkt auswählen.
 
 ## Vorheriger Stand
 
