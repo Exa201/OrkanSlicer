@@ -1,13 +1,14 @@
-# Nightly 2.5 Fortsetzung — Batch 12 bei 1/10 — 2026-11-04
+# Nightly 2.5 Fortsetzung — Batch 12 bei 2/10 — 2026-11-04
 
-## Aktueller Stand am 2026-11-04 — aktueller Code-HEAD `f7b39929e087805900b69e41f860df7662414539`
+## Aktueller Stand am 2026-11-04 — letzter Code-Commit `9ac5d504e06472e52f16a95aea342305d7398d35`
 
 - Batch 11 bleibt als `v0.8.434-nightly.1` veröffentlicht. Aktuelle Nightly-Version/Release: `0.8.434`, Paket `com.exa201.orkanslicer.nightly25`; isolierte Identität und App-Dateispeicherung sind bereits umgesetzt.
-- Batch 12: **1/10**. Punkt 1 ist Orca `69193d5681` (Infill-Konturverknüpfung), implementiert und verifiziert. Kein Batch-12-APK/Release vor 10/10.
+- Batch 12: **2/10**. Punkt 1 ist Orca `69193d5681` (Infill-Konturverknüpfung), implementiert und verifiziert. Punkt 2 portiert Orca `7e3d5d4d04`: ungültige `other_layers_print_sequence_nums`-Werte werden ignoriert, bevor Sequenzgruppen gelesen werden. Code-Commit `9ac5d504e0` ist lokal erstellt; Push steht noch aus. Kein Batch-12-APK/Release vor 10/10.
+- Punkt-2-Verifikation: `NativeSliceDeviceTest#malformedOtherLayerPrintSequenceIsIgnoredAndStillSlices` 1/1 auf API 36; deckt Zähler 0/negativ, zu kurze, nicht teilbare und gültige Gruppen sowie einen echten Slice mit Zähler 2 bei nur einem Wert und gültigem extrudierendem G-Code ab. Zusätzliche Spiralvase-Mehrbereichsregression 1/1. Debug- und Slice-Unit-Suiten je 749/749, 0 Fehler/Skips.
 - ACE-Zuordnung am aktuellen Code-HEAD frisch geprüft: Debug-JVM-Testgruppen `SparseAceRoutingOutputTest` (5), `MmuColorAssignmentPolicyTest` (5) und `SlicePreparationToolsTest` (17) bestanden, insgesamt 27/27. Darin: Slicer-T0 → ausgewähltes ACE-Fach 2 → Firmwarebefehl T1, Werkzeugmatrix 1–16, sowie Weiß/Blau-KromaCut-3MF-Farbpalette und T0/T1 im erzeugten G-Code. Das ist Software-/G-Code-Verifikation, kein physischer Druckertest.
 - Zusätzlicher aktueller Android-16/API-36-Lauf auf `solidcraft_port_test_clean_20261101`: `NativeSliceDeviceTest#lightningInfillCompletesWhenOpenedOverhangExtendsPastInfillBounds` 1/1 bestanden; XML `app/build/outputs/androidTest-results/connected/sliceTest/TEST-solidcraft_port_test_clean_20261101(AVD) - 16-_app-.xml`, Testzeit 8,344 s. Dies bestätigt den bereits portierten Orca-Hangschutz, zählt nicht als neuer Batch-Punkt.
 - Upstream-Audit: die zuletzt betrachteten Orca-Änderungen für Bridge-Geschwindigkeit bei Curling-Slowdown (`533d4c3e9e`), STEP/AMF/3MF-Körpernamen (`fa5f7e3db4`), STEP-Vase-Modus mit Höhenbereichen (`896557bce5`), Objektanordnung und By-Object-Freigang (`041df4031e`, `05a92cd0cf`, `8cdc68a6a0`, `a30ca5e54a`), stabile Tree-Support-Reihenfolge (`5191a5efeb`) und Prime-Tower-Sliver (`1c9f6f9318`) sind bereits im Android-Quellcode adaptiert. Vorhandene Implementierung/Tests werden nicht als neue Punkte gezählt.
-- Nächster Schritt: im Orca-2.5-Backlog einen noch nicht adaptierten, aktiven Android-Aufrufpfad mit echtem Produktnutzen finden; vor Portierung Quellcode und Android-Verhaltenstest abgrenzen. Aktuell keine bekannten ADB-Geräte außer dem API-36-Emulator; Xiaomi-/Druckerhardware nicht frisch geprüft.
+- Nächster Schritt: Punkt 2 auf dem Nightly-Branch committen und pushen; danach den nächsten nicht adaptierten Orca-Pfad mit eigenständigem Android-Verhaltenstest auswählen. Aktuell keine bekannten ADB-Geräte außer dem API-36-Emulator; Xiaomi-/Druckerhardware nicht frisch geprüft.
 
 ## Aktueller Nachweis — Batch 11 Punkte 9 und 10 sowie ACE-Routing
 

@@ -1,3 +1,17 @@
+# Aktueller Stand — Nightly Batch 12, 2/10 — 2026-11-04
+
+Batch 11 ist mit 10/10 als `v0.8.434-nightly.1` veröffentlicht. Batch 12 hat zwei unabhängig verifizierte Orca-Verhaltenspunkte. Es gibt noch keine APK oder Veröffentlichung für Batch 12; das Release-Gate bleibt bei 10/10 plus gebündelter Regression.
+
+### Punkt 2/10 — Ungültige Layer-Sequenzkonfiguration sicher ignorieren
+
+Port von Orca `7e3d5d4d04` in `get_other_layers_print_sequence`: nichtpositive Gruppenzähler, nicht teilbare Wertevektoren und Gruppen ohne Layerbereich plus Extruder werden vor jedem Indexzugriff verworfen. Damit kann ein inkonsistenter 3MF-/Projektwert den nativen Tool-Ordering-/Slice-Pfad nicht mehr über leere oder unvollständige Gruppen lesen lassen.
+
+`NativeSliceDeviceTest#malformedOtherLayerPrintSequenceIsIgnoredAndStillSlices` bestand auf Android 16/API 36 (1/1). Der Produktionshelper wurde direkt mit Zähler 0/negativ, zu kurzen und nicht teilbaren Gruppen sowie gültigen Gruppen geprüft; zusätzlich slicet ein Würfel mit absichtlich inkonsistentem gespeicherten Zähler und erzeugt weiterhin gültigen extrudierenden G-Code. Debug- und Slice-Unit-Suiten: jeweils 749/749, 0 Fehler/Skips. Code-Commit `9ac5d504e0` ist lokal erstellt; Push steht noch aus. Kein APK-/Release-Gate ausgelöst.
+
+### Punkt 1/10 — Orca-Infill-Verbindungsoptimierung
+
+Port von Orca `69193d5681` für multiline-bewusste Infill-Verknüpfung, stabile Wahl gleich langer Konturabschnitte und Hook-Platzierung zum nächsten offenen Pfadende. API-36-Slice-Regression, Geometriegrenzen und beide JVM-Suiten bestanden; Commit `8ab43b6ed5` ist auf `nightly25` gepusht.
+
 ## Nightly Batch 11 — Punkt 8/10 (Stand 2026-11-04)
 
 > **Aktueller Fortschrittshinweis (2026-11-04):** Die folgenden Batch-11-Abschnitte sind historische Arbeitsnotizen und ihr jeweiliger Punktestand ist nicht mehr der aktuelle. Batch 11 wurde mit 10/10 Punkten als `v0.8.434-nightly.1` veröffentlicht. Batch 12 steht bei **1/10**; der aktuelle gepushte Code-HEAD ist `f7b39929e087805900b69e41f860df7662414539`. Die maßgebliche Fortsetzung und jüngsten Prüfungen stehen in `docs/UI2_EXECUTION_STATE.md`.
