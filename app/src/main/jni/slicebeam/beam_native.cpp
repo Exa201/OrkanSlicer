@@ -31,6 +31,7 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PlaceholderParser.hpp"
 #include "libslic3r/FilamentGroup.hpp"
 #include "libslic3r/ModelArrange.hpp"
@@ -5845,6 +5846,41 @@ extern "C" {
                 merged->get_at(0), merged->get_at(1), merged->get_at(2), merged->get_at(3)};
             jdoubleArray result = env->NewDoubleArray(6);
             if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 6, values);
+            return result;
+        } catch (const std::exception& error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
+    }
+
+    // Exercises the production filament-count update after one filament has been
+    // removed from a shared-nozzle multi-material printer. The shared-nozzle mode
+    // must retain one slot, while switching to a tool changer must restore one
+    // preset slot per nozzle.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_shared_1nozzle_1filament_1count_1regression(
+        JNIEnv* env, jclass)
+    {
+        try {
+            PresetBundle bundle;
+            Preset& printer = bundle.printers.get_edited_preset();
+            printer.printer_technology_ref() = ptFFF;
+            printer.config.set_num_extruders(2);
+            printer.config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(true));
+            bundle.filament_presets = { bundle.filaments.get_edited_preset().name };
+
+            bundle.update_filament_count();
+            bundle.update_multi_material_filament_presets();
+            const jint shared_nozzle_count = static_cast<jint>(bundle.filament_presets.size());
+
+            printer.config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+            bundle.update_filament_count();
+            bundle.update_multi_material_filament_presets();
+            const jint tool_changer_count = static_cast<jint>(bundle.filament_presets.size());
+
+            const jint values[] = { shared_nozzle_count, tool_changer_count };
+            jintArray result = env->NewIntArray(2);
+            if (result != nullptr) env->SetIntArrayRegion(result, 0, 2, values);
             return result;
         } catch (const std::exception& error) {
             jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");

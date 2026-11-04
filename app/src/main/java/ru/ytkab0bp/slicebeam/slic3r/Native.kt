@@ -69,6 +69,9 @@ class Native {
     /** Exercises the inherited custom-printer preset merge when the child adds nozzle slots. */
     @JvmStatic
     external fun preset_parent_nozzle_extension_regression(): DoubleArray
+    /** Verifies shared-nozzle multi-material presets stay at one after filament deletion. */
+    @JvmStatic
+    external fun shared_nozzle_filament_count_regression(): IntArray
     /** Exercises production short-path chaining against a four-segment optimality fixture. */
     @JvmStatic
     external fun shortest_path_exact_chain_regression(): IntArray

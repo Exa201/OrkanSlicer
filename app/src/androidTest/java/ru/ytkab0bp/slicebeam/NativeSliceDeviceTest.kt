@@ -76,6 +76,15 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test
+    fun sharedNozzleMultiMaterialDoesNotRestoreDeletedFilamentSlot() {
+        assertArrayEquals(
+            "Shared-nozzle MMU should keep one filament after deletion; tool changers still need one per nozzle",
+            intArrayOf(1, 2),
+            Native.shared_nozzle_filament_count_regression(),
+        )
+    }
+
     @Test(timeout = 120_000)
     fun wipeInwardChangesOnlyTheGeneratedWipePathAndKeepsGcodeValid() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

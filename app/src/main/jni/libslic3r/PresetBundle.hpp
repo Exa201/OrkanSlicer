@@ -373,6 +373,7 @@ public:
     bool support_different_extruders();
 
     // Orca: Ensure filament_presets has at least one slot per nozzle on FFF printers.
+    // A shared-nozzle multi-material printer only needs one default filament slot.
     // Called from (load|update)_selections before the parallel project_config arrays
     // (filament_colour/colour_type/map) are sized off filament_presets.size(), so a
     // short saved filament list doesn't truncate the loaded colors.
@@ -437,6 +438,10 @@ public:
     // Read out the number of extruders from an active printer preset,
     // update size and content of filament_presets.
     void                        update_multi_material_filament_presets(size_t to_delete_filament_id = size_t(-1));
+
+    // Minimum number of filament presets required for this printer. Shared-nozzle
+    // multi-material machines use one filament preset for any number of nozzles.
+    size_t                      min_filament_count() const;
 
     void                        on_extruders_count_changed(int extruder_count);
 
