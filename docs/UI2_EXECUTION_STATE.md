@@ -1,4 +1,15 @@
-# Nightly 2.5 Fortsetzung — Batch 11, Punkt 3/10 verifiziert — 2026-11-04
+# Nightly 2.5 Fortsetzung — Batch 11, Punkt 4/10 verifiziert — 2026-11-04
+
+## Batch 11 — Punkt 4/10: Reihenfolge gleichartiger Kopien beim sequenziellen Drucken
+
+- Android-Port von Orca `8cdc68a6a0`: Kahn-Sortierung bei „Drucken nach Objekt“ ordnet kollisionsfreie Instanzen mit gleichem Objektindex stabil nach ihrer ursprünglichen Listenposition. Die notwendige Sicherheits-Neusortierung bei Düsen-/Stangenkollisionen bleibt aktiv.
+- `NativeSliceDeviceTest#sequentialPrintKeepsCopiesOfOneObjectInTheirListOrder` slicet 200 Kopien desselben Objekts, liest deren tatsächliche erste XY-Extrusionsbewegung aus dem erzeugten G-Code und bestätigt Reihenfolge sowie unveränderte 15-Spalten-Anordnung auf Android 16/API 36 (1/1 bestanden).
+- Der erste Testentwurf schlug nur deshalb fehl, weil er einen E-only-Prime-Befehl für einen XY-Pfad hielt; der Assert wurde auf XY-Extrusion präzisiert und der gezielte Test danach bestanden.
+- `git diff --check` bestanden. Kein APK/Release für Teilbatch 4/10. Nächster konkreter Schritt: den Orca-Fix `5fd0edf5cc` für Z-Schrumpfung und Höhenbereichsmodifikatoren auf Android-Aufrufpfad, passende native Schnittstellen und Regressionstestbarkeit prüfen.
+
+## Vorheriger Stand
+
+Batch 11 stand bei 3/10; Punkt 4 war noch nicht getestet.
 
 ## ACE-Routing-Zwischenrelease 0.8.433 — 2026-11-04
 

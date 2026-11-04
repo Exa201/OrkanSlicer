@@ -7173,6 +7173,91 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test(timeout = 120_000)
+    fun sequentialPrintKeepsCopiesOfOneObjectInTheirListOrder() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val printerKeys = listOf(
+            "extruder_clearance_height_to_lid",
+            "extruder_clearance_height_to_rod",
+            "extruder_clearance_radius",
+        )
+        val processKeys = listOf("print_sequence", "gcode_label_objects", "layer_height", "initial_layer_print_height")
+        val previousPrinter = printerKeys.associateWith { printer[it] }
+        val previousProcess = processKeys.associateWith { process[it] }
+        val model = Model()
+        val output = File(context.cacheDir, "sequential-copy-list-order.gcode")
+        var result: GCodeProcessorResult? = null
+        try {
+            printer.put("extruder_clearance_height_to_lid", "100")
+            printer.put("extruder_clearance_height_to_rod", "10")
+            printer.put("extruder_clearance_radius", "5")
+            process.put("print_sequence", "by object")
+            process.put("gcode_label_objects", "1")
+            process.put("layer_height", "0.2")
+            process.put("initial_layer_print_height", "0.2")
+
+            assertEquals(0, model.createPrimitive(0, 5.0, 5.0, 0.2, "Sequential copies", 10.0, 10.0))
+            model.ensureOnBed(0)
+            val copyCount = 200
+            for (copy in 1 until copyCount) {
+                val dx = (copy % 15) * 12.0
+                val dy = (copy / 15) * 12.0
+                assertEquals("copy $copy must be added as a separate instance", copy,
+                    model.duplicateInstance(0, 0, Vec3d(dx, dy, 0.0)))
+            }
+
+            SliceBeam.genCurrentConfig(model)
+            val generatedConfig = SliceBeam.getCurrentConfigFile()
+            result = model.slice(generatedConfig.absolutePath, output.absolutePath, null)
+            val lines = output.readLines()
+            val objectStarts = lines.indices.filter { lines[it].startsWith("; printing object Sequential copies id:") }
+            assertEquals("one-layer by-object G-code must identify every copy exactly once", copyCount, objectStarts.size)
+
+            val firstExtrusionByCopy = objectStarts.mapIndexed { index, start ->
+                val end = objectStarts.getOrNull(index + 1) ?: lines.size
+                val extrusion = lines.subList(start + 1, end).firstOrNull { line ->
+                    val command = line.substringBefore(';').trim()
+                    command.startsWith("G1 ") &&
+                        Regex("(?:^|\\s)E[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)").containsMatchIn(command) &&
+                        Regex("(?:^|\\s)[XY][+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)").containsMatchIn(command)
+                }
+                assertNotNull("copy at sequential print position $index must extrude", extrusion)
+                val values = Regex("([XY])([+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+))")
+                    .findAll(requireNotNull(extrusion).substringBefore(';'))
+                    .associate { it.groupValues[1] to it.groupValues[2].toDouble() }
+                assertTrue("copy $index extrusion must include XY coordinates: $extrusion", "X" in values && "Y" in values)
+                values.getValue("X") to values.getValue("Y")
+            }
+            assertEquals(copyCount, firstExtrusionByCopy.size)
+            val first = firstExtrusionByCopy.first()
+            for (copy in 0 until copyCount) {
+                val expectedDx = (copy % 15) * 12.0
+                val expectedDy = (copy / 15) * 12.0
+                val actual = firstExtrusionByCopy[copy]
+                assertEquals("copy list order must be preserved in G-code at index $copy (X)",
+                    expectedDx, actual.first - first.first, 0.5)
+                assertEquals("copy list order must be preserved in G-code at index $copy (Y)",
+                    expectedDy, actual.second - first.second, 0.5)
+            }
+        } finally {
+            result?.release()
+            model.release()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+            printerKeys.forEach { key ->
+                printer.values.remove(key)
+                previousPrinter[key]?.let { printer.put(key, it) }
+            }
+            processKeys.forEach { key ->
+                process.values.remove(key)
+                previousProcess[key]?.let { process.put(key, it) }
+            }
+        }
+    }
+
     private fun sliceToGcode(context: Context, model: Model, name: String): String {
         val gcodeFile = File(context.cacheDir, name)
         var generatedConfig: File? = null

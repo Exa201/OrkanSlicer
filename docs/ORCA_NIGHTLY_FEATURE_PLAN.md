@@ -1,4 +1,25 @@
-## Nightly Batch 11 — Punkt 3/10 (Stand 2026-11-03)
+## Nightly Batch 11 — Punkt 4/10 (Stand 2026-11-04)
+
+### Punkt 4/10 — Reihenfolge gleichartiger Kopien beim sequenziellen Drucken
+
+Android-Port von Orca `8cdc68a6a0`. Die Kahn-Sortierung in `sequential_print_clearance_valid`
+bricht Gleichstände nicht länger nur anhand des gemeinsamen Objektindex, sondern anhand der
+ursprünglichen Instanzlistenposition. So bleibt die Reihenfolge von Kopien desselben Objekts
+deterministisch, solange keine Kollisionsbedingung eine sichere Umordnung erfordert.
+
+`NativeSliceDeviceTest#sequentialPrintKeepsCopiesOfOneObjectInTheirListOrder` erzeugt und slicet
+200 Kopien desselben Modells, liest die ersten XY-Extrusionsbewegungen aus dem G-Code und
+bestätigt die ursprüngliche 15-Spalten-Reihenfolge auf Android 16/API 36 (1/1 bestanden).
+Der erste Testlauf deckte einen zu strengen Test-Assert auf (E-only-Prime wurde fälschlich als
+XY-Bewegung behandelt); nach Präzisierung bestand der Test. `git diff --check` bestanden.
+Noch kein APK/Release; Batch 11 steht bei 4/10.
+
+Nächster Schritt: Orca `5fd0edf5cc` zur Anwendung von Z-Schrumpfungskompensation auf
+Höhenbereiche prüfen und bei passendem Android-Aufrufpfad mit echtem Slice-Test portieren.
+
+---
+
+## Vorheriger Stand — Punkt 3/10
 
 ### Punkt 3/10 — Originale 3MF-Körpernamen in importierten Baugruppen
 
