@@ -961,6 +961,8 @@ add_library(slic3r
         src/main/jni/libslic3r/GCode/WipeTower2.hpp
         src/main/jni/libslic3r/GCode/WipeTower.cpp
         src/main/jni/libslic3r/GCode/WipeTower.hpp
+        src/main/jni/libslic3r/GCode/WipePathHelpers.cpp
+        src/main/jni/libslic3r/GCode/WipePathHelpers.hpp
         src/main/jni/libslic3r/GCodeWriter.cpp
         src/main/jni/libslic3r/GCodeWriter.hpp
         src/main/jni/libslic3r/Geometry/ArcWelder.hpp

@@ -45,6 +45,70 @@ import java.util.zip.CRC32
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test(timeout = 120_000)
+    fun wipeInwardChangesOnlyTheGeneratedWipePathAndKeepsGcodeValid() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        process.put("wall_loops", "3")
+        process.put("wipe_inward_distance", "50%")
+        process.put("gcode_comments", "1")
+        filament.put("wipe", "1")
+        filament.put("wipe_distance", "3")
+
+        val source = copyCube(context, "wipe-inward-source.stl")
+        val configFile = SliceBeam.getCurrentConfigFile()
+        var model: Model? = null
+        try {
+            model = Model(source).also { it.ensureOnBed(0) }
+            fun wipeMoves(gcode: String): List<String> {
+                var active = false
+                return gcode.lineSequence().mapNotNull { line ->
+                    if (line.contains("WIPE_START")) active = true
+                    val move = if (active && line.startsWith("G1 ") &&
+                        Regex("\\b[XY][+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)").containsMatchIn(line) &&
+                        Regex("\\bE[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)").containsMatchIn(line)) line else null
+                    if (line.contains("WIPE_END")) active = false
+                    move
+                }.toList()
+            }
+
+            fun assertWipeDiffersForWallOrder(wallOrder: String, suffix: String) {
+                process.put("wall_sequence", wallOrder)
+                process.put("wipe_inward", "0")
+                SliceBeam.genCurrentConfig(model)
+                val disabledConfig = configFile.readText()
+                assertTrue("Disabled state must reach native config for $wallOrder", disabledConfig.contains("wipe_inward = 0"))
+                assertTrue("Wipe distance must reach native config", disabledConfig.contains("wipe_inward_distance = 50%"))
+                val ordinaryGcode = sliceToGcode(context, model, "wipe-inward-$suffix-disabled.gcode")
+                assertHasExtrusion(ordinaryGcode)
+                assertTrue("Fixture must exercise actual wipe paths for $wallOrder", ordinaryGcode.contains("WIPE_START"))
+
+                process.put("wipe_inward", "1")
+                SliceBeam.genCurrentConfig(model)
+                val enabledConfig = configFile.readText()
+                assertTrue("Enabled state must reach native config for $wallOrder", enabledConfig.contains("wipe_inward = 1"))
+                val inwardGcode = sliceToGcode(context, model, "wipe-inward-$suffix-enabled.gcode")
+                assertHasExtrusion(inwardGcode)
+                assertTrue("Enabled Wipe Inward must keep executable wipe segments for $wallOrder", inwardGcode.contains("WIPE_START"))
+
+                val regularWipes = wipeMoves(ordinaryGcode)
+                val inwardWipes = wipeMoves(inwardGcode)
+                assertTrue("Both $wallOrder slices must contain measurable wipe moves", regularWipes.isNotEmpty() && inwardWipes.isNotEmpty())
+                assertNotEquals("Inward setting must alter emitted wipe geometry for $wallOrder", regularWipes, inwardWipes)
+                Log.i("NativeSliceDeviceTest", "PASS Wipe Inward $wallOrder: ${regularWipes.size} regular and ${inwardWipes.size} inward wipe moves")
+            }
+
+            assertWipeDiffersForWallOrder("inner wall/outer wall", "inner-outer")
+            assertWipeDiffersForWallOrder("inner-outer-inner wall", "sandwich")
+        } finally {
+            model?.release()
+            source.delete()
+            configFile.delete()
+        }
+    }
+
     @Test
     fun worldTranslationKeepsRotatedAndScaledObjectBoundsAlignedWithDragDelta() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

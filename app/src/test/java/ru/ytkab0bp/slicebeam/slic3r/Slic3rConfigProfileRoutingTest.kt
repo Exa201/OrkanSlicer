@@ -16,6 +16,8 @@ class Slic3rConfigProfileRoutingTest {
 
         assertTrue("Unrouted process settings: ${missing.joinToString()}", missing.isEmpty())
         assertEquals(importKeys.size, importKeys.distinct().size)
+        assertTrue("Wipe Inward toggle must route through process profiles", "wipe_inward" in importKeys)
+        assertTrue("Wipe Inward distance must route through process profiles", "wipe_inward_distance" in importKeys)
     }
 
     @Test

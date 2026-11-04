@@ -19,7 +19,7 @@ object OrcaProcessSettingsCatalog {
                 section("Layer height", "layer_height", "initial_layer_print_height"),
                 section("Line width", "line_width", "initial_layer_line_width", "inner_wall_line_width", "outer_wall_line_width", "sparse_infill_line_width", "internal_solid_infill_line_width", "top_surface_line_width", "support_line_width"),
                 section("Walls", "wall_loops", "alternate_extra_wall", "detect_thin_wall"),
-                section("Seam", "seam_position", "staggered_inner_seams", "seam_gap", "wipe_speed", "role_based_wipe_speed"),
+                section("Seam", "seam_position", "staggered_inner_seams", "seam_gap", "wipe_on_loops", "wipe_inward", "wipe_inward_distance", "wipe_speed", "role_based_wipe_speed"),
                 section("Scarf joint seam", "seam_slope_type", "seam_slope_conditional", "scarf_angle_threshold", "scarf_overhang_threshold", "seam_slope_start_height", "seam_slope_entire_loop", "seam_slope_min_length", "seam_slope_steps", "seam_slope_inner_walls", "scarf_joint_speed", "scarf_joint_flow_ratio"),
                 section("Precision", "slice_closing_radius", "resolution", "enable_arc_fitting", "high_precision_gcode", "elefant_foot_compensation", "elefant_foot_compensation_layers", "elefant_foot_layers_density", "precise_z_height", "xy_hole_compensation", "xy_contour_compensation", "hole_to_polyhole", "hole_to_polyhole_threshold", "hole_to_polyhole_twisted"),
                 section("Ironing", "ironing_type", "ironing_pattern", "ironing_flow", "ironing_spacing", "ironing_angle", "ironing_angle_fixed", "ironing_inset", "ironing_expansion"),

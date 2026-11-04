@@ -1,4 +1,21 @@
-## Nightly Batch 11 — Punkt 7/10 (Stand 2026-11-04)
+## Nightly Batch 11 — Punkt 8/10 (Stand 2026-11-04)
+
+### Punkt 8/10 — Wipe-Inward mit korrekter Retraktionsaufteilung und Sandwich-Wandversatz
+
+Port von Orca `0b041740b1`: Der Android-Slicer übernimmt die Wipe-Inward-Einstellungen in den nativen
+Prozesskonfigurationspfad und erzeugt die angepasste Wipe-Geometrie auch bei `inner wall/outer wall`
+und `inner-outer-inner wall`. Die neue gemeinsame Geometriehilfe wird vom nativen G-Code-Pfad verwendet;
+die Option invalidiert die betroffenen Slice-/Export-Schritte und ist im Prozessprofil-Katalog verfügbar.
+
+`NativeSliceDeviceTest#wipeInwardChangesOnlyTheGeneratedWipePathAndKeepsGcodeValid` führt echte
+ARM64-Slices des Würfelfixtures mit Option aus/an für beide Wandreihenfolgen durch. Er prüft, dass die
+Option im nativen Config-Export ankommt, Wipe-Extrusionssegmente erhalten bleiben, der resultierende
+G-Code Extrusion enthält und die markierten Wipe-Bewegungen sich ändern. API 36: 1/1 bestanden, 0
+Fehler/Skips. Zusätzlich: ARM64-Native-Build, Profilkatalog-/Import-Routingtests 15/15 in Debug und
+15/15 in Slice sowie Android-Instrumentierungsquellen kompiliert. Kein physischer Druckertest.
+
+Batch 11 steht damit bei **8/10**. Noch zwei unabhängige Android-erreichbare Orca-Verhaltenspunkte,
+gebündelte Regression, Debug-APK und Nightly-Prerelease sind offen.
 
 ### Punkt 7/10 — Bounds-Schutz bei bemalter Multi-Material-Segmentierung
 

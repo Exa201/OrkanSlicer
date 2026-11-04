@@ -26,6 +26,7 @@
 #include "GCode/SmallAreaInfillFlowCompensator.hpp"
 // ORCA: post processor below used for Dynamic Pressure advance
 #include "GCode/AdaptivePAProcessor.hpp"
+#include "GCode/WipePathHelpers.hpp"
 
 #include "GCode/TimelapsePosPicker.hpp"
 
@@ -70,6 +71,7 @@ public:
     void reset_path() { this->path = Polyline(); }
     std::string wipe(GCode &gcodegen, double length, bool toolchange = false, bool is_last = false);
     RetractionValues calculateWipeRetractionLengths(GCode& gcodegen, bool toolchange);
+    void update_path(const ExtrusionPaths &paths, bool reverse = false);
 };
 
 class WipeTowerIntegration {
@@ -401,14 +403,16 @@ private:
     std::string extrude_entity(const ExtrusionEntity&      entity,
                                const std::string&          description       = "",
                                double                      speed             = -1.,
-                               const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr());
+                               const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr(),
+                               const WipeInwardSupport*     wipe_support      = nullptr);
     // Orca: pass the complete collection of region perimeters to the extrude loop to check whether the wipe before external loop
     // should be executed
     std::string extrude_loop(const ExtrusionLoop&        loop,
                              const std::string&          description,
                              double                      speed             = -1.,
                              const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr(),
-                             const Point*                start_point       = nullptr);
+                             const Point*                start_point       = nullptr,
+                             const WipeInwardSupport*     wipe_support      = nullptr);
     std::string extrude_multi_path(const ExtrusionMultiPath& multipath, const std::string& description = "", double speed = -1.);
     std::string extrude_path(const ExtrusionPath& path, const std::string& description = "", double speed = -1.);
 

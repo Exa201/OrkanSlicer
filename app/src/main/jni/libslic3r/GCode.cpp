@@ -361,6 +361,15 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return {retractionBeforeWipe, retractionDuringWipe};
     }
 
+    void Wipe::update_path(const ExtrusionPaths &paths, bool reverse)
+    {
+        reset_path();
+        for (const ExtrusionPath &path : paths)
+            this->path.append(path.polyline.to_polyline());
+        if (reverse)
+            this->path.reverse();
+    }
+
     std::string transform_gcode(const std::string &gcode, Vec2f pos, const Vec2f &translation, float angle)
     {
         Vec2f              extruder_offset(0, 0);
@@ -5850,7 +5859,8 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
                                 const std::string&          description,
                                 double                      speed,
                                 const ExtrusionEntitiesPtr& region_perimeters,
-                                const Point*                start_point)
+                                const Point*                start_point,
+                                const WipeInwardSupport*     wipe_support)
 {
     // get a copy; don't modify the orientation of the original loop object otherwise
     // next copies (if any) would not detect the correct orientation
@@ -6080,61 +6090,46 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
         m_processor.result().print_statistics.total_seam_scarf_distance += static_cast<float>(seam_scarf_distance_mm);
     }
 
-    // BBS
+    const bool is_ccw = loop.is_counter_clockwise();
+    std::optional<Point> wipe_on_loops_dest;
+    if (m_config.wipe_on_loops.value && m_layer != nullptr && m_config.wall_loops.value > 1 &&
+        paths.front().size() >= 2 && paths.back().polyline.points.size() >= 2 &&
+        std::any_of(paths.begin(), paths.end(), [](const ExtrusionPath &path) { return path.role() == erExternalPerimeter; }))
+        wipe_on_loops_dest = wipe_on_loops_destination(paths, scale_(nozzle_diameter), is_ccw, is_hole);
+
     if (m_wipe.enable && FILAMENT_CONFIG(wipe)) {
-        m_wipe.path = Polyline();
-        for (ExtrusionPath &path : paths) {
-            //BBS: Don't need to save duplicated point into wipe path
-            if (!m_wipe.path.empty() && !path.empty() &&
-                m_wipe.path.last_point() == Point(path.first_point().x(), path.first_point().y())) {
-                // Convert Points3 to Points
-                for (auto it = path.polyline.points.begin() + 1; it != path.polyline.points.end(); ++it)
-                    m_wipe.path.append(Point(it->x(), it->y()));
-            } else
-                m_wipe.path.append(path.polyline.to_polyline());  // TODO: don't limit wipe to last path
+        m_wipe.update_path(paths);
+        const auto external_path = std::find_if(paths.begin(), paths.end(),
+            [](const ExtrusionPath &path) { return path.role() == erExternalPerimeter; });
+        if (m_config.wipe_inward && m_config.wipe_inward_distance.value > 0. &&
+            wipe_support != nullptr && !wipe_support->inner_lines.empty() &&
+            external_path != paths.end() && m_wipe.path.points.size() >= 2) {
+            const double outer_wall_width = external_path->width;
+            const double requested_offset = m_config.wipe_inward_distance.get_abs_value(outer_wall_width);
+            const double max_offset = outer_wall_width *
+                (m_config.wall_sequence == WallSequence::InnerOuter ? 1.0 : 0.5);
+            const double offset = scale_(std::min(requested_offset, max_offset));
+            if (offset > SCALED_EPSILON) {
+                const Point seam_start = paths.front().first_point();
+                const Point seam_end = paths.back().last_point();
+                const Point wipe_start = wipe_on_loops_dest.value_or(seam_end);
+                const double max_wipe_length = scale_(FILAMENT_CONFIG(wipe_distance));
+                const double support_distance = scale_(std::max(nozzle_diameter, outer_wall_width));
+                Polyline candidate = m_wipe.path;
+                if (offset_wipe_path_toward_support(
+                        candidate, seam_start, seam_end, wipe_start,
+                        wipe_offset_direction(is_ccw, is_hole), offset, max_wipe_length,
+                        wipe_support->inner_lines, wipe_support->printed_lines,
+                        m_wipe.path.lines(), support_distance))
+                    m_wipe.path = std::move(candidate);
+            }
         }
     }
 
-    // make a little move inwards before leaving loop
-    if (m_config.wipe_on_loops.value && paths.back().role() == erExternalPerimeter && m_layer != NULL && m_config.wall_loops.value > 1 && paths.front().size() >= 2 && paths.back().polyline.points.size() >= 3) {
-        // detect angle between last and first segment
-        // the side depends on the original winding order of the polygon (inwards for contours, outwards for holes)
-        //FIXME improve the algorithm in case the loop is tiny.
-        //FIXME improve the algorithm in case the loop is split into segments with a low number of points (see the Point b query).
-        const Point3 &a3 = paths.front().polyline.points[1];  // second point
-        Point a = Point(a3.x(), a3.y());
-        const Point3 &b3 = *(paths.back().polyline.points.end()-3);       // second to last point
-        Point b = Point(b3.x(), b3.y());
-        if (is_hole == loop.is_counter_clockwise()) {
-            // swap points
-            Point c = a; a = b; b = c;
-        }
-
-        double angle = paths.front().first_point().ccw_angle(a, b) / 3;
-
-        // turn inwards if contour, turn outwards if hole
-        if (is_hole == loop.is_counter_clockwise()) angle *= -1;
-
-        // create the destination point along the first segment and rotate it
-        // we make sure we don't exceed the segment length because we don't know
-        // the rotation of the second segment so we might cross the object boundary
-        Vec2d  p1 = paths.front().polyline.points.front().cast<double>().head<2>();
-        Vec2d  p2 = paths.front().polyline.points[1].cast<double>().head<2>();
-        Vec2d  v  = p2 - p1;
-        double nd = scale_(EXTRUDER_CONFIG(nozzle_diameter));
-        double l2 = v.squaredNorm();
-        // Shift by no more than a nozzle diameter.
-        //FIXME Hiding the seams will not work nicely for very densely discretized contours!
-        //BBS. shorten the travel distant before the wipe path
-        double threshold = 0.2;
-        Point  pt = (p1 + v * threshold).cast<coord_t>();
-        if (nd * nd < l2)
-            pt = (p1 + threshold * v * (nd / sqrt(l2))).cast<coord_t>();
-        //Point pt = ((nd * nd >= l2) ? (p1+v*0.4): (p1 + 0.2 * v * (nd / sqrt(l2)))).cast<coord_t>();
-        const Point3 &center3 = paths.front().polyline.points.front();
-        pt.rotate(angle, Point(center3.x(), center3.y()));
-        // generate the travel move
-        gcode += m_writer.extrude_to_xy(this->point_to_gcode(pt), 0, "move inwards before travel", true);
+    if (wipe_on_loops_dest) {
+        gcode += m_writer.extrude_to_xy(
+            this->point_to_gcode(*wipe_on_loops_dest), 0, "move inwards before travel", true);
+        this->set_last_pos(*wipe_on_loops_dest);
     }
 
     return gcode;
@@ -6192,14 +6187,15 @@ std::string GCode::extrude_multi_path(const ExtrusionMultiPath& multipath, const
 std::string GCode::extrude_entity(const ExtrusionEntity&      entity,
                                   const std::string&          description,
                                   double                      speed,
-                                  const ExtrusionEntitiesPtr& region_perimeters)
+                                  const ExtrusionEntitiesPtr& region_perimeters,
+                                  const WipeInwardSupport*     wipe_support)
 {
     if (const ExtrusionPath* path = dynamic_cast<const ExtrusionPath*>(&entity))
         return this->extrude_path(*path, description, speed);
     else if (const ExtrusionMultiPath* multipath = dynamic_cast<const ExtrusionMultiPath*>(&entity))
         return this->extrude_multi_path(*multipath, description, speed);
     else if (const ExtrusionLoop* loop = dynamic_cast<const ExtrusionLoop*>(&entity))
-        return this->extrude_loop(*loop, description, speed, region_perimeters);
+        return this->extrude_loop(*loop, description, speed, region_perimeters, nullptr, wipe_support);
     else
         throw Slic3r::InvalidArgument("Invalid argument supplied to extrude()");
     return "";
@@ -6245,8 +6241,26 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
                 : (m_config.is_infill_first == is_infill_first);
             if (!should_print) continue;
 
-            for (const ExtrusionEntity* ee : region.perimeters)
-                gcode += this->extrude_entity(*ee, "perimeter", -1., region.perimeters);
+            std::optional<WipeInwardSupport> wipe_support;
+            if (m_wipe.enable && FILAMENT_CONFIG(wipe) && m_config.wipe_inward &&
+                m_config.wipe_inward_distance.value > 0. &&
+                scale_(FILAMENT_CONFIG(wipe_distance)) > SCALED_EPSILON)
+                wipe_support.emplace();
+
+            if (wipe_support && m_config.wall_sequence != WallSequence::InnerOuter) {
+                WipeInwardSupport all_walls;
+                for (const ExtrusionEntity *entity : region.perimeters)
+                    all_walls.append(*entity);
+                wipe_support->inner_lines = std::move(all_walls.inner_lines);
+                wipe_support->inner_lines_complete = true;
+            }
+
+            for (const ExtrusionEntity* ee : region.perimeters) {
+                gcode += this->extrude_entity(*ee, "perimeter", -1., region.perimeters,
+                                               wipe_support ? &*wipe_support : nullptr);
+                if (wipe_support)
+                    wipe_support->append(*ee);
+            }
         }
     return gcode;
 }

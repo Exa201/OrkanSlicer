@@ -54,6 +54,15 @@ class OrcaProcessSettingsCatalogTest {
     }
 
     @Test
+    fun wipeInwardOptionsAreVisibleAndRoutedToProcessProfiles() {
+        val seam = OrcaProcessSettingsCatalog.categories()
+            .single { it.title == "Layers and perimeters" }
+            .sections.single { it.title == "Seam" }
+        assertTrue("Wipe Inward toggle must be configurable", "wipe_inward" in seam.keys)
+        assertTrue("Wipe Inward distance must be configurable", "wipe_inward_distance" in seam.keys)
+    }
+
+    @Test
     fun filamentAndBedValuesAreNotPresentedAsProcessSettings() {
         val processKeys = OrcaProcessSettingsCatalog.processKeys().toSet()
         val filamentOnlyKeys = setOf(

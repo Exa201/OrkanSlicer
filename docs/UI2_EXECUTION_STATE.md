@@ -1,12 +1,28 @@
-# Nightly 2.5 Fortsetzung — Batch 11, Punkt 7/10 verifiziert — 2026-11-04
+# Nightly 2.5 Fortsetzung — Batch 11, Punkt 8/10 verifiziert — 2026-11-04
 
-## Batch 11 — Punkt 7/10: Bounds-Schutz für bemalte Multi-Material-Segmentierung
+## Orca Wipe-Inward-Port — Zwischenstand 2026-11-04
+
+- Ergänzend wurde der Android-Aufrufpfad für Orca-Wipe-Inward begonnen: native Druckoptionen und Invalidierung, Profilkatalog sowie die WipePathHelpers-Geometrie sind lokal integriert.
+- Der erste native Link scheiterte, weil die Android-App ihre tatsächliche Slicer-Quelldateiliste in `app/CMakeLists.txt` führt. Nach Ergänzung dort kompiliert `:app:externalNativeBuildSliceTest` erfolgreich für ARM64. Ein Quellkompatibilitätsfehler mit Orkas privater `Polyline::reset_to_linear_move()`-Methode wurde behoben.
+- Verifiziert: native ARM64-Build; Profilkatalog-/Import-Routingtests 15/15 in Debug und 15/15 in Slice; API-36-Emulator-Test `wipeInwardChangesOnlyTheGeneratedWipePathAndKeepsGcodeValid` 1/1. Der echte Würfel-Slice vergleicht markierte Wipe-Extrusionspfade bei deaktivierter/aktivierter Funktion für `inner wall/outer wall` und `inner-outer-inner wall`; beide Reihenfolgen behalten extrudierbare Wipe-Segmente und erzeugen unterschiedliche Wipe-Geometrie. Der Slice-Test prüft außerdem, dass Optionen den nativen Config-Export erreichen.
+- Kein Druck auf physischer Hardware; kein Release. Als verifizierter Orca-Verhaltenspunkt zählt dieser Port jetzt als **Batch 11, 8/10**. Batch-APK/Release bleibt bis 10/10 offen.
+- Nächster Schritt: einen eigenständigen, noch nicht portierten Orca-2.5-Laufzeitpunkt auswählen und mit Verhaltenstest verifizieren; anschließend Punkt 10/10 und Batch-Regressionslauf.
+
+## Fortsetzung 2026-11-04 — aktueller HEAD nachverifiziert
+
+- Code-HEAD `a5bced9b301632a85815f928608ef36eb98f30cd`, Branch `codex/nightly-batch11-next`; Arbeitsbaum vor dem Nachtest sauber.
+- Auf dem API-36-AVD `solidcraft_port_test_clean_20261101` den bereits portierten Orca-Fix für deterministische organische Tree-Supports erneut gegen den aktuellen HEAD geprüft: `NativeSliceDeviceTest#organicTreeSupportPathsAreStableAcrossRepeatedSlices` 1/1, 0 Fehler/Errors/Skips. XML-Testzeit 84,48 s; drei echte Slices erzeugten identische geordnete Support-Extrusionspfade. Dies ist eine frische Regressionbestätigung, kein neuer Batch-Punkt.
+- Adaptive GPU-Vorschau und Nightly-Paket-/Speicherisolation sind bereits implementiert; keine doppelte Umsetzung oder Batch-Zählung.
+- Upstream-Kandidatenaudit: `0b041740b1` (Wipe-Inward) ist jetzt lokal portiert und durch einen echten Slice-G-Code-Test abgedeckt (siehe oben). Die zuvor geprüften anderen Änderungen im aktuellen Orca-Stapel sind im Nightly bereits enthalten oder an Desktop-/Cloud-Plugin-Komponenten gebunden und zählen nicht als neue Android-Features. Der Upstream wurde am 2026-11-04 bis `9281032fdc` aktualisiert; der neueste Cloud-Plugin-Hinweis ist im Nightly nicht anwendbar.
+- ADB bestätigt nur den Android-16-AVD; ein Xiaomi ist in dieser Ausführung nicht angeschlossen. Batch 11 steht bei 8/10. Nächste konkrete Arbeit: nach einem noch fehlenden Android-erreichbaren Orca-Verhalten mit isoliertem G-Code-/UI-Nachweis suchen; keine APK oder Release vor 10/10 und gebündelter Regression.
+
+## Historischer Zwischenstand — Batch 11, Punkt 7/10: Bounds-Schutz für bemalte Multi-Material-Segmentierung
 
 - Teilportierung von Orca `08dcc0adfc`: `PrintObjectSlice` begrenzt den Zugriff je Layer auf die tatsächlich vorhandenen Segmentierungskanäle, auch wenn importierte Filamentvektoren mehr Kanäle erwarten.
 - Die gemeinsame Policy wird vom Produktionspfad und Regressionstest verwendet. Der Test prüft sowohl eine kürzere Segmentierungszeile als auch eine kürzere Filamentkonfiguration; der vorhandene echte Slice mit verkürzter 3MF-Farbpalette erzeugt weiterhin T1-Extrusion.
 - API-36-x86_64-AVD mit ARM64-Übersetzung: `NativeSliceDeviceTest#paintedSegmentationUsesFilamentCountWhenColorPaletteIsShorter` bestanden, 1/1, 0 Fehler/Skips; ARM64-C++- und Instrumentierungsbuild erfolgreich; `git diff --check` sauber.
 - Hinweis: Die JNI-Slicevorbereitung normalisiert übliche Importpaletten bereits. Daher prüft der direkte Policy-Assert den inkonsistenten Zeilenfall; der Slice-Roundtrip sichert zusätzlich den regulären Mehrfarbenpfad ab.
-- Batch 11: 7/10. Vollständige Batch-Regression, Debug-APK und Nightly-Release bleiben bis 10/10 offen. Nächster Schritt: einen weiteren ungeporteten Orca-Verhaltenspunkt mit aktivem Android-Aufrufpfad auswählen.
+- Dieser Punkt wurde nachträglich um Wipe-Inward ergänzt; der aktuelle Batchstand ist 8/10. Vollständige Batch-Regression, Debug-APK und Nightly-Release bleiben bis 10/10 offen.
 
 ---
 
