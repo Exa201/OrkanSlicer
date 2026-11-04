@@ -334,7 +334,10 @@ private fun arrangeFillBedCandidateOnGlThread(
                 return@queueEvent
             }
             try {
-                result.complete(expectedBed.arrange(candidateModel))
+                // Fill-bed is commonly used after the standard 6 mm packer rejected a plate
+                // whose visible gaps can still hold another model. Use the same compact,
+                // exact-geometry retry path as dense imports before reporting no room.
+                result.complete(expectedBed.arrangeCompact(candidateModel))
             } catch (error: Throwable) {
                 result.completeExceptionally(error)
             }

@@ -3273,47 +3273,57 @@ extern "C" {
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
 
         try {
+            // Orca's default 6 mm separation is conservative for phone-loaded miniature parts.
+            // Keep it as the first choice, but retry denser, still collision-checked layouts before
+            // telling the user that a visibly open plate has no space. Every attempt starts from
+            // the untouched polygons and model transforms are committed only after full validation.
+            const double requested = std::max(0.0, min_distance_mm);
+            std::vector<double> distances{requested};
+            for (double compact : {2.0, 0.5})
+                if (compact < requested - 1e-6)
+                    distances.emplace_back(compact);
+
             // OrcaSlicer's arrange API takes the bed as Points (scaled bed shape) plus ArrangeParams,
             // rather than the arr2::ArrangeBed/ArrangeSettings types of newer PrusaSlicer.
-            DynamicPrintConfig config = ref->config;
-            Points bed = get_bed_shape(config);
-            ArrangeParams arrange_cfg;
-            arrange_cfg.min_obj_distance = scaled(std::max(0.0, min_distance_mm));
-            // Permit quarter-turn rotations in the bed plane to use otherwise wasted space.
-            // This does not change the model's Z orientation.
-            arrange_cfg.allow_rotations = true;
-
-            // arrange_objects() / arrange() do NOT translate min_obj_distance into the per-item inflation
-            // that the packer uses for spacing — _arrange() zeroes min_obj_distance and expects every item
-            // to be pre-inflated (the desktop does this via update_selected_items_inflation()). Without it,
-            // parts pack edge-to-edge. Inflate each real object by half the min distance so neighbouring
-            // parts end up a full min_obj_distance apart.
+            const Points bed = get_bed_shape(ref->config);
             ModelInstancePtrs instances;
-            ArrangePolygons input = get_arrange_polys(mRef->model, instances);
-            const coord_t inflation = arrange_cfg.min_obj_distance / 2;
-            for (ArrangePolygon& ap : input)
-                if (!ap.is_virt_object)
-                    ap.inflation = inflation;
-            const ArrangePolygons original = input;
-            try {
-                arrangement::arrange(input, bed, arrange_cfg);
-                fill_compound_arrange_gaps(input, bed);
-                if (validate_arrange_placements(input, bed) &&
-                    std::all_of(input.begin(), input.end(), [](const ArrangePolygon& polygon) {
-                        return polygon.bed_idx == 0;
-                    }))
-                    return apply_arrange_polys(input, instances, throw_if_out_of_bed);
-            } catch (const std::exception& e) {
-                BOOST_LOG_TRIVIAL(info) << "Primary bed arrangement could not pack all outlines: " << e.what();
-            }
+            const ArrangePolygons original = get_arrange_polys(mRef->model, instances);
+            for (double distance : distances) {
+                ArrangeParams arrange_cfg;
+                arrange_cfg.min_obj_distance = scaled(distance);
+                // Permit quarter-turn rotations in the bed plane to use otherwise wasted space.
+                // This does not change the model's Z orientation.
+                arrange_cfg.allow_rotations = true;
 
-            // The standard NFP packer uses each model's convex hull. A compound STL can have
-            // large empty gaps inside that hull, so retry those cases using exact projected
-            // islands and validate every final clearance before changing model transforms.
-            input = original;
-            if (!arrange_with_exact_footprint_fallback(input, bed, arrange_cfg))
-                return JNI_FALSE;
-            return apply_arrange_polys(input, instances, throw_if_out_of_bed);
+                // The Orca packer expects per-item inflation (the desktop sets this through
+                // update_selected_items_inflation()); min_obj_distance alone does not do it.
+                ArrangePolygons input = original;
+                const coord_t inflation = arrange_cfg.min_obj_distance / 2;
+                for (ArrangePolygon& ap : input)
+                    if (!ap.is_virt_object)
+                        ap.inflation = inflation;
+
+                try {
+                    arrangement::arrange(input, bed, arrange_cfg);
+                    fill_compound_arrange_gaps(input, bed);
+                    if (validate_arrange_placements(input, bed) &&
+                        std::all_of(input.begin(), input.end(), [](const ArrangePolygon& polygon) {
+                            return polygon.bed_idx == 0;
+                        }))
+                        return apply_arrange_polys(input, instances, throw_if_out_of_bed);
+                } catch (const std::exception& e) {
+                    BOOST_LOG_TRIVIAL(info) << "Bed arrangement at " << distance
+                        << " mm clearance could not pack all outlines: " << e.what();
+                }
+
+                // The normal NFP packer uses convex hulls. Retry each clearance with exact
+                // projected islands; this also recovers ordinary parts rejected by a poor
+                // heuristic layout, while the validator still forbids overlap or bed overrun.
+                input = original;
+                if (arrange_with_exact_footprint_fallback(input, bed, arrange_cfg))
+                    return apply_arrange_polys(input, instances, throw_if_out_of_bed);
+            }
+            return JNI_FALSE;
         } catch (const std::exception& e) {
             BOOST_LOG_TRIVIAL(warning) << "Bed arrangement failed: " << e.what();
             return false;

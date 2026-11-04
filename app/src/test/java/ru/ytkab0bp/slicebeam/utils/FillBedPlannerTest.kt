@@ -20,6 +20,14 @@ class FillBedPlannerTest {
     }
 
     @Test
+    fun estimatesCapacityForAQuarterTurnThatFitsTheBed() {
+        // The unrotated 230 x 40 mm footprint is too wide, but its 40 x 230 mm
+        // quarter-turn fits the 220 x 250 mm bed and should permit a native fit probe.
+        assertEquals(0, FillBedPlanner.estimatedCapacity(220.0, 250.0, 230.0, 40.0, 2.0))
+        assertEquals(5, FillBedPlanner.estimatedCapacityWithRotation(220.0, 250.0, 230.0, 40.0, 2.0))
+    }
+
+    @Test
     fun searchesForTheLargestPackableCopyCountWithoutScanningEveryCandidate() {
         val attempted = mutableListOf<Int>()
         val result = FillBedPlanner.maximumPackableCopies(256) { count ->

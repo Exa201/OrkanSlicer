@@ -4113,6 +4113,68 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun explicitArrangeRetriesCompactClearanceBeforeReportingNoSpace() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 60_000) { glView.renderer.bed?.isValid() == true }
+        val modelFile = File(activity.cacheDir, "arrange-compact-clearance-${System.nanoTime()}.stl")
+        try {
+            val activeBed = requireNotNull(glView.renderer.bed)
+            val bedMin = requireNotNull(activeBed.getVolumeMin())
+            val bedMax = requireNotNull(activeBed.getVolumeMax())
+            val bedWidth = bedMax.x - bedMin.x
+            val bedDepth = bedMax.y - bedMin.y
+            // Four individually printable parts occupy a 2x2 layout. At the old 6 mm gap,
+            // each 49.6%-bed-sized part is rejected (2 * 49.6% + 6 mm > bed size); at the
+            // 0.5 mm compact fallback they fit with positive clearance and no mesh overlap.
+            writeScaledBoxStl(
+                activity,
+                modelFile,
+                (bedWidth * 0.496 / 20.0).toFloat(),
+                (bedDepth * 0.496 / 20.0).toFloat(),
+                0.1f,
+            )
+            val model = loadSingleTestModel(bed, modelFile)
+            val complete = CountDownLatch(1)
+            val arranged = AtomicReference<Boolean>()
+            glView.queueEvent {
+                try {
+                    repeat(3) { model.addObject(model, 0) }
+                    arranged.set(activeBed.arrange(model))
+                    model.resetBoundingBox()
+                    glView.renderer.resetGlModels()
+                    glView.requestRender()
+                } finally {
+                    complete.countDown()
+                }
+            }
+            assertTrue("compact arrangement should return from the GL thread",
+                complete.await(60, TimeUnit.SECONDS))
+            assertEquals(
+                "four models with visible free bed area should fit after compact-clearance retries",
+                true,
+                arranged.get(),
+            )
+
+            val boxes = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+            boxes.forEachIndexed { index, box ->
+                assertTrue("arranged object $index must remain on the printable bed",
+                    box[0] >= bedMin.x - 0.1 && box[1] >= bedMin.y - 0.1 &&
+                        box[3] <= bedMax.x + 0.1 && box[4] <= bedMax.y + 0.1)
+                for (other in 0 until index) {
+                    val overlapX = minOf(box[3], boxes[other][3]) - maxOf(box[0], boxes[other][0])
+                    val overlapY = minOf(box[4], boxes[other][4]) - maxOf(box[1], boxes[other][1])
+                    assertTrue("arranged object $index must not overlap object $other",
+                        overlapX <= 0.0 || overlapY <= 0.0)
+                }
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun objectListGroupCanBeCombinedAsPartsFromTheModelMenu() {
         var modelEditStageStartedAt = SystemClock.elapsedRealtime()
         fun logModelEditStage(stage: String, details: String = "") {

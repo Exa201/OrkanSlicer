@@ -2060,7 +2060,7 @@ val objWidth = objMax.x - objMin.x
 val objDepth = objMax.y - objMin.y
 // Add spacing between objects â€” must match the arrange min_obj_distance (6mm gap)
  val spacing = 6.0
-return FillBedPlanner.estimatedCapacity(bedWidth, bedDepth, objWidth, objDepth, spacing)
+return FillBedPlanner.estimatedCapacityWithRotation(bedWidth, bedDepth, objWidth, objDepth, spacing)
 }
 /**
  * Duplicate the currently selected object (single copy).

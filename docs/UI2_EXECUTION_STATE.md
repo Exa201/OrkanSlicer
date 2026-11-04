@@ -1,5 +1,13 @@
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 
+## Falscher „kein Platz“-Abbruch beim Anordnen/Füllen — 2026-11-04
+
+- Ursache: Die sichtbare Meldung „kein Platz für weitere Kopien“ gehört zum Befehl „Druckplatte füllen“. Dieser Pfad und das explizite Anordnen vertrauten zuerst auf 6 mm Modellabstand; bei dichten, kleinen Teilen konnte der NFP-Packer trotz sichtbarer Restfläche scheitern. Die Füllkapazität wurde außerdem nur aus der ungedrehten Bounding-Box geschätzt.
+- Korrektur: Die native Anordnung versucht nach 6 mm zusätzlich 2 mm und 0,5 mm. Jeder Versuch startet mit unveränderten Originalpolygonen; erst nach Bettgrenzen- und Kollisionsvalidierung werden Positionen übernommen. „Druckplatte füllen“ verwendet diesen selben kompakten Arrange-Pfad. Seine Kapazitätsschätzung berücksichtigt jetzt auch eine 90°-Drehung.
+- Verifikation: `explicitArrangeRetriesCompactClearanceBeforeReportingNoSpace` 1/1 auf Android-16-AVD `solidcraft_clean_api36`: vier große Teile passen mit positivem Abstand auf die Platte, bleiben innerhalb der Grenzen und überschneiden sich nicht. `FillBedPlannerTest` 6/6 bestanden. Der gezielte SliceTest- und Unit-Test-Build war erfolgreich; keine vollständigen Suites, keine Produkt-APK und kein Xiaomi-Hardwaretest in diesem Durchgang.
+- Noch offen: denselben Ablauf mit den tatsächlich betroffenen Catan-Teilen auf Xiaomi prüfen. Änderungen lokal, noch nicht committet oder hochgeladen.
+- Nächster konkreter Schritt: Xiaomi anschließen bzw. die betroffene Platte auf ein Testgerät laden und „Alle anordnen“ sowie „Druckplatte füllen“ separat prüfen; anschließend gezielte Regressionen und erst danach entscheiden, ob ein APK-Update erforderlich ist.
+
 ## Druckplatten-Anordnung meldet fälschlich fehlenden Platz — 2026-11-04
 
 - Befund: Der Arrange-Fehlerpfad im Ansichts-/Anordnungsmenü zeigte den Text „kein Platz für weitere Kopien“, obwohl der Nutzer „Alle anordnen“ gewählt hatte. Das war die falsche Meldung für die Aktion.
@@ -3385,3 +3393,22 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Gezielte Folgeprüfungen mit demselben SliceTest-Build: `settlersHarborPartsReusePlateWhenAnImportRequiresRepacking` 1/1; `importingAnotherModelPreservesExistingManualPlacement` 1/1 (wenn die neue Geometrie ohne Repack hineinpasst); `modelMenuArrangeBringsOffBedObjectBackIntoWorkspace` 1/1; `positionEditorMovesEverySelectedObjectTogetherOnXYZAndKeepsUndoRedo` 1/1. Damit sind sowohl manuelle Bewegungsfreiheit als auch das explizite Arrange nach dem Import erneut bestätigt.
 - Emulatorprüfung, kein Xiaomi in dieser Runde. Kein vollständiger Unit-Lauf, kein Debug-APK-Build, kein Commit und kein GitHub-Upload. Der Archivlauf dauerte rund 11:27 Minuten; 15 Platten sind ein kollisionsfreies Resultat, kein Nachweis mathematisch minimaler Plattenzahl.
 - Nächster Schritt: native Änderung separat neu kompilieren und die fokussierten Import-/Arrange-Tests nach der letzten Bereinigung erneut ausführen; danach auf Xiaomi prüfen, sobald es erreichbar ist.
+
+## Arrange-Fix Nachprüfung — 2026-11-04
+
+- Auf Stable-HEAD `e84af581a3cffa7e30cb30134d078a8a3ed6974c` wurde `:app:testDebugUnitTest --tests ru.ytkab0bp.slicebeam.utils.FillBedPlannerTest` erfolgreich ausgeführt.
+- `:app:connectedSliceTestAndroidTest` mit `InitialProjectMenuDeviceTest#explicitArrangeRetriesCompactClearanceBeforeReportingNoSpace` bestand auf `solidcraft_clean_api36` / Android 16, 1/1. Vier große Modelle lagen innerhalb der Bettgrenzen und überschnitten sich nicht.
+- Das ist ein synthetischer Abstandstest, kein Test der im Screenshot gezeigten Settlers/Catan-Platte oder Xiaomi-Hardware. Xiaomi war nicht per ADB sichtbar; das Settlers-Archiv war in den angegebenen Attachment-Ordnern nicht vorhanden.
+- Es wurde keine APK erstellt und nichts hochgeladen. Nächster Schritt für diesen Fehler: reale Screenshot-Modelle als Fixture bereitstellen oder auf Xiaomi importieren und den produktiven `Alle anordnen`-Pfad auf der bestehenden Modellplatte abnehmen; dabei prüfen, ob die sichtbare „Lücke“ geometrisch tatsächlich nutzbar ist.
+
+## Arrange-Prüfung mit Screenshot-Kontext — 2026-11-04
+
+- Die Meldung „Auf der Druckplatte ist kein Platz für weitere Kopien“ gehört zum Menüpunkt „Mit Kopien füllen“; der globale Menüpunkt „Alle anordnen“ hat einen separaten Handler und eine eigene Fehlermeldung. Beide Pfade wurden getrennt geprüft.
+- Native Ein-Platten-Anordnung nutzt zuerst den 6-mm-Standardabstand und versucht bei Fehlschlag 2 mm sowie 0,5 mm. Jeder Versuch startet mit unveränderten Polygonen; ein exakter Kontur-Fallback prüft Bettgrenzen und kollisionsfreie Abstände, bevor Modelltransformationen übernommen werden.
+- `explicitArrangeRetriesCompactClearanceBeforeReportingNoSpace`: Android-16-Emulator, vier nahezu bettgroße Testkörper passten nach kompakter Wiederholung auf eine Platte, innerhalb der Bettgrenzen und ohne Überschneidung; 1/1 bestanden.
+- `modelMenuArrangeBringsOffBedObjectBackIntoWorkspace`: tatsächlicher Menühandler „Alle anordnen“ verschob ein außerhalb des Betts liegendes Objekt zurück; Filamentzuordnung, Undo und Redo blieben erhalten; Slice-Roundtrip erfolgreich; 1/1 bestanden.
+- `fillBedCopiesPreserveFilamentsAndDistinctPlacementsWithUndoRedo`: „Mit Kopien füllen“ separat geprüft; Kopien bleiben kollisionsfrei und behalten Filamentzuordnung/Undo-Redo; 1/1 bestanden.
+- `settlersHarborPartsReusePlateWhenAnImportRequiresRepacking`: zwei echte Hafen-STLs aus dem bereitgestellten Catan-ZIP wurden unabhängig importiert und kollisionsfrei auf derselben Platte platziert; 1/1 bestanden.
+- Der vollständige 109-STL-Settlers-Lauf wurde in diesem Durchgang nicht ausgeführt: Gradle installierte das Testpaket neu und entfernte dabei die zuvor auf externem Speicher abgelegte Fixture; der Versuch wurde übersprungen und zählt nicht als bestanden. Xiaomi war nicht per ADB erreichbar.
+- `FillBedPlannerTest` wurde gezielt angefordert, war laut Gradle aber vollständig `UP-TO-DATE` (63/63 Aufgaben up-to-date); kein frischer Unit-Testlauf wurde damit erzeugt.
+- Kein Debug-APK-Build, kein Commit und kein Upload in diesem Durchgang. Nächste Aufgabe: Fixture nach dem Testpaket-Installieren in den privaten Cache des Slice-Testpakets kopieren und den vollständigen Archivtest erneut starten; anschließend Xiaomi-Prüfung, falls Gerät erreichbar ist.

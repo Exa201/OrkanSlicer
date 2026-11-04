@@ -42,5 +42,18 @@ class FillBedPlanner private constructor() {
             if (columns <= 0 || rows <= 0) return 0
             return (columns.toLong() * rows.toLong()).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         }
+
+        /** Estimates the best quarter-turn grid so an elongated model is not rejected unrotated. */
+        @JvmStatic
+        fun estimatedCapacityWithRotation(
+            bedWidth: Double,
+            bedDepth: Double,
+            objectWidth: Double,
+            objectDepth: Double,
+            spacing: Double,
+        ): Int = maxOf(
+            estimatedCapacity(bedWidth, bedDepth, objectWidth, objectDepth, spacing),
+            estimatedCapacity(bedWidth, bedDepth, objectDepth, objectWidth, spacing),
+        )
     }
 }
