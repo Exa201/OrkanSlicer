@@ -1,8 +1,8 @@
-# Aktueller Stand — Nightly Batch 12, 4/10 — 2026-11-04
+# Aktueller Stand — Nightly Batch 12, 6/10 — 2026-11-04
 
-Batch 11 ist mit 10/10 als `v0.8.434-nightly.1` veröffentlicht. Batch 12 hat vier unabhängig verifizierte Orca-Verhaltenspunkte. Es gibt noch keine APK oder Veröffentlichung für Batch 12; das Release-Gate bleibt bei 10/10 plus gebündelter Regression.
+Batch 11 ist mit 10/10 als `v0.8.434-nightly.1` veröffentlicht. Batch 12 hat sechs unabhängig verifizierte Orca-Verhaltenspunkte. Es gibt noch keine APK oder Veröffentlichung für Batch 12; das Release-Gate bleibt bei 10/10 plus gebündelter Regression.
 
-Ein weiterer Kandidat ist implementiert, aber **nicht gezählt**: Orca `3bda653448` vereinheitlicht die Drucker-Tagwahl für Prime-Tower-G-Code und verhindert dadurch fehlende Tower-Filamentstatistiken bei Type 1 auf Nicht-Bambu-Druckern. ARM64-Code und neuer Type-1/Type-2-Slice-Test kompilieren. Der Laufzeittest wartet auf ARM64-Hardware; das x86_64-AVD kann den benötigten ARM64-System-Image-Typ nicht ausführen, und ein temporärer x86_64-Testbuild findet kein vorgebautes `libtbb.a`. Fortschritt bleibt daher 4/10.
+Punkt 5 portiert Orca `3bda653448`: Prime-Tower-Statistik folgt dem Drucker-G-Code-Tagdialekt. Punkt 6 portiert Orca `d607d7f4ad`: klassisches Gap-Fill wählt das aktive Wandfilament abhängig von der Zahl tatsächlich gedruckter Wände. Beide Slice-Regressions liefen auf Android 16/API 36 erfolgreich (je 1/1, 0 Fehler/Skips). Es gibt noch keine APK oder Veröffentlichung für Batch 12.
 
 ### Punkt 4/10 — Gelöschtes Filament bei Shared-Nozzle-MMU nicht wiederherstellen
 

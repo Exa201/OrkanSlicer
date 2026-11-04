@@ -3876,6 +3876,74 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun classicWallGapFillUsesAnActiveWallFilament() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.20mm Standard"))
+        val modelFile = createThinCubeFixture("classic-gap-fill-wall-filament.stl", 20.0, 1.9, 5.0)
+        val model = Model(modelFile)
+        try {
+            model.setUniformFilament(0, 2)
+            process.put("wall_generator", "classic")
+            process.put("wall_loops", "2")
+            process.put("outer_wall_filament_id", "2")
+            process.put("inner_wall_filament_id", "1")
+            process.put("sparse_infill_filament_id", "2")
+            process.put("skirt_loops", "0")
+            process.put("brim_type", "no_brim")
+            SliceBeam.genCurrentConfig(model)
+            val configFile = SliceBeam.getCurrentConfigFile()
+            val gcodeFile = File(context.cacheDir, "classic-gap-fill-two-walls.gcode")
+            var result: GCodeProcessorResult? = null
+            try {
+                result = model.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
+                val gcode = gcodeFile.readText()
+                assertHasExtrusion(gcode)
+                assertTrue("the two-wall fixture must contain classic gap fill", toolsForFeature(gcode, "Gap infill").isNotEmpty())
+                assertEquals("gap fill between two walls must use the inner-wall filament T0", setOf(0), toolsForFeature(gcode, "Gap infill"))
+                assertEquals("outer walls must retain their separately assigned filament T1", setOf(1), toolsForFeature(gcode, "Outer wall"))
+            } finally {
+                result?.release()
+                configFile.delete()
+                gcodeFile.delete()
+            }
+
+            // A single classic wall has no active inner-wall tool; even if one is configured,
+            // its narrow gap fill must remain on the outer-wall filament.
+            val singleWallFile = createThinCubeFixture("classic-gap-fill-single-wall.stl", 20.0, 1.1, 5.0)
+            val singleWallModel = Model(singleWallFile)
+            try {
+                singleWallModel.setUniformFilament(0, 2)
+                process.put("wall_loops", "1")
+                process.put("outer_wall_filament_id", "1")
+                process.put("inner_wall_filament_id", "2")
+                SliceBeam.genCurrentConfig(singleWallModel)
+                val configFile = SliceBeam.getCurrentConfigFile()
+                val gcodeFile = File(context.cacheDir, "classic-gap-fill-single-wall.gcode")
+                var result: GCodeProcessorResult? = null
+                try {
+                    result = singleWallModel.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
+                    val gcode = gcodeFile.readText()
+                    assertHasExtrusion(gcode)
+                    assertTrue("the single-wall fixture must contain gap fill", toolsForFeature(gcode, "Gap infill").isNotEmpty())
+                    assertEquals("single-wall gap fill must use the active outer-wall filament T0", setOf(0), toolsForFeature(gcode, "Gap infill"))
+                    assertFalse("the unused inner-wall filament must not trigger a T1 tool change", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+                } finally {
+                    result?.release()
+                    configFile.delete()
+                    gcodeFile.delete()
+                }
+            } finally {
+                singleWallModel.release()
+                singleWallFile.delete()
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun monotonicTopSurfaceGapFillIsInterleavedWithoutReorderingSurfaceLines() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
