@@ -35,10 +35,12 @@ class OrcaPrinterSettingsCatalogTest {
         assertTrue("toolchange retraction belongs to printer extruders", "retract_restart_extra_toolchange" in printerKeys)
         assertTrue("chamber control support belongs to printer capability", "support_chamber_temp_control" in printerKeys)
         assertTrue("air filtration support belongs to printer capability", "support_air_filtration" in printerKeys)
+        assertTrue("rod reach belongs to printer collision geometry", "extruder_clearance_dist_to_rod" in printerKeys)
+        assertFalse("rod reach must not be stored in a process profile", "extruder_clearance_dist_to_rod" in processKeys)
         assertFalse("printer capabilities must not be duplicated in filament", "support_chamber_temp_control" in filamentKeys)
         assertFalse("printer capabilities must not be duplicated in process", "support_air_filtration" in processKeys)
         assertTrue(Slic3rConfigWrapper.PRINTER_CONFIG_KEYS.containsAll(
-            listOf("support_chamber_temp_control", "support_air_filtration"),
+            listOf("support_chamber_temp_control", "support_air_filtration", "extruder_clearance_dist_to_rod"),
         ))
     }
 

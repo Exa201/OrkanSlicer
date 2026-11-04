@@ -1,13 +1,21 @@
-# Nightly 2.5 Fortsetzung — Batch 11, Punkt 4/10 verifiziert — 2026-11-04
+# Nightly 2.5 Fortsetzung — Batch 11, Punkt 5/10 verifiziert — 2026-11-04
+
+## Batch 11 — Punkt 5/10: By-object-Rod-Kollisionen anhand der wirklich erreichbaren Geometrie
+
+- Aus Orca `05a92cd0cf` übernommen: sequenzielles Drucken prüft oberhalb der Führungsstange nur noch die Y-Ausdehnung der tatsächlich darüberliegenden Mesh-Flächen. Draft-Shield, ausreichend hohe Skirts und Raft-Höhe bleiben in der Sicherheitsbetrachtung berücksichtigt.
+- `extruder_clearance_dist_to_rod` ist jetzt Teil des nativen Konfigurationsschemas, hat Orcas Standardwert 40 mm, bleibt in Druckerprofilen erhalten und ist in den Druckeroptionen unter den Kollisionsabständen bearbeitbar. Die zugehörigen Rod-/Lid-Abstände sind dort als Druckerparameter gruppiert.
+- `NativeSliceDeviceTest#byObjectClearanceUsesOnlyGeometryAboveTheRod`: echter Android-Slice der getrennt orientierten Finnenkörper mit `print_sequence=by object`; API-36-AVD 1/1 bestanden. Der Wert `20 mm` war in der generierten nativen Konfiguration vorhanden, und echter G-Code wurde erzeugt.
+- Fokussierte Profil-/Katalog-/Rundlauf-JVM-Tests 10/10 bestanden. `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich; `git diff --check` sauber.
+- Upstream wurde auf `aee4dfc705896cef09c0809a1b5d65a6eaab6ef8` aktualisiert. Kein physischer Druckertest, keine neue APK und kein Release; Batch 11 ist 5/10. Nächster Schritt: weiteren bislang nicht portierten Upstream-Commit mit aktivem Android-Pfad und eigenständiger Verhaltensregression auswählen.
 
 ## Batch 11 — Punkt 4/10: Reihenfolge gleichartiger Kopien beim sequenziellen Drucken
 
 - Android-Port von Orca `8cdc68a6a0`: Kahn-Sortierung bei „Drucken nach Objekt“ ordnet kollisionsfreie Instanzen mit gleichem Objektindex stabil nach ihrer ursprünglichen Listenposition. Die notwendige Sicherheits-Neusortierung bei Düsen-/Stangenkollisionen bleibt aktiv.
 - `NativeSliceDeviceTest#sequentialPrintKeepsCopiesOfOneObjectInTheirListOrder` slicet 200 Kopien desselben Objekts, liest deren tatsächliche erste XY-Extrusionsbewegung aus dem erzeugten G-Code und bestätigt Reihenfolge sowie unveränderte 15-Spalten-Anordnung auf Android 16/API 36 (1/1 bestanden).
 - Der erste Testentwurf schlug nur deshalb fehl, weil er einen E-only-Prime-Befehl für einen XY-Pfad hielt; der Assert wurde auf XY-Extrusion präzisiert und der gezielte Test danach bestanden.
-- `git diff --check` bestanden. Kein APK/Release für Teilbatch 4/10. Nächster konkreter Schritt: den Orca-Fix `5fd0edf5cc` für Z-Schrumpfung und Höhenbereichsmodifikatoren auf Android-Aufrufpfad, passende native Schnittstellen und Regressionstestbarkeit prüfen.
+- `git diff --check` bestanden. Kein APK/Release für Teilbatch 4/10.
 - Nachtest auf demselben Nightly-HEAD: `AnycubicAceRoutingPolicyTest` 8/8 und `SparseAceRoutingOutputTest` 5/5 bestanden. `KromaCutThreeMfDeviceTest` wurde gestartet, aber 4/4 private-fixturegebundene Fälle wurden mangels Fixture übersprungen; kein zusätzlicher KromaCut-Gerätenachweis.
-- Kandidaten-Audit: `5fd0edf5cc` ist bereits in Batch 7 portiert und verifiziert; High-Precision-G-Code, transparente Filamentvorschau und Sparse-Infill-Eckenglättung sind ebenfalls schon in der Nightly-Codebasis. Diese Kandidaten werden nicht doppelt gezählt. Nächster Schritt: übrige Orca-2.5-Kandidaten anhand des tatsächlichen Android-Aufrufpfads abgleichen und den nächsten fehlenden, end-to-end testbaren Punkt auswählen.
+- Kandidaten-Audit: `5fd0edf5cc` ist bereits in Batch 7 portiert und verifiziert; High-Precision-G-Code, transparente Filamentvorschau und Sparse-Infill-Eckenglättung sind ebenfalls schon in der Nightly-Codebasis. Diese Kandidaten werden nicht doppelt gezählt.
 
 ## Vorheriger Stand
 

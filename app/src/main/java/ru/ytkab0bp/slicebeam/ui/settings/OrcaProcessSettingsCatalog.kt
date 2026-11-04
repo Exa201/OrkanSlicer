@@ -89,7 +89,7 @@ object OrcaProcessSettingsCatalog {
         OrcaSettingsCategory(
             "Advanced", R.drawable.settings_outline_28, listOf(
                 section("Make overhangs printable", "make_overhang_printable", "make_overhang_printable_angle", "make_overhang_printable_hole_size"),
-                section("Special mode", "slicing_mode", "spiral_mode", "print_sequence", "print_order", "spiral_mode_smooth", "spiral_mode_max_xy_smoothing", "spiral_starting_flow_ratio", "spiral_finishing_flow_ratio", "timelapse_type", "enable_timelapse", "enable_wrapping_detection", "extruder_clearance_radius", "extruder_clearance_height_to_rod"),
+                section("Special mode", "slicing_mode", "spiral_mode", "print_sequence", "print_order", "spiral_mode_smooth", "spiral_mode_max_xy_smoothing", "spiral_starting_flow_ratio", "spiral_finishing_flow_ratio", "timelapse_type", "enable_timelapse", "enable_wrapping_detection"),
                 section("Fuzzy Skin", "fuzzy_skin", "fuzzy_skin_thickness", "fuzzy_skin_point_distance", "fuzzy_skin_mode", "fuzzy_skin_first_layer", "fuzzy_skin_noise_type", "fuzzy_skin_scale", "fuzzy_skin_octaves", "fuzzy_skin_persistence"),
             ),
         ),

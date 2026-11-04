@@ -9,7 +9,7 @@ object OrcaPrinterSettingsCatalog {
         OrcaSettingsCategory(
             "General", R.drawable.printer_outline_28, listOf(
                 section("Size and coordinates", "printable_area", "printable_height", "z_offset"),
-                section("Toolhead collision volumes", "bed_exclude_volumes", "bed_exclude_volume_mode"),
+                section("Toolhead collision volumes", "bed_exclude_volumes", "bed_exclude_volume_mode", "extruder_clearance_radius", "extruder_clearance_dist_to_rod", "extruder_clearance_height_to_rod", "extruder_clearance_height_to_lid"),
                 section("Bed surface", "curr_bed_type"),
                 section("Capabilities", "single_extruder_multi_material", "high_current_on_filament_swap", "support_chamber_temp_control", "support_air_filtration"),
                 section("Multi-material routing", "physical_extruder_map"),

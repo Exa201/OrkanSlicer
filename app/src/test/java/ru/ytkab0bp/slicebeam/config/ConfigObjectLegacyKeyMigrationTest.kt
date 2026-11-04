@@ -80,6 +80,7 @@ class ConfigObjectLegacyKeyMigrationTest {
                 put("bed_exclude_volumes", "0..35;10x10,20x10,20x20,10x20")
                 put("bed_exclude_volume_mode", "per_extruder")
                 put("extruder_bed_exclude_volumes", "|30..;40x40,50x40,50x50,40x50")
+                put("extruder_clearance_dist_to_rod", "56.5")
             })
         }
 
@@ -89,8 +90,9 @@ class ConfigObjectLegacyKeyMigrationTest {
         assertEquals("0..35;10x10,20x10,20x20,10x20", profile?.get("bed_exclude_volumes"))
         assertEquals("per_extruder", profile?.get("bed_exclude_volume_mode"))
         assertEquals("|30..;40x40,50x40,50x50,40x50", profile?.get("extruder_bed_exclude_volumes"))
+        assertEquals("56.5", profile?.get("extruder_clearance_dist_to_rod"))
         assertTrue(OrcaPrinterSettingsCatalog.fixedKeys().containsAll(
-            listOf("bed_exclude_volumes", "bed_exclude_volume_mode")))
+            listOf("bed_exclude_volumes", "bed_exclude_volume_mode", "extruder_clearance_dist_to_rod")))
         assertTrue(OrcaPrinterSettingsCatalog.extruderSections().flatMap { it.keys }
             .contains("extruder_bed_exclude_volumes"))
     }

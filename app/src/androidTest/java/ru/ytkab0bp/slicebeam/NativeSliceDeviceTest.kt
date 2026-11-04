@@ -7124,6 +7124,111 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun byObjectClearanceUsesOnlyGeometryAboveTheRod() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val printerKeys = listOf(
+            "extruder_clearance_dist_to_rod",
+            "extruder_clearance_height_to_lid",
+            "extruder_clearance_height_to_rod",
+            "extruder_clearance_radius",
+        )
+        val processKeys = listOf("print_sequence", "gcode_label_objects", "skirt_loops", "layer_height", "initial_layer_print_height")
+        val previousPrinter = printerKeys.associateWith { printer[it] }
+        val previousProcess = processKeys.associateWith { process[it] }
+        val files = mutableListOf<File>()
+        val output = File(context.cacheDir, "by-object-rod-reach.gcode")
+        var model: Model? = null
+        var addedModel: Model? = null
+        var result: GCodeProcessorResult? = null
+
+        fun slabWithFin(name: String, finAtBack: Boolean): File {
+            val target = File(context.cacheDir, name).also(files::add)
+            val faces = arrayOf(
+                intArrayOf(0, 2, 1), intArrayOf(0, 3, 2), intArrayOf(4, 5, 6), intArrayOf(4, 6, 7),
+                intArrayOf(0, 1, 5), intArrayOf(0, 5, 4), intArrayOf(1, 2, 6), intArrayOf(1, 6, 5),
+                intArrayOf(2, 3, 7), intArrayOf(2, 7, 6), intArrayOf(3, 0, 4), intArrayOf(3, 4, 7),
+            )
+            val finY = if (finAtBack) 28.0 else 0.0
+            val boxes = listOf(
+                doubleArrayOf(0.0, 0.0, 0.0, 40.0, 30.0, 2.0),
+                doubleArrayOf(16.0, finY, 0.0, 24.0, finY + 2.0, 29.5),
+            )
+            target.writeText(buildString {
+                append("solid ${name.substringBeforeLast('.')}\n")
+                boxes.forEach { box ->
+                    val points = arrayOf(
+                        doubleArrayOf(box[0], box[1], box[2]), doubleArrayOf(box[3], box[1], box[2]),
+                        doubleArrayOf(box[3], box[4], box[2]), doubleArrayOf(box[0], box[4], box[2]),
+                        doubleArrayOf(box[0], box[1], box[5]), doubleArrayOf(box[3], box[1], box[5]),
+                        doubleArrayOf(box[3], box[4], box[5]), doubleArrayOf(box[0], box[4], box[5]),
+                    )
+                    faces.forEach { face ->
+                        append("facet normal 0 0 0\nouter loop\n")
+                        face.forEach { index ->
+                            val point = points[index]
+                            append("vertex ${point[0]} ${point[1]} ${point[2]}\n")
+                        }
+                        append("endloop\nendfacet\n")
+                    }
+                }
+                append("endsolid ${name.substringBeforeLast('.')}\n")
+            })
+            return target
+        }
+
+        try {
+            printer.put("extruder_clearance_dist_to_rod", "20")
+            printer.put("extruder_clearance_height_to_lid", "120")
+            printer.put("extruder_clearance_height_to_rod", "25")
+            printer.put("extruder_clearance_radius", "40")
+            process.put("print_sequence", "by object")
+            process.put("gcode_label_objects", "1")
+            process.put("skirt_loops", "0")
+            process.put("layer_height", "0.2")
+            process.put("initial_layer_print_height", "0.2")
+
+            val activeModel = Model(slabWithFin("rod-fin-away-first.stl", finAtBack = true))
+            model = activeModel
+            activeModel.ensureOnBed(0)
+            val sourceModel = Model(slabWithFin("rod-fin-away-second.stl", finAtBack = false))
+            addedModel = sourceModel
+            activeModel.addObject(sourceModel, 0)
+            activeModel.ensureOnBed(1)
+            for ((index, target) in listOf(40.0 to 85.0, 170.0 to 45.0).withIndex()) {
+                val min = Vec3d()
+                val max = Vec3d()
+                activeModel.getBoundingBoxExact(index, min, max)
+                activeModel.translate(index, target.first - min.x, target.second - min.y, -min.z)
+            }
+            assertEquals(2, activeModel.objectsCount)
+            SliceBeam.genCurrentConfig(activeModel)
+            val generatedConfig = SliceBeam.getCurrentConfigFile()
+            assertTrue("the printer profile's rod reach must reach native slicing",
+                Regex("(?m)^extruder_clearance_dist_to_rod\\s*=\\s*20(?:\\.0*)?(?:$|\\s)").containsMatchIn(generatedConfig.readText()))
+            result = activeModel.slice(generatedConfig.absolutePath, output.absolutePath, null)
+            assertTrue("the separated raised fins must produce real G-code", output.readText().contains("G1 "))
+        } finally {
+            result?.release()
+            model?.release()
+            addedModel?.release()
+            output.delete()
+            files.forEach(File::delete)
+            SliceBeam.getCurrentConfigFile().delete()
+            printerKeys.forEach { key ->
+                printer.values.remove(key)
+                previousPrinter[key]?.let { printer.put(key, it) }
+            }
+            processKeys.forEach { key ->
+                process.values.remove(key)
+                previousProcess[key]?.let { process.put(key, it) }
+            }
+        }
+    }
+
+    @Test
     fun byObjectSlicePrintsTallObjectAfterShortOverlappingObject() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)

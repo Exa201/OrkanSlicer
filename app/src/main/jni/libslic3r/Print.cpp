@@ -625,6 +625,52 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         Polygon        hull_polygon;
         int                  object_index;
         double               height;
+        bool                 has_above_rod = false;
+        coord_t              rod_min_y     = 0;
+        coord_t              rod_max_y     = 0;
+    };
+    const double rod_height = print.config().extruder_clearance_height_to_rod.value;
+    double max_layer_height = 0.;
+    for (size_t i = 0; i < print.config().nozzle_diameter.size(); ++i) {
+        const double h = print.config().max_layer_height.get_at(i);
+        max_layer_height = std::max(max_layer_height, h > 0. ? h : 0.75 * print.config().nozzle_diameter.get_at(i));
+    }
+    const bool skirt_reaches_rod = print.has_infinite_skirt() ||
+        (print.config().skirt_loops > 0 && print.config().skirt_height * max_layer_height > rod_height);
+    auto above_rod_y_range = [rod_height](const PrintInstance &instance, coord_t &min_y, coord_t &max_y) -> bool {
+        const double rod_z = rod_height - instance.print_object->slicing_parameters().object_print_z_min;
+        if (instance.print_object->max_z() <= scale_(rod_height))
+            return false;
+        double ymin = std::numeric_limits<double>::max();
+        double ymax = std::numeric_limits<double>::lowest();
+        bool any = false;
+        const Transform3d instance_transform = instance.model_instance->get_transformation().get_matrix();
+        for (const ModelVolume *volume : instance.print_object->model_object()->volumes) {
+            if (!volume->is_model_part())
+                continue;
+            const Transform3d transform = instance_transform * volume->get_transformation().get_matrix();
+            const indexed_triangle_set &mesh = volume->mesh().its;
+            std::vector<double> ys(mesh.vertices.size()), zs(mesh.vertices.size());
+            for (size_t i = 0; i < mesh.vertices.size(); ++i) {
+                const Vec3d point = transform * mesh.vertices[i].cast<double>();
+                ys[i] = point.y();
+                zs[i] = point.z();
+            }
+            for (const auto &face : mesh.indices) {
+                if (zs[face(0)] <= rod_z && zs[face(1)] <= rod_z && zs[face(2)] <= rod_z)
+                    continue;
+                for (int corner = 0; corner < 3; ++corner) {
+                    ymin = std::min(ymin, ys[face(corner)]);
+                    ymax = std::max(ymax, ys[face(corner)]);
+                }
+                any = true;
+            }
+        }
+        if (any) {
+            min_y = scaled<coord_t>(ymin);
+            max_y = scaled<coord_t>(ymax);
+        }
+        return any;
     };
     auto find_object_index = [](const Model& model, const ModelObject* obj) {
         for (int index = 0; index < model.objects.size(); index++)
@@ -714,6 +760,18 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 struct print_instance_info print_info {&instance, convex_hull.bounding_box(), convex_hull};
                 print_info.height = instance.print_object->height();
                 print_info.object_index = find_object_index(print.model(), print_object->model_object());
+                print_info.has_above_rod = above_rod_y_range(instance, print_info.rod_min_y, print_info.rod_max_y);
+                const BoundingBox footprint = print_info.bounding_box.inflated(
+                    -scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset));
+                if (print_info.has_above_rod && !skirt_reaches_rod) {
+                    const coord_t extra = scaled<coord_t>(std::max(0., print.config().extruder_clearance_dist_to_rod.value -
+                        0.5 * print.config().extruder_clearance_radius.value));
+                    print_info.rod_min_y = std::max(print_info.rod_min_y + scaled<coord_t>(0.1) - extra, footprint.min.y());
+                    print_info.rod_max_y = std::min(print_info.rod_max_y - scaled<coord_t>(0.1) + extra, footprint.max.y());
+                } else {
+                    print_info.rod_min_y = footprint.min.y();
+                    print_info.rod_max_y = footprint.max.y();
+                }
                 print_instance_with_bounding_box.push_back(std::move(print_info));
                 convex_hulls_other.emplace_back(std::move(convex_hull));
             }
@@ -756,12 +814,12 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         return list_position[lhs] < list_position[rhs];
     };
 
-    const float skirt_offset = object_skirt_offset;
     const auto overlaps_in_y = [&](size_t tall_idx, size_t other_idx) {
-        const auto tall_box = print_instance_with_bounding_box[tall_idx].bounding_box.inflated(
-            -scale_(0.5 * print.config().extruder_clearance_radius.value + skirt_offset));
+        const auto &tall = print_instance_with_bounding_box[tall_idx];
+        if (!tall.has_above_rod)
+            return false;
         const auto &other_box = print_instance_with_bounding_box[other_idx].bounding_box;
-        return std::min(tall_box.max.y(), other_box.max.y()) - std::max(tall_box.min.y(), other_box.min.y()) > 0;
+        return std::min(tall.rod_max_y, other_box.max.y()) - std::max(tall.rod_min_y, other_box.min.y()) > 0;
     };
 
     std::vector<size_t> must_be_last;
@@ -778,7 +836,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         bool infeasible = false;
 
         for (size_t tall = 0; tall < instance_count && !infeasible; ++tall) {
-            if (tall == last_idx || print_instance_with_bounding_box[tall].height <= hc2)
+            if (tall == last_idx || !print_instance_with_bounding_box[tall].has_above_rod)
                 continue;
             for (size_t other = 0; other < instance_count; ++other) {
                 if (other == tall || !overlaps_in_y(tall, other))
@@ -881,9 +939,9 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
             auto inst = print_instance_with_bounding_box[k].print_instance;
             // 只需要考虑喷嘴到滑杆的偏移量，这个比整个工具头的碰撞半径要小得多
             // Only the offset from the nozzle to the slide bar needs to be considered, which is much smaller than the collision radius of the entire tool head.
-            auto bbox = print_instance_with_bounding_box[k].bounding_box.inflated(-scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset));
-            auto iy1 = bbox.min.y();
-            auto iy2 = bbox.max.y();
+            const auto &instance_info = print_instance_with_bounding_box[k];
+            const coord_t iy1 = instance_info.rod_min_y;
+            const coord_t iy2 = instance_info.rod_max_y;
             (const_cast<ModelInstance*>(inst->model_instance))->arrange_order = k+1;
             double height = (k == (print_instance_count - 1))?printable_height:hc1;
             /*if (has_interlaced_objects) {
