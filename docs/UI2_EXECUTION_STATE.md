@@ -1,5 +1,12 @@
 # Nightly 2.5 Fortsetzung — Batch 11, Punkt 8/10 verifiziert — 2026-11-04
 
+## Fortsetzung 2026-11-04 — Orca Core Ports 9 und 10 vorbereitet
+
+- Port 9: aus Orca `2bd868ecd0` übernommene Referenznutzung statt Kopien der unveränderlichen `PrintConfig` in Extrusions-/Stützpfadvereinfachung und Tree-Support-Trimmung. Die nativen Slicing-Schritte kompilieren für ARM64; `:app:assembleDebug`, `:app:externalNativeBuildSliceTest` und `:app:compileSliceTestAndroidTestKotlin` bestanden.
+- Port 10: aus Orca `6aa613ccf0` behobener Z-Konturierungspfad für mehrere gemeinsam gruppierte Instanzen. `PrintObject::contour_z()` verwendet die repräsentative Instanz des PrintObjects, statt bei mehreren Quellinstanzen abzubrechen. Ein echter Geräte-Slicetest mit Bunny-STL, Z-Konturierung und duplizierter Instanz wurde ergänzt und kompiliert.
+- Laufzeitverifikation dieser zwei neuen Punkte steht aus: der aktive AVD ist x86_64, die App enthält hier nur ARM64-Slicer-Bibliotheken. Start des ARM64-AVD scheitert, weil Android Emulator auf diesem x86_64-Host kein ARM64-Systemimage ausführen kann; kein physisches Gerät ist in ADB sichtbar. Daher bleiben die Punkte implementiert/kompiliert, aber noch nicht als Laufzeit-verifiziert gezählt.
+- Batchstatus: 8/10 Orca-Verhaltenspunkte vollständig verifiziert; Punkte 9 und 10 implementiert, Instrumentierung kompiliert, Slice-Laufzeittests ausstehend. Kein Release und kein Upload dieser Zwischenfassung. Nächste konkrete Aktion: `NativeSliceDeviceTest#wipeInwardChangesOnlyTheGeneratedWipePathAndKeepsGcodeValid`, `#zContouringSlicesMultipleInstancesOfOneObject` und `#buildPlateOnlyTreeSupportsSliceWithConfiguredObjectClearance` auf ARM64-Gerät ausführen; erst nach Erfolg Batch-Regression, APK und Nightly-Prerelease.
+
 ## Orca Wipe-Inward-Port — Zwischenstand 2026-11-04
 
 - Der Android-Aufrufpfad für Orca-Wipe-Inward ist umgesetzt: native Druckoptionen und Invalidierung, Profilkatalog sowie WipePathHelpers-Geometrie sind integriert. Commit `7a6bdd014d` wurde nach `nightly25` gepusht.

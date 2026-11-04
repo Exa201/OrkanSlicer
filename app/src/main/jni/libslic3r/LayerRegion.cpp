@@ -1070,7 +1070,7 @@ void LayerRegion::simplify_entity_collection(ExtrusionEntityCollection* entity_c
 
 void LayerRegion::simplify_path(ExtrusionPath* path)
 {
-    const auto print_config = this->layer()->object()->print()->config();
+    const auto& print_config = this->layer()->object()->print()->config();
     const ArcFittingMode arc_fitting = print_config.enable_arc_fitting.value;
     const bool sparse_infill = path->role() == erInternalInfill;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);

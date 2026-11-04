@@ -906,3 +906,9 @@ Für `PrintOrder::Default` wird bei bis zu zehn Objektinstanzen die Reihenfolge 
 `NativeSliceDeviceTest#defaultObjectOrderUsesTheMinimumClosedTourForSmallProjects` ruft den Tour-DP mit sechs Objektmittelpunkten auf und vergleicht die geschlossene Distanz gegen vollständige Enumeration aller 120 Touren sowie eine Nearest-Neighbor-Tour. ARM64-SliceTest-Native-Build, Test-APK-Paketierung und direkter API-36-Emulatorlauf bestanden (1/1). Der Xiaomi 2211133G war per ADB online und auf `stay_on_while_plugged_in=15`, aber MIUI verweigerte erneut die Testinstallation (`INSTALL_FAILED_USER_RESTRICTED`); kein physischer Gerätetest.
 
 Batch 5 steht bei **7/10 fokussiert verifizierten Produktänderungen**. Kein APK/Release aus diesem Teilbatch.
+
+## Batch 11 Fortsetzung — Status 2026-11-04
+
+Punkte 9 und 10 sind implementiert und kompilieren; die erforderlichen ARM64-Laufzeit-Slices sind noch nicht ausgeführt. Orca `2bd868ecd0` vermeidet unnötige Kopien der PrintConfig an drei Slicing-Hotspots (Layer-/Region-Pfadvereinfachung und Tree-Support-Trimmung). Orca `6aa613ccf0` behebt Z-Konturierung für mehrere Instanzen eines PrintObjects; ein Bunny-STL-Gerätetest mit duplizierter Instanz wurde ergänzt.
+
+Verifikation: `:app:assembleDebug`, `:app:externalNativeBuildSliceTest` und `:app:compileSliceTestAndroidTestKotlin` erfolgreich. Der einzige aktive AVD ist x86_64; App-Native-Bibliotheken sind ARM64-only. Der ARM64-AVD ist auf dem x86_64-Host nicht startbar; kein physisches Gerät ist angeschlossen. Die 8 bereits verifizierten Punkte bleiben der belastbare Batchstand. Erst die drei gezielten ARM64-Slices plus gebündelte Regression schließen Batch 11 ab und erlauben die APK/Prerelease-Erstellung.

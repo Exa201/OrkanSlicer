@@ -1910,7 +1910,7 @@ Polygons TreeSupport::get_trim_support_regions(
     static const double no_overlap_xy_gap = 0.2f;
     double gap_xy_scaled = scale_(gap_xy);
     SupportLayer& support_layer = *support_layer_ptr;
-    auto m_print_config = object.print()->config();
+    const PrintConfig& m_print_config = object.print()->config();
 
     size_t idx_object_layer_overlapping = size_t(-1);
 

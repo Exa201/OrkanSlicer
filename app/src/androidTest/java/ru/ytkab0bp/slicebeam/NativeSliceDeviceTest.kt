@@ -1950,6 +1950,43 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun zContouringSlicesMultipleInstancesOfOneObject() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        process.put("zaa_enabled", "1")
+        process.put("gcode_label_objects", "1")
+        val source = copyAsset(context, "models/bunny.stl", "orca25-z-contour-multi-instance-bunny.stl")
+        val output = File(context.cacheDir, "orca25-z-contour-multi-instance-bunny.gcode")
+        val model = Model(source)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.ensureOnBed(0)
+            assertTrue("fixture must contain an object to duplicate", model.objectsCount > 0)
+            assertTrue(
+                "the linked instance must share the source object's transform group",
+                model.duplicateInstance(0, 0, Vec3d(45.0, 0.0, 0.0)) > 0,
+            )
+            SliceBeam.genCurrentConfig(model)
+            val generatedConfig = SliceBeam.getCurrentConfigFile().readText()
+            assertTrue("Z contouring must reach native print configuration", generatedConfig.contains("zaa_enabled = 1"))
+            result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue(
+                "the slice must retain both linked instances",
+                gcode.lineSequence().count { it.startsWith("; printing object ") } >= 2,
+            )
+        } finally {
+            result?.release()
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun buildPlateOnlyTreeSupportsSliceWithConfiguredObjectClearance() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)
