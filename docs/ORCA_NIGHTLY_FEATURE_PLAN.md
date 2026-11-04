@@ -914,3 +914,9 @@ Punkte 9 und 10 sind jetzt auch zur Laufzeit verifiziert. Orca `2bd868ecd0` verm
 Auf dem Android-16/API-36-x86_64-AVD wurden ARM64-Slice-Tests über die vorhandene `libndk_translation`-Native-Bridge ausgeführt: `wipeInwardChangesOnlyTheGeneratedWipePathAndKeepsGcodeValid`, `buildPlateOnlyTreeSupportsSliceWithConfiguredObjectClearance` und `zContouringSlicesMultipleInstancesOfOneObject` jeweils 1/1 bestanden. Damit ist der zuvor angenommene Geräteblocker widerlegt.
 
 Gebündelte JVM-Regression auf HEAD `f0fb07af9fbd36f55ebc70bdf16c3b45d21e5f5c`: Debug 749/749 und Slice 749/749, jeweils ohne Fehler/Errors/Skips. Die ACE-Routingklassen `SparseAceRoutingOutputTest`, `MmuColorAssignmentPolicyTest` und `SlicePreparationToolsTest` bestehen ebenfalls; darunter der direkte Nachweis Slicer-T0 → ACE-Fach 2 → ausgegebener T1-Befehl. Batch 11 ist damit **10/10 verifiziert**. APK und Nightly-Prerelease stehen noch aus und bilden den nächsten Release-Gate-Schritt.
+
+## Nightly Batch 12 — Punkt 1/10 — Orca-Infill-Verbindungsoptimierung
+
+Portiert wurde Orca `69193d5681` für die native Android-Funktion `Fill::connect_infill`: multiline-bewusste Join-Distanz, deterministische Sortierung gleich langer Konturverbindungen nach erwarteter Zahl zusammenhängender Infill-Pfade und Hook-Platzierung zum nächsten offenen Pfadende. Bei mehrlinigen Füllmustern wird der Hook vor der Nachbarkopie gekürzt, damit keine unbeabsichtigte Überdeckung entsteht.
+
+Verifikation: ARM64-Native-Build erfolgreich; API-36-Emulator `multilineGridInfillUsesMiterJoinsAndPreservesGeometry` 1/1 und `perPartProcessOverridesRemainIsolatedAcrossThreeMfAndNativeSlice` 1/1 bestanden. Multiline-Grid-Fixture: 7.547 reproduzierbare Sparse-Infill-Bewegungen; geprüfte X/Y-Koordinaten liegen innerhalb der 40×30-mm-Modellgrenzen. Debug-Unit und Slice-Unit jeweils 749/749 bestanden; keine Fehler/Skips. Der Abschnitt ist lokal, noch nicht committet. Batch 12: **1/10**.

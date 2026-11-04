@@ -1674,6 +1674,10 @@ void Fill::connect_infill(Polylines &&infill_ordered, const std::vector<const Po
     assert(params.anchor_length_max >= params.anchor_length);
     const double anchor_length     = scale_(params.anchor_length);
     const double anchor_length_max = scale_(params.anchor_length_max);
+    const double line_half_width   = 0.5 * scale_(spacing);
+    // Orca permits a full perimeter connection when it replaces a pair of multiline anchors.
+    const double join_length       = anchor_length > SCALED_EPSILON ?
+        std::max(anchor_length_max, 2. * (anchor_length + line_half_width)) : anchor_length_max;
 
 #if 0
     append(polylines_out, infill_ordered);
@@ -1698,8 +1702,6 @@ void Fill::connect_infill(Polylines &&infill_ordered, const std::vector<const Po
         assert(false);
         return std::numeric_limits<size_t>::max();
     };
-
-    const double line_half_width = 0.5 * scale_(spacing);
 
 #if 0
     // Connection from end of one infill line to the start of another infill line.
@@ -1776,6 +1778,12 @@ void Fill::connect_infill(Polylines &&infill_ordered, const std::vector<const Po
 	}
 #endif
 
+    // Track which boundary endpoints remain available after each chosen infill join.
+    std::vector<char> open_end(graph.map_infill_end_point_to_boundary.size(), 1);
+    auto end_index = [&graph](const ContourIntersectionPoint *cp) {
+        return size_t(cp - graph.map_infill_end_point_to_boundary.data());
+    };
+
     struct Arc {
         ContourIntersectionPoint    *intersection;
         double                       arc_length;
@@ -1787,6 +1795,87 @@ void Fill::connect_infill(Polylines &&infill_ordered, const std::vector<const Po
             if (cp.contour_idx != boundary_idx_unconnected && cp.next_on_contour != &cp && cp.could_connect_next())
                 arches.push_back({ &cp, path_length_along_contour_ccw(&cp, cp.next_on_contour, graph.boundary_params[cp.contour_idx].back()) });
         std::sort(arches.begin(), arches.end(), [](const auto& l, const auto& r) { return l.arc_length < r.arc_length; });
+
+        // Arc ties can connect different numbers of paths depending on contour traversal order.
+        // Evaluate both stable directions and keep the order that joins the most distinct infill lines.
+        auto count_joins = [&](const std::vector<Arc> &order) {
+            std::vector<char> consumed(graph.map_infill_end_point_to_boundary.size());
+            for (size_t i = 0; i < consumed.size(); ++i)
+                consumed[i] = graph.map_infill_end_point_to_boundary[i].consumed;
+            std::vector<size_t> parent(infill_ordered.size());
+            std::iota(parent.begin(), parent.end(), 0);
+            auto find = [&parent](size_t i) {
+                while (parent[i] != i)
+                    i = parent[i] = parent[parent[i]];
+                return i;
+            };
+            size_t joins = 0;
+            for (const Arc &arc : order) {
+                const size_t end1 = end_index(arc.intersection);
+                const size_t end2 = end_index(arc.intersection->next_on_contour);
+                if (consumed[end1] || consumed[end2] ||
+                    (params.multiline > 1 && arc.arc_length < scale_(spacing) * params.multiline))
+                    continue;
+                const size_t polyline1 = find(end1 / 2);
+                const size_t polyline2 = find(end2 / 2);
+                if (polyline1 == polyline2)
+                    continue;
+                if (arc.arc_length < join_length) {
+                    parent[polyline2] = polyline1;
+                    ++joins;
+                } else if (anchor_length <= SCALED_EPSILON) {
+                    continue;
+                }
+                consumed[end1] = consumed[end2] = 1;
+            }
+            // The final perimeter pass may join open ends, including endpoints in a multiline group.
+            for (size_t end = 0; end < consumed.size(); ++end) {
+                const ContourIntersectionPoint &cp = graph.map_infill_end_point_to_boundary[end];
+                if (consumed[end] || cp.contour_idx == boundary_idx_unconnected)
+                    continue;
+                const double length = graph.boundary_params[cp.contour_idx].back();
+                auto is_open = [&](const ContourIntersectionPoint *other, bool trimmed) {
+                    return other != &cp && !consumed[end_index(other)] && !trimmed;
+                };
+                const double lprev = is_open(cp.prev_on_contour, cp.prev_trimmed || cp.prev_on_contour->next_trimmed) ?
+                    path_length_along_contour_ccw(cp.prev_on_contour, &cp, length) : std::numeric_limits<double>::max();
+                const double lnext = is_open(cp.next_on_contour, cp.next_trimmed || cp.next_on_contour->prev_trimmed) ?
+                    path_length_along_contour_ccw(&cp, cp.next_on_contour, length) : std::numeric_limits<double>::max();
+                consumed[end] = anchor_length > SCALED_EPSILON;
+                for (const double arc_length : { std::min(lprev, lnext), std::max(lprev, lnext) }) {
+                    if (arc_length > join_length)
+                        break;
+                    const size_t other = end_index(arc_length == lprev ? cp.prev_on_contour : cp.next_on_contour);
+                    const size_t polyline1 = find(end / 2);
+                    const size_t polyline2 = find(other / 2);
+                    if (polyline1 == polyline2)
+                        continue;
+                    parent[polyline2] = polyline1;
+                    consumed[end] = consumed[other] = 1;
+                    ++joins;
+                    break;
+                }
+            }
+            return joins;
+        };
+        size_t best_joins = count_joins(arches);
+        const double bucket = 0.5 * scale_(spacing);
+        for (const bool backwards : { false, true }) {
+            std::vector<Arc> along_contour = arches;
+            std::sort(along_contour.begin(), along_contour.end(), [bucket, backwards](const Arc &l, const Arc &r) {
+                const long long bucket_l = std::llround(l.arc_length / bucket);
+                const long long bucket_r = std::llround(r.arc_length / bucket);
+                if (bucket_l != bucket_r)
+                    return bucket_l < bucket_r;
+                if (l.intersection->contour_idx != r.intersection->contour_idx)
+                    return l.intersection->contour_idx < r.intersection->contour_idx;
+                return backwards ? l.intersection->param > r.intersection->param : l.intersection->param < r.intersection->param;
+            });
+            if (const size_t joins = count_joins(along_contour); joins > best_joins) {
+                best_joins = joins;
+                arches = std::move(along_contour);
+            }
+        }
     }
 
     //FIXME improve the Traveling Salesman problem with 2-opt and 3-opt local optimization.
@@ -1808,7 +1897,7 @@ void Fill::connect_infill(Polylines &&infill_ordered, const std::vector<const Po
             if (polyline_idx1 != polyline_idx2) {
                 Polyline &polyline1 = infill_ordered[polyline_idx1];
                 Polyline &polyline2 = infill_ordered[polyline_idx2];
-                if (arc.arc_length < anchor_length_max) {
+                if (arc.arc_length < join_length) {
                     // Not closing a loop, connecting the lines.
                     assert(contour[cp1->point_idx] == polyline1.points.front() || contour[cp1->point_idx] == polyline1.points.back());
                     if (contour[cp1->point_idx] == polyline1.points.front())
@@ -1817,6 +1906,7 @@ void Fill::connect_infill(Polylines &&infill_ordered, const std::vector<const Po
                     if (contour[cp2->point_idx] == polyline2.points.back())
                         polyline2.reverse();
                     take(polyline1, polyline2, contour, cp1, cp2, false);
+                    open_end[end_index(cp1)] = open_end[end_index(cp2)] = 0;
                     // Mark the second polygon as merged with the first one.
                     if (polyline_idx2 < polyline_idx1) {
                         polyline2 = std::move(polyline1);
@@ -1833,6 +1923,25 @@ void Fill::connect_infill(Polylines &&infill_ordered, const std::vector<const Po
                 }
             }
         }
+
+    // Distance along the contour to the nearest open end of another polyline, within 64 ends.
+    auto distance_to_open_end = [&](const ContourIntersectionPoint &from, size_t polyline_idx, bool backwards) {
+        const double length = graph.boundary_params[from.contour_idx].back();
+        double distance = 0.;
+        const ContourIntersectionPoint *cp = &from;
+        for (size_t step = 0; step < 64; ++step) {
+            const ContourIntersectionPoint *other = backwards ? cp->prev_on_contour : cp->next_on_contour;
+            if (other == nullptr || other == &from)
+                break;
+            distance += backwards ? closed_contour_distance_cw(cp->param, other->param, length) :
+                closed_contour_distance_ccw(cp->param, other->param, length);
+            if (open_end[end_index(other)] &&
+                get_and_update_merged_with(end_index(other) / 2) != polyline_idx)
+                return distance;
+            cp = other;
+        }
+        return std::numeric_limits<double>::max();
+    };
 
     // Connect the remaining open infill lines to the perimeter lines if possible.
     for (ContourIntersectionPoint &contour_point : graph.map_infill_end_point_to_boundary)
@@ -1852,7 +1961,7 @@ void Fill::connect_infill(Polylines &&infill_ordered, const std::vector<const Po
             assert(contour[contour_point.point_idx] == polyline.points.front() || contour[contour_point.point_idx] == polyline.points.back());
             bool connected = false;
             for (double l : { std::min(lprev, lnext), std::max(lprev, lnext) }) {
-                if (l == std::numeric_limits<double>::max() || l > anchor_length_max)
+                if (l == std::numeric_limits<double>::max() || l > join_length)
                     break;
                 // Take the complete contour.
                 bool      reversed      = l == lprev;
@@ -1871,6 +1980,7 @@ void Fill::connect_infill(Polylines &&infill_ordered, const std::vector<const Po
                 if (contour[cp2->point_idx] == polyline2.points.back())
                     polyline2.reverse();
                 take(polyline, polyline2, contour, &contour_point, cp2, reversed);
+                open_end[end_index(&contour_point)] = open_end[end_index(cp2)] = 0;
                 if (polyline_idx < polyline_idx2) {
                     // Mark the second polyline as merged with the first one.
                     merged_with[polyline_idx2] = polyline_idx;
@@ -1885,18 +1995,35 @@ void Fill::connect_infill(Polylines &&infill_ordered, const std::vector<const Po
                 break;
             }
             if (! connected && anchor_length > SCALED_EPSILON) {
-                // Which to take? One could optimize for:
-                // 1) Shortest path
-                // 2) Hook length
-                // ...
-                // Let's take the longer now, as this improves the chance of another hook to be placed on the other side of this contour point.
-                double l = std::max(contour_point.contour_not_taken_length_prev, contour_point.contour_not_taken_length_next);
-                if (l > SCALED_EPSILON) {
-                    if (contour_point.contour_not_taken_length_prev > contour_point.contour_not_taken_length_next)
-                        take_limited(polyline, contour, contour_params, &contour_point, contour_point.prev_on_contour, true, anchor_length, line_half_width);
-                    else
-                        take_limited(polyline, contour, contour_params, &contour_point, contour_point.next_on_contour, false, anchor_length, line_half_width);
+                // Hook toward the nearest still-open infill endpoint, where the next path likely starts.
+                const double free_prev = contour_point.contour_not_taken_length_prev;
+                const double free_next = contour_point.contour_not_taken_length_next;
+                const double to_prev = distance_to_open_end(contour_point, polyline_idx, true);
+                const double to_next = distance_to_open_end(contour_point, polyline_idx, false);
+                bool backwards = free_prev > free_next;
+                if (to_prev < to_next && free_prev > SCALED_EPSILON)
+                    backwards = true;
+                else if (to_next < to_prev && free_next > SCALED_EPSILON)
+                    backwards = false;
+                double length = anchor_length;
+                if (const ContourIntersectionPoint *other = backwards ? contour_point.prev_on_contour : contour_point.next_on_contour;
+                    params.multiline > 1 && other != &contour_point) {
+                    const Point &end = contour[contour_point.point_idx];
+                    Vec2d direction = Vec2d::Zero();
+                    for (size_t i = 1; i < polyline.size() && direction.squaredNorm() < sqr(2. * scale_(spacing) * params.multiline); ++i)
+                        direction = (end - polyline.points[polyline.points.front() == end ? i : polyline.size() - 1 - i]).cast<double>();
+                    const Vec2d to_copy = (contour[other->point_idx] - end).cast<double>();
+                    const double across = direction.squaredNorm() > 0. ? std::abs(cross2(direction.normalized(), to_copy)) : 0.;
+                    if (across > SCALED_EPSILON && across < scale_(spacing) * params.multiline) {
+                        const double gap = backwards ? path_length_along_contour_ccw(other, &contour_point, contour_params.back()) :
+                            path_length_along_contour_ccw(&contour_point, other, contour_params.back());
+                        length = std::min(length, gap - line_half_width * (1. + to_copy.norm() / across));
+                    }
                 }
+                if ((backwards ? free_prev : free_next) > SCALED_EPSILON)
+                    take_limited(polyline, contour, contour_params, &contour_point,
+                        backwards ? contour_point.prev_on_contour : contour_point.next_on_contour,
+                        backwards, std::max(0., length), line_half_width);
             }
         }
 

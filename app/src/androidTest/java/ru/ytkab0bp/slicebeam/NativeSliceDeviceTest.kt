@@ -1904,9 +1904,21 @@ class NativeSliceDeviceTest {
                 if (sparseInfill && line.startsWith("G1 ") && line.contains('E') && (line.contains(" X") || line.contains(" Y")))
                     moves += line
             }
-            // Grid crossings intentionally prevent some joins; this fixture guards multiline geometry, while
-            // sparseInfillJoiningAvoidsLoopsAndCrossings verifies the exact endpoint-joining behavior separately.
-            assertEquals("Miter joins should preserve the measured multiline Grid infill geometry", 7461, moves.size)
+            // Orca's join-order optimizer and multiline anchor hookups intentionally alter this path count.
+            // Keep a deterministic fingerprint, and separately verify the optimized paths stay on the part.
+            assertEquals("Orca's optimized miter-connected multiline Grid geometry", 7547, moves.size)
+            val xy = moves.flatMap { line ->
+                Regex("(?:^|\\s)([XY])(-?\\d+(?:\\.\\d+)?)").findAll(line)
+                    .map { it.groupValues[1] to it.groupValues[2].toDouble() }
+                    .toList()
+            }
+            assertTrue("The Grid fixture must contain XY path coordinates", xy.isNotEmpty())
+            val xs = xy.filter { it.first == "X" }.map { it.second }
+            val ys = xy.filter { it.first == "Y" }.map { it.second }
+            assertTrue("Optimized Grid paths must stay within the model's X bounds: ${xs.minOrNull()}..${xs.maxOrNull()}",
+                xs.minOrNull()!! >= -0.1 && xs.maxOrNull()!! <= 40.1)
+            assertTrue("Optimized Grid paths must stay within the model's Y bounds: ${ys.minOrNull()}..${ys.maxOrNull()}",
+                ys.minOrNull()!! >= -0.1 && ys.maxOrNull()!! <= 30.1)
         } finally {
             result?.release()
             model.release()
