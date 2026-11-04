@@ -2,14 +2,15 @@
 
 ## Aktueller Nachweis — Batch 11 Punkte 9 und 10 sowie ACE-Routing
 
-- Geprüfter Feature-HEAD: `f0fb07af9fbd36f55ebc70bdf16c3b45d21e5f5c`; Release-/Dokumentations-HEAD: `18d0f26885`, Branch `codex/nightly-batch11-next`, gepusht.
+- Geprüfter Feature-HEAD: `f0fb07af9fbd36f55ebc70bdf16c3b45d21e5f5c`; APK-/Release-Zielcommit: `18d0f26885`; aktueller gepushter Branch-HEAD nach Release-Dokumentation: `779347315085f9bbf320d89e6522ed176435d28f` auf `codex/nightly-batch11-next`.
 - Orca-Port 9 (`2bd868ecd0`): Referenzen statt Kopien der unveränderlichen `PrintConfig` an den Extrusions-/Stützpfad-Hotspots. ARM64-native Slice-Test-APK gebaut; `NativeSliceDeviceTest#wipeInwardChangesOnlyTheGeneratedWipePathAndKeepsGcodeValid` sowie `#buildPlateOnlyTreeSupportsSliceWithConfiguredObjectClearance` auf Android 16/API 36 mit `libndk_translation` bestanden, je 1/1.
 - Orca-Port 10 (`6aa613ccf0`): Z-Konturierung für mehrere Instanzen eines PrintObject. `NativeSliceDeviceTest#zContouringSlicesMultipleInstancesOfOneObject` auf Android 16/API 36 bestanden, 1/1. Der x86_64-AVD kann die ARM64-App-Bibliotheken über die verfügbare Native-Bridge tatsächlich ausführen.
 - Aktuelle ACE-Routing-Regressions: `:app:testDebugUnitTest` mit `SparseAceRoutingOutputTest`, `MmuColorAssignmentPolicyTest` und `SlicePreparationToolsTest` bestanden. Explizit geprüft wird Slicer-T0 → ACE-Fach 2 → Drucker-/G-Code-Befehl T1; zusätzlich bleibt die 1–16-Werkzeugmatrix im Testbestand.
 - Gebündelte JVM-Regression: `:app:testDebugUnitTest` 749/749 und `:app:testSliceTestUnitTest` 749/749 bestanden; jeweils 0 Fehler, 0 Errors, 0 Skips. Nach dem Versionsschritt wurden beide Suiten erneut zusammen mit `:app:assembleDebug` erfolgreich ausgeführt.
 - APK: `OrkanSlicerNightly25_18d0f26885.apk`, Version `0.8.434`/Code `469`, Paket `com.exa201.orkanslicer.nightly25`, 240.397.843 Bytes, SHA-256 `EEEF6AFA9561D2557E6BF06F44B01A6476ED895ABE3F8CBB599A7B888C6D54D2`. Auf Android 16/API 36 installiert und gestartet; Prozess blieb aktiv, frischer Logcat ohne Crash, ANR, OOM oder Fatal Signal.
 - Batch 11 (10/10) wurde als Prerelease `v0.8.434-nightly.1` veröffentlicht: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.434-nightly.1 . APK/Release bezieht sich auf Code-Commit `18d0f26885`. Xiaomi- oder echter Druckertest ist damit nicht belegt.
-- Nächster konkreter Schritt: Orca-Upstream-Diff seit dem bisherigen Kandidatenstand prüfen, Batch 12 mit zehn voneinander unabhängigen Android-relevanten Verhaltenspunkten starten und jeden Punkt mit einem Verhaltenstest absichern.
+- Batch-12-Kandidatenprüfung: Upstream `70bc685101` ist ein Orca-spezifischer wiederverwendeter Sync-Dialog und passt nicht zum Android-Sync-Aufrufpfad; `2a8abac43d`'s Height-Range-Slicing-Guard ist im Android-Pfad bereits vorhanden; `69193d5681`'s nahe Sparse-Infill-Enden werden bereits von Android-Port `d685b1b412` verbunden. Im aktuellen Android-`Fill::connect_infill` fehlt jedoch Orcas spätere Auswahl zwischen alternativen Kontur-Arc-Reihenfolgen anhand der tatsächlich maximal verbundenen Linien.
+- Nächster konkreter Schritt: den fehlenden Orca-`69193d5681`-Arc-Order-Optimierungsteil gegenüber den Android-Änderungen abgrenzen, einen deterministischen nativen/echten Slice-Test für verbundene Sparse-Infill-Pfade erstellen und erst danach die Änderung als Batch-12-Punkt 1 zählen. Danach weitere neun unabhängige, nicht bereits vorhandene Verhaltenspunkte suchen.
 
 ## Fortsetzung 2026-11-04 — Orca Core Ports 9 und 10 vorbereitet
 
