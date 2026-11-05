@@ -740,6 +740,7 @@
     <string name="PrinterWebRetry">Retry</string>
     <string name="PrinterWebOpenInBrowser">Open in browser</string>
     <string name="PrintPrepareTitle">Review before printing</string>
+    <string name="PrintPrepareSpiralVaseOverrideTitle">Spiral vase settings need review</string>
     <string name="PrintPreparePrinter">Printer: %1$s</string>
     <string name="PrintPrepareSummary">%1$s · %2$s</string>
     <string name="PrintPrepareSelectPrinter">Select printer</string>

@@ -1,8 +1,9 @@
 # OrkanSlicer Nightly — Fortsetzung 2026-11-05
 
 - Branch: `codex/nightly-batch11-next`; Ausgangs-HEAD vor diesem Arbeitsschritt: `1fcfb143f011f351e599e97bb5a74dc9618bbb3f`.
-- Aktiver Orca-Port-Batch: 13, **2/10**. Punkt 1: Spiral Inset (Commit `4a67851160783167787cf9b8a8378aa8498c1459`). Punkt 2: By-layer/As-object-list Kopierreihenfolge für unterschiedlich gedrehte Instanzen, lokal implementiert und auf API 36 verifiziert; Änderungen müssen noch committet/gepusht werden.
-- Test: `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich; `NativeSliceDeviceTest#byLayerAsObjectListKeepsRotatedCopiesInTheirListOrder` 1/1 bestanden, 0 Fehler/Skips. Noch kein APK oder Release für Batch 13; Freigabegate bei 10/10 plus gebündelter Regression.
+- Aktiver Orca-Port-Batch: 13, **3/10**. Punkt 1: Spiral Inset (Commit `4a67851160783167787cf9b8a8378aa8498c1459`). Punkt 2: By-layer/As-object-list Kopierreihenfolge für unterschiedlich gedrehte Instanzen (Commit `468ea5f04133c53b201782daaeb164d2e759de06`). Punkt 3: Spiral-Vase-Warnung für inkompatible Objekt-/Höhenbereichs-Overrides ist implementiert und lokal verifiziert; Änderungen aus Punkt 3 müssen noch committet/gepusht werden.
+- Tests Punkt 3: `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` und `:app:compileSliceTestKotlin :app:compileSliceTestAndroidTestKotlin` erfolgreich; API-36-Tests `NativeSliceDeviceTest#spiralVaseReportsObjectRangeOverridesBeforePrinterSend` und `SlicePrintPreparationComposeDeviceTest#spiralVaseOverrideWarningIsShownAndRequiresAcknowledgement` jeweils 1/1 bestanden. Noch kein APK oder Release für Batch 13; Freigabegate bei 10/10 plus gebündelter Regression.
+- Nächster Schritt: Punkt 4 gegen den aktuellen Orca-Upstream prüfen und nur einen Android-relevanten, testbaren Slice-/Compose-Pfad adaptieren.
 - Nächster konkreter Schritt: Punkt 2 committen und pushen, dann den nächsten nicht bereits portierten Orca-Änderungspfad als Punkt 3 untersuchen.
 
 # Nightly HONOR Compose scroll crash fix — 2026-11-05

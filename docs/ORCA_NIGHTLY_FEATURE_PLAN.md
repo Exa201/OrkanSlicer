@@ -1,6 +1,14 @@
-# Aktueller Stand — Nightly Batch 13, 2/10 — 2026-11-05
+# Aktueller Stand — Nightly Batch 13, 3/10 — 2026-11-05
 
-Batch 12 ist vollständig mit 10/10 Punkten verifiziert und als `v0.8.435-nightly.1` veröffentlicht. Batch 13: Punkt 1 portiert Orcas natives `Spiral Inset`-Füllmuster; Punkt 2 portiert Orcas Kopierreihenfolge für `By layer` + `As object list`. Unterschiedlich gedrehte Kopien erhalten eindeutige Sortierschlüssel in der Modell-Instanzlistenreihenfolge, auch wenn sie in getrennte `PrintObject`s gruppiert werden. API-36-Regression mit 20 abwechselnd gedrehten Kopien bestanden (1/1, 0 Fehler/Skips); ARM64-Slice-/Instrumentierungsbuild erfolgreich. Nächster Schritt: Punkt 3 auswählen und unabhängig testen. Das APK-/Release-Gate bleibt bei 10/10 Punkten plus gebündelter Regression.
+Batch 12 ist vollständig mit 10/10 Punkten verifiziert und als `v0.8.435-nightly.1` veröffentlicht. Batch 13: Punkt 1 portiert Orcas natives `Spiral Inset`-Füllmuster; Punkt 2 portiert Orcas Kopierreihenfolge für `By layer` + `As object list`; Punkt 3 portiert Orcas Warnung für Objekt-/Höhenbereichs-Overrides, die Spiral-Vase kontinuierliche Extrusion verhindern. Die nicht blockierende Native-Warnung bleibt am Slice-Ergebnis und erscheint vor dem Senden; nach Bestätigung lässt sich der Sendevorgang fortsetzen. API-36-Native-Slice und Compose-Warndialog jeweils 1/1 bestanden; ARM64-Slice-/Instrumentierungsbuild und Kotlin-Kompilierung erfolgreich. Nächster Schritt: Punkt 4 auswählen und unabhängig testen. Das APK-/Release-Gate bleibt bei 10/10 Punkten plus gebündelter Regression.
+
+### Batch 13, Punkt 3/10 — Warnung bei Spiral-Vase-Overrides
+
+- Orca-Quelle: `70c12f5cba` — `Add warning for spiral vase mode with object settings overrides`.
+- Der Native Slice-Aufruf bewahrt die `Print::validate()`-Warnung für `sparse_infill_density`, `wall_loops` und `top_shell_layers` am `GCodeResultRef`.
+- Die Druckvorbereitung zeigt die Warnung vor dem Upload/Print. Bestätigen merkt die Warnung für den aktuellen Dialoglauf als gelesen; beim nächsten Klick auf „Senden“ wird die Warnung nicht erneut blockierend wiederholt.
+- Der Regressionstest erzeugt einen gültigen Höhenbereich mit eigener Layerhöhe und 25 % Füllung. Die explizite Layerhöhe ist notwendig, damit Orcas Validierung die Layerhöhenkurve sicher berechnen kann.
+- Verifikation auf API 36 (Android 16): `NativeSliceDeviceTest#spiralVaseReportsObjectRangeOverridesBeforePrinterSend` 1/1 bestanden; `SlicePrintPreparationComposeDeviceTest#spiralVaseOverrideWarningIsShownAndRequiresAcknowledgement` 1/1 bestanden; Slice-/Instrumentierungsbuild und Kotlin-Kompilierung erfolgreich.
 
 ### Batch 13, Punkt 2/10 — Kopienreihenfolge bei By-layer / As-object-list
 

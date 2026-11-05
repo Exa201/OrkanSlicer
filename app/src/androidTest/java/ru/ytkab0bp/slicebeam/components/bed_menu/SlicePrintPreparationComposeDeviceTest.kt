@@ -92,6 +92,31 @@ class SlicePrintPreparationComposeDeviceTest {
     }
 
     @Test
+    fun spiralVaseOverrideWarningIsShownAndRequiresAcknowledgement() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val acknowledged = AtomicInteger()
+        val message = "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers."
+        activity.runOnUiThread {
+            bed.showWorkspaceComposeDialog { dismiss ->
+                PrintPreparationWarningDialog(
+                    warning = PrintPreparationWarning.SpiralVaseOverride(message),
+                    onDismiss = dismiss,
+                    onAcknowledge = { acknowledged.incrementAndGet(); dismiss() },
+                    onUploadOnly = {},
+                    onFirmwareChecked = {},
+                )
+            }
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithText(activity.getString(R.string.PrintPrepareSpiralVaseOverrideTitle)).assertIsDisplayed()
+        compose.onNodeWithText(message).assertIsDisplayed()
+        compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        assertEquals("The warning must be acknowledged before returning to the send dialog", 1, acknowledged.get())
+    }
+
+    @Test
     fun selectingAnOccupiedAceGateAllowsTwoColorsToShareOnePhysicalFilament() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

@@ -7324,6 +7324,42 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test(timeout = 120_000)
+    fun spiralVaseReportsObjectRangeOverridesBeforePrinterSend() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        process.put("spiral_mode", "1")
+        process.put("top_shell_layers", "0")
+        process.put("bottom_shell_layers", "1")
+        process.put("wall_loops", "1")
+        process.put("sparse_infill_density", "0%")
+
+        val source = copyCube(context, "spiral-vase-range-warning.stl")
+        val output = File(context.cacheDir, "spiral-vase-range-warning.gcode")
+        val configFile = SliceBeam.getCurrentConfigFile()
+        var model: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            model = Model(source).also { it.ensureOnBed(0) }
+            assertTrue("the fixture must add an infill override that breaks vase mode",
+                Native.model_add_spiral_vase_override_test_config(model.pointer))
+            SliceBeam.genCurrentConfig(model)
+            result = model.slice(configFile.absolutePath, output.absolutePath, null)
+
+            val warning = result.getSpiralVaseOverrideWarning()
+            assertNotNull("the slice result must carry Orca's non-fatal warning into printer preparation", warning)
+            assertTrue(requireNotNull(warning).contains("Spiral vase mode needs no sparse infill"))
+            assertTrue("the warning should identify the object with the override", requireNotNull(warning).contains("spiral-vase-range-warning.stl"))
+            assertHasExtrusion(output.readText())
+        } finally {
+            result?.release()
+            model?.release()
+            source.delete()
+            output.delete()
+            configFile.delete()
+        }
+    }
+
     @Test
     fun selectedBedSurfaceTemperatureReachesNativeGcode() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext

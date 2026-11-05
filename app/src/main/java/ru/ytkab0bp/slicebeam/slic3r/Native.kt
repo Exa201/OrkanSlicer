@@ -57,6 +57,8 @@ class Native {
     /** Reapplies one native Print from a single-filament model to a two-filament model. */
     @JvmStatic
     external fun reused_print_prime_tower_regression(firstModel: Long, nextModel: Long, configPath: String): IntArray
+    @JvmStatic
+    external fun gcoderesult_get_spiral_vase_override_warning(ptr: Long): String?
     /** Verifies by-layer/as-object-list ordering preserves rotated copies' model-list order. */
     @JvmStatic
     external fun by_layer_copy_order_regression(model: Long, configPath: String): IntArray
@@ -69,6 +71,8 @@ class Native {
     /** Adds an object-local layer-height/speed range for native slice regression tests. */
     @JvmStatic
     external fun model_add_layer_range_test_config(model: Long, minZ: Double, maxZ: Double, layerHeight: Double, outerWallSpeed: Double): Boolean
+    @JvmStatic
+    external fun model_add_spiral_vase_override_test_config(model: Long): Boolean
     /** Exercises the inherited custom-printer preset merge when the child adds nozzle slots. */
     @JvmStatic
     external fun preset_parent_nozzle_extension_regression(): DoubleArray

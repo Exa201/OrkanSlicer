@@ -53,6 +53,7 @@ internal sealed interface PrintPreparationWarning {
     data class SharedAceGate(val tool: Int) : PrintPreparationWarning
     data class MaterialMismatch(val tool: Int, val source: String, val slot: Int, val loaded: String) : PrintPreparationWarning
     data class EmptyAceSlots(val slots: List<Int>) : PrintPreparationWarning
+    data class SpiralVaseOverride(val message: String) : PrintPreparationWarning
 }
 
 /** Shows printer, auto-leveling and ACE slot checks before sending a sliced job. */
@@ -79,6 +80,7 @@ object SlicePrintPreparationDialog {
         firstToolUse: IntArray,
         sourceFilamentTypes: List<String>,
         pressureAdvance: SlicePreparationTools.PressureAdvanceCommands,
+        slicingWarning: String? = null,
         activateProfile: PrinterProfileAction,
         reopenAfterReslice: (ConfigObject) -> Unit,
         sendAction: PrinterSendAction,
@@ -90,6 +92,7 @@ object SlicePrintPreparationDialog {
                 SlicePreparationTools.isSendTarget(candidate.get("host_type"), candidate.get("print_host"))
             }
         }.getOrDefault(listOf(printer))
+        var spiralVaseWarningAcknowledged = false
         fun warningFor(targetPrinter: ConfigObject): PrintPreparationWarning? {
             if (isAnycubicKobra(targetPrinter) && activeTools.isNotEmpty()) {
                 val title = targetPrinter.title.orEmpty()
@@ -136,7 +139,9 @@ object SlicePrintPreparationDialog {
                     return PrintPreparationWarning.EmptyAceSlots(emptyAceSlots.toList())
                 }
             }
-            return null
+            return slicingWarning
+                ?.takeIf { it.isNotBlank() && !spiralVaseWarningAcknowledged }
+                ?.let(PrintPreparationWarning::SpiralVaseOverride)
         }
 
         fun send(targetPrinter: ConfigObject, shouldPrint: Boolean, qidiBoxSlots: IntArray? = null) {
@@ -162,6 +167,10 @@ object SlicePrintPreparationDialog {
                 sourceFilamentTypes = sourceFilamentTypes,
                 pressureAdvance = pressureAdvance,
                 onDismiss = dismiss,
+                onWarningAcknowledged = { acknowledged ->
+                    if (acknowledged is PrintPreparationWarning.SpiralVaseOverride)
+                        spiralVaseWarningAcknowledged = true
+                },
                 onSubmit = { targetPrinter, printerChanged, qidiBoxSlots, showWarning ->
                     val targetHost = targetPrinter.get("print_host") ?: return@PrintPreparationDialog
                     if (printerChanged) {
@@ -239,6 +248,7 @@ private fun PrintPreparationDialog(
     sourceFilamentTypes: List<String>,
     pressureAdvance: SlicePreparationTools.PressureAdvanceCommands,
     onDismiss: () -> Unit,
+    onWarningAcknowledged: (PrintPreparationWarning) -> Unit,
     onSubmit: (ConfigObject, Boolean, IntArray?, (PrintPreparationWarning) -> Unit) -> Unit,
     onWarningUploadOnly: (ConfigObject) -> Unit,
     onWarningFirmwareChecked: (ConfigObject, IntArray?) -> Unit,
@@ -323,7 +333,10 @@ private fun PrintPreparationDialog(
         PrintPreparationWarningDialog(
             warning = activeWarning,
             onDismiss = { warning = null },
-            onAcknowledge = { warning = null },
+            onAcknowledge = {
+                onWarningAcknowledged(activeWarning)
+                warning = null
+            },
             onUploadOnly = {
                 warning = null
                 onWarningUploadOnly(printer)
@@ -400,6 +413,7 @@ internal fun PrintPreparationWarningDialog(
         is PrintPreparationWarning.SharedAceGate -> R.string.MmuAssignmentTitle
         is PrintPreparationWarning.MaterialMismatch -> R.string.PrintPrepareMaterialMismatchTitle
         is PrintPreparationWarning.EmptyAceSlots -> R.string.PrintPrepareAceGapTitle
+        is PrintPreparationWarning.SpiralVaseOverride -> R.string.PrintPrepareSpiralVaseOverrideTitle
     }
     val message = when (warning) {
         is PrintPreparationWarning.UnavailableTool -> stringResource(
@@ -414,6 +428,7 @@ internal fun PrintPreparationWarningDialog(
         is PrintPreparationWarning.EmptyAceSlots -> stringResource(
             R.string.PrintPrepareAceGapWarning, warning.slots.joinToString(", "),
         )
+        is PrintPreparationWarning.SpiralVaseOverride -> warning.message
     }
     ComposeAlertDialog(
         onDismissRequest = onDismiss,
@@ -425,6 +440,7 @@ internal fun PrintPreparationWarningDialog(
                 is PrintPreparationWarning.SharedAceGate -> android.R.string.ok
                 is PrintPreparationWarning.MaterialMismatch -> R.string.PrintPrepareUploadOnly
                 is PrintPreparationWarning.EmptyAceSlots -> R.string.PrintPrepareAceGapFirmwareChecked
+                is PrintPreparationWarning.SpiralVaseOverride -> android.R.string.ok
             }
             TextButton(
                 onClick = when (warning) {
@@ -432,6 +448,7 @@ internal fun PrintPreparationWarningDialog(
                     is PrintPreparationWarning.SharedAceGate -> onAcknowledge
                     is PrintPreparationWarning.MaterialMismatch -> onUploadOnly
                     is PrintPreparationWarning.EmptyAceSlots -> onFirmwareChecked
+                    is PrintPreparationWarning.SpiralVaseOverride -> onAcknowledge
                 },
                 modifier = Modifier.heightIn(min = 48.dp).then(
                     if (warning is PrintPreparationWarning.EmptyAceSlots) Modifier.testTag("ace-gap-confirm-print")
@@ -459,6 +476,7 @@ internal fun PrintPreparationWarningDialog(
                     }
                 }
             }
+            is PrintPreparationWarning.SpiralVaseOverride -> null
         },
     )
 }

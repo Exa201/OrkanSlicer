@@ -59,6 +59,7 @@ class SliceMenu : ListBedMenu() {
     ) {
         val bed = fragment ?: return
         val context = bed.getContext() ?: return
+        val slicingWarning = bed.glView?.renderer?.gcodeResult?.getSpiralVaseOverrideWarning()
         preflightAnycubicScan = null
         val progress = bed.showPrinterUploadProgress(
             context.getString(if (SlicePrintPreparationDialog.isAnycubicKobra(printer))
@@ -78,10 +79,10 @@ class SliceMenu : ListBedMenu() {
                     }
                     return@synchronize
                 }
-                scanToolCountAndPrepare(type, host, apiKey, printer, print, progress)
+                scanToolCountAndPrepare(type, host, apiKey, printer, print, slicingWarning, progress)
             }
         } else {
-            scanToolCountAndPrepare(type, host, apiKey, printer, print, progress)
+            scanToolCountAndPrepare(type, host, apiKey, printer, print, slicingWarning, progress)
         }
     }
 
@@ -91,6 +92,7 @@ class SliceMenu : ListBedMenu() {
         apiKey: String?,
         printer: ConfigObject,
         print: Boolean,
+        slicingWarning: String?,
         progress: PrinterUploadProgressDialog,
     ) {
         val bed = fragment ?: return
@@ -148,6 +150,7 @@ class SliceMenu : ListBedMenu() {
                         toolUsage.firstAppearance,
                         sourceFilamentTypes,
                         pressureAdvance,
+                        slicingWarning,
                         this::activatePrinterProfile,
                         { updatedPrinter ->
                             refreshMmuAndPrepare(

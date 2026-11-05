@@ -135,6 +135,7 @@ struct GCodeViewerRef {
 struct GCodeResultRef {
     GCodeProcessorResult result;
     std::string name;
+    std::string spiral_vase_override_warning;
 };
 struct ConfigRef {
     DynamicPrintConfig config;
@@ -3383,8 +3384,10 @@ extern "C" {
 
             __android_log_print(ANDROID_LOG_WARN, "BeamPaint", "step: applied, print.validate");
 
-            // Print::validate() now returns a StringObjectException whose message is in .string.
-            std::string err = print.validate().string;
+            // Keep Orca's non-fatal spiral-vase override warning with the slice result so the
+            // existing printer-preparation dialog can show it before sending the G-code.
+            StringObjectException validation_warning;
+            std::string err = print.validate(&validation_warning).string;
             if (!err.empty()) {
                 env->ThrowNew(env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError"), err.c_str());
                 return 0;
@@ -3418,6 +3421,11 @@ extern "C" {
             chars = env->GetStringUTFChars(path, JNI_FALSE);
             GCodeResultRef* resultRef = new GCodeResultRef();
             print.export_gcode(std::string(chars), &resultRef->result, nullptr);
+            if (validation_warning.is_warning &&
+                (validation_warning.opt_key == "sparse_infill_density" ||
+                 validation_warning.opt_key == "wall_loops" ||
+                 validation_warning.opt_key == "top_shell_layers"))
+                resultRef->spiral_vase_override_warning = validation_warning.string;
             __android_log_print(ANDROID_LOG_WARN, "BeamPaint", "step: exported gcode");
             env->ReleaseStringUTFChars(path, chars);
 
@@ -3490,6 +3498,12 @@ extern "C" {
     JNIEXPORT jstring JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_gcoderesult_1get_1recommended_1name(JNIEnv* env, jclass, jlong ptr) {
         GCodeResultRef* ref = (GCodeResultRef*) (intptr_t) ptr;
         return env->NewStringUTF(ref->name.c_str());
+    }
+
+    JNIEXPORT jstring JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_gcoderesult_1get_1spiral_1vase_1override_1warning(JNIEnv* env, jclass, jlong ptr) {
+        GCodeResultRef* ref = (GCodeResultRef*) (intptr_t) ptr;
+        if (ref == nullptr || ref->spiral_vase_override_warning.empty()) return nullptr;
+        return env->NewStringUTF(ref->spiral_vase_override_warning.c_str());
     }
 
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_gcoderesult_1get_1gcode_1check_1error_1code(JNIEnv*, jclass, jlong ptr) {
@@ -5874,6 +5888,27 @@ extern "C" {
             range_config.set_key_value("layer_height", new ConfigOptionFloat(layer_height));
             range_config.set_key_value("outer_wall_speed", new ConfigOptionFloat(outer_wall_speed));
             model_ref->model.objects.front()->layer_config_ranges[{min_z, max_z}].assign_config(std::move(range_config));
+            return JNI_TRUE;
+        } catch (const std::exception& error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return JNI_FALSE;
+        }
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1add_1spiral_1vase_1override_1test_1config(
+        JNIEnv* env, jclass, jlong model_ptr)
+    {
+        try {
+            auto* model_ref = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(model_ptr));
+            if (model_ref == nullptr || model_ref->model.objects.empty())
+                throw std::invalid_argument("Spiral-vase warning fixture requires a model object");
+            DynamicPrintConfig range_config;
+            // Height-range configs need their own layer height; omitting it reaches a
+            // null option during Print::validate()'s layer-profile calculation.
+            range_config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+            range_config.set_key_value("sparse_infill_density", new ConfigOptionPercent(25.));
+            model_ref->model.objects.front()->layer_config_ranges[{0.4, 1.2}].assign_config(std::move(range_config));
             return JNI_TRUE;
         } catch (const std::exception& error) {
             jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");

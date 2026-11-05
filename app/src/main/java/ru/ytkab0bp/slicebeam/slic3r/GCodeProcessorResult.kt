@@ -15,6 +15,10 @@ open class GCodeProcessorResult {
     /** Invalid Adaptive PA measurements found in the used filament variants for this slice. */
     @Volatile var adaptivePAModelWarnings: List<AdaptivePAModelValidator.SliceWarning> = emptyList()
 
+    /** Orca warning when object-level settings prevent Spiral Vase from producing one continuous wall. */
+    open fun getSpiralVaseOverrideWarning(): String? =
+        if (pointer == 0L) null else Native.gcoderesult_get_spiral_vase_override_warning(pointer)
+
     @JvmField
     internal var pointer: Long
 
