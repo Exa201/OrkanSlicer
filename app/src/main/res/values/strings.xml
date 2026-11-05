@@ -278,6 +278,8 @@
     <string name="MenuPlates">Plates</string>
     <string name="PlateNumber">Plate %1$s</string>
     <string name="PlatePickerTitle">Build plates</string>
+    <string name="PlatePickerCounterLabel">Plate</string>
+    <string name="PlatePickerCounterDescription">Build plate %1$d of %2$d. Open plate selection.</string>
     <string name="PlatePickerSelectDescription">Select build plate %1$s</string>
     <plurals name="PlateObjectCount"><item quantity="one">%d object</item><item quantity="other">%d objects</item></plurals>
     <string name="EditUndoShort">Undo</string>

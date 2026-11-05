@@ -1,3 +1,9 @@
+# Nightly-UI-Konsistenz — 2026-11-05
+
+- Auf `codex/nightly-batch11-next` (Nightly 2.5) die UI-Kritik übernommen, ohne das Orca-Feature-Batch umzubauen: Akzentkontrast wird auf der aktiven Oberfläche mindestens lesbar gemischt; der Plattenzähler zeigt eine sichtbare Beschriftung und `aktuell/gesamt`.
+- Die vorhandenen Compose-DP-Maße, adaptive Ein-Zeilen-Navigation sowie SliceBeam-Symbole, Abstände und Rundungstokens bleiben Grundlage. Mehrfachimport-Fortschritt aktualisiert dieselbe getaggte Snackbar, statt animierte Meldungen anzuhäufen.
+- App-Version auf `0.8.436` / versionCode `471` erhöht. Debug-Build und Release-Upload stehen noch aus; keine Geräteprüfung behauptet.
+
 # Nightly 2.5 Fortsetzung — Batch 13 bei 1/10 — 2026-11-05
 
 ## Aktueller Stand — Feature-HEAD `4a67851160783167787cf9b8a8378aa8498c1459`

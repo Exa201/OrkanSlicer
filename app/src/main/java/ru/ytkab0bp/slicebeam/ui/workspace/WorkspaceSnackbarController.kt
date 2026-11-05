@@ -15,6 +15,15 @@ internal class WorkspaceSnackbarController {
     val entries: List<Entry> get() = mutableEntries
 
     fun show(snackbar: SnackbarsLayout.Snackbar) {
+        if (snackbar.updateTaggedEntryInPlace) {
+            val active = snackbar.tag?.let { tag ->
+                mutableEntries.lastOrNull { it.snackbar.tag == tag && it.visible }
+            }
+            if (active != null) {
+                active.snackbar = snackbar
+                return
+            }
+        }
         snackbar.tag?.let(::dismiss)
         mutableEntries += Entry(++nextId, snackbar)
     }
@@ -39,8 +48,9 @@ internal class WorkspaceSnackbarController {
 
     class Entry internal constructor(
         val id: Long,
-        val snackbar: SnackbarsLayout.Snackbar,
+        snackbar: SnackbarsLayout.Snackbar,
     ) {
+        var snackbar by mutableStateOf(snackbar)
         var visible by mutableStateOf(true)
     }
 }

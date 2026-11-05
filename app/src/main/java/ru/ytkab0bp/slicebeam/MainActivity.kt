@@ -1645,13 +1645,13 @@ IOUtils.IO_POOL.submit {
 private fun showStlImportProgress(tag: String, step: Int, cancelled: java.util.concurrent.atomic.AtomicBoolean) {
     val title = if (step == 10) getString(R.string.MenuFileOpenStlPreparing)
         else getString(R.string.MenuFileOpenStlReading, step * 10)
-    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING, title)
-        .tag(tag)
+    val event = NeedSnackbarEvent(SnackbarsLayout.Type.LOADING, title)
         .button(android.R.string.cancel, android.view.View.OnClickListener {
             cancelled.set(true)
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
-                SnackbarsLayout.Type.LOADING, R.string.MenuFileOpenStlCancelling).tag(tag))
-        }))
+                SnackbarsLayout.Type.LOADING, R.string.MenuFileOpenStlCancelling).updateTaggedInPlace(tag))
+        })
+    SliceBeam.EVENT_BUS.fireEvent(event.updateTaggedInPlace(tag))
 }
 
 private fun loadFile(f:File, autoorient:Boolean) = loadFile(f, autoorient, null)
@@ -2159,7 +2159,7 @@ private fun stageMultipleStlFiles(files:List<Uri>, index:Int, cachedFiles:ArrayL
     val baseName = displayName.substringBeforeLast('.', displayName)
     val cachedFile = getSafeCachedModelFile("${baseName}-${index + 1}.$extension")
     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING,
-        getString(R.string.MenuFileOpenMultipleStlProgress, index + 1, files.size)).tag(tag))
+        getString(R.string.MenuFileOpenMultipleStlProgress, index + 1, files.size)).updateTaggedInPlace(tag))
     IOUtils.IO_POOL.submit {
         try {
             val input = contentResolver.openInputStream(uri) ?: throw FileNotFoundException(uri.toString())

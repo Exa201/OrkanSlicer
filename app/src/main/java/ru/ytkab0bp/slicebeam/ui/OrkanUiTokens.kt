@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.sp
 /** Shared dimensions for workspace controls and menus. Colors and type come from MaterialTheme. */
 object OrkanUiTokens {
     val touchTarget = 48.dp
+    val plateCounterWidth = 56.dp
     val cornerRadius = 12.dp
     val compactCornerRadius = 10.dp
     val dialogCornerRadius = 16.dp

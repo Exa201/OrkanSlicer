@@ -815,6 +815,7 @@ if (e.tag != null)
 {
 s.tag(e.tag!!)
 }
+s.updateTaggedEntryInPlace = e.updateTaggedEntryInPlace
 
 if (e.buttonTitle != null)
 {

@@ -150,7 +150,11 @@ internal fun WorkspaceShell(
                 if (modePanelContent == null) {
                     WorkspaceActionControl(filamentButtonContent)
                 }
-                WorkspaceActionControl(platePickerContent, allowVerticalGrowth = true)
+                WorkspaceActionControl(
+                    platePickerContent,
+                    allowVerticalGrowth = true,
+                    targetWidth = OrkanUiTokens.plateCounterWidth,
+                )
                 WorkspaceActionControl(viewCubeContent)
                 WorkspaceActionControl(printerWebButtonContent)
             }
@@ -338,11 +342,12 @@ private fun WorkspaceMenuHost(
 internal fun WorkspaceActionControl(
     content: @Composable () -> Unit,
     allowVerticalGrowth: Boolean = false,
+    targetWidth: androidx.compose.ui.unit.Dp = OrkanUiTokens.touchTarget,
 ) {
     Box(
         // Preserve the compact target at normal text sizes while allowing content such
         // as the two-line plate counter to expand at large accessibility font scales.
-        modifier = Modifier.width(OrkanUiTokens.touchTarget).then(
+        modifier = Modifier.width(targetWidth).then(
             if (allowVerticalGrowth) Modifier.heightIn(min = OrkanUiTokens.touchTarget)
             else Modifier.height(OrkanUiTokens.touchTarget),
         ),

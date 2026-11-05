@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.436 — Nightly UI polish — 2026-11-05
+
+- Preserve Android dp-based adaptive layout sizing and existing SliceBeam navigation icons, padding, and corner tokens.
+- Improve selected-accent readability while preserving the configured hue; label the build-plate counter explicitly and keep its dimensions stable across display densities.
+- Update STL batch and model-load progress in a single tagged snackbar instead of replacing it with a succession of animated cards.
+- Debug APK is ARM64-only and debug-signed. No physical-device check is claimed for this build.
+
 ## 0.8.427 — Nightly 2.5 experimental — 2026-11-02
 
 - Add per-object Orca `seam_position` and `raft_layers` process overrides with schema-backed seam choices, confirmation, and 3MF persistence. Native slicing tests verify object isolation and changed G-code paths/support output.

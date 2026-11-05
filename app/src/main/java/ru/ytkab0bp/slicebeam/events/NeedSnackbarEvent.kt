@@ -10,6 +10,7 @@ open class NeedSnackbarEvent {
     @JvmField val title: CharSequence?
     @JvmField var type: SnackbarsLayout.Type = SnackbarsLayout.Type.DONE
     @JvmField var tag: String? = null
+    @JvmField var updateTaggedEntryInPlace: Boolean = false
     @JvmField var buttonTitle: CharSequence? = null
     @JvmField var buttonClick: View.OnClickListener? = null
 
@@ -32,6 +33,13 @@ open class NeedSnackbarEvent {
 
     open fun tag(tag: String?): NeedSnackbarEvent {
         this.tag = tag
+        return this
+    }
+
+    /** Updates an active tagged progress message without adding a second animated card. */
+    open fun updateTaggedInPlace(tag: String): NeedSnackbarEvent {
+        this.tag = tag
+        this.updateTaggedEntryInPlace = true
         return this
     }
 
