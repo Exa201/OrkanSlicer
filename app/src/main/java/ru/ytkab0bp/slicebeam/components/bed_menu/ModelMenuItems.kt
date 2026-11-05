@@ -43,10 +43,10 @@ internal class ModelMenuItems(
             BedComposeMenuAction(R.string.WorkspaceObjects, R.drawable.square_stack_up_outline_28, {
                 objectActions.showObjectsDialog(it)
             }, enabled = availability.canArrange),
-            BedComposeMenuAction(R.string.ModelMenuDuplicate, R.drawable.folder_simple_plus_outline_28, {
+            BedComposeMenuAction(R.string.ModelMenuDuplicate, R.drawable.vk_copy_outline_24, {
                 objectActions.showDuplicateDialog(it)
             }, enabled = availability.hasSelectedObject),
-            BedComposeMenuAction(R.string.ModelMenuMoveToPlate, R.drawable.square_stack_up_outline_28, {
+            BedComposeMenuAction(R.string.ModelMenuMoveToPlate, R.drawable.vk_folder_move_outline_24, {
                 objectActions.showMoveToPlateDialog(it)
             }, enabled = availability.hasSelectedObject && fragment.plateCount > 1),
             BedComposeMenuAction(R.string.ModelMenuSplit, R.drawable.square_stack_up_outline_28, {
@@ -61,7 +61,7 @@ internal class ModelMenuItems(
             BedComposeMenuAction(R.string.ModelMenuObjectSettings, R.drawable.sliders_outline_28, { anchor ->
                 showObjectProcessSettingsDialog(anchor)
             }, enabled = availability.hasSelectedObject),
-            BedComposeMenuAction(R.string.ModelMenuCenterOnBed, R.drawable.view_in_ar_24, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuCenterOnBed, R.drawable.vk_scan_viewfinder_outline_24, { anchor ->
                 val activeGlView = fragment.glView ?: return@BedComposeMenuAction
                 captureSelectionSnapshot(activeGlView) { snapshot ->
                     activeGlView.centerSelectedOnBed(snapshot) { result ->
@@ -93,7 +93,7 @@ internal class ModelMenuItems(
                     }
                 }
             }, enabled = availability.hasSelectedObject && renderer?.bed?.supportsScaleToFit() == true),
-            BedComposeMenuAction(R.string.ModelMenuPlaceGroupOnBed, R.drawable.view_in_ar_24, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuPlaceGroupOnBed, R.drawable.vk_cube_box_outline_24, { anchor ->
                 val activeGlView = fragment.glView ?: return@BedComposeMenuAction
                 captureSelectionSnapshot(activeGlView) { snapshot ->
                     activeGlView.placeSelectedObjectsOnBed(snapshot) { result ->
@@ -113,19 +113,19 @@ internal class ModelMenuItems(
                     }
                 }
             }, enabled = availability.hasSelectedObject),
-            BedComposeMenuAction(R.string.ModelMenuPlaceOnObject, R.drawable.view_in_ar_24, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuPlaceOnObject, R.drawable.vk_scan_viewfinder_outline_24, { anchor ->
                 showPlaceOnObjectDialog(anchor)
             }, enabled = availability.hasSelectedObject && objectCount > selectedCount),
-            BedComposeMenuAction(R.string.ModelMenuPlaceOnSurface, R.drawable.view_in_ar_24, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuPlaceOnSurface, R.drawable.vk_scan_viewfinder_outline_24, { anchor ->
                 showPlaceOnSurfaceDialog(anchor)
             }, enabled = availability.hasSelectedObject && objectCount > selectedCount),
-            BedComposeMenuAction(R.string.ModelMenuAlignSelected, R.drawable.grid_layout_outline_28, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuAlignSelected, R.drawable.vk_grid_layout_outline_28, { anchor ->
                 showAlignmentDialog(anchor)
             }, enabled = selectedCount >= 2),
-            BedComposeMenuAction(R.string.ModelMenuAlignPrimaryAxes, R.drawable.grid_layout_outline_28, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuAlignPrimaryAxes, R.drawable.vk_grid_layout_outline_28, { anchor ->
                 showAlignmentDialog(anchor, ModelAlignmentCoordinateSystem.PRIMARY_OBJECT)
             }, enabled = selectedCount >= 2),
-            BedComposeMenuAction(R.string.ModelMenuDistributeSelected, R.drawable.grid_layout_outline_28, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuDistributeSelected, R.drawable.vk_grid_layout_outline_28, { anchor ->
                 showDistributionDialog(anchor)
             }, enabled = selectedCount >= 3),
             BedComposeMenuAction(R.string.ModelMenuCombineSelected, R.drawable.square_stack_up_outline_28, { anchor ->
@@ -259,7 +259,7 @@ internal class ModelMenuItems(
                 }
                 onItemsChanged()
             }, selected = flattenEnabled, toggleable = true, enabled = availability.hasSelectedObject),
-            BedComposeMenuAction(R.string.ModelMenuDeleteSelected, R.drawable.delete_outline_android_28, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuDeleteSelected, R.drawable.vk_delete_outline_24, { anchor ->
                 val glView = fragment.glView ?: return@BedComposeMenuAction
                 captureSelectionSnapshot(glView) { snapshot ->
                     fragment.showWorkspaceMessageDialog(
@@ -283,7 +283,7 @@ internal class ModelMenuItems(
                 // updateModel() would add an identical model snapshot and consume the next Undo.
                 fragment.glView!!.selectAllModels {}
             }, enabled = availability.canArrange),
-            BedComposeMenuAction(R.string.ModelMenuDeleteAll, R.drawable.delete_outline_android_28, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuDeleteAll, R.drawable.vk_delete_outline_24, { anchor ->
                 val activeGlView = glView ?: return@BedComposeMenuAction
                 captureSelectionSnapshot(activeGlView, allowEmptySelection = true) { snapshot ->
                     fragment.showWorkspaceMessageDialog(

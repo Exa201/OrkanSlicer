@@ -26,7 +26,7 @@ object SliceMenuItems {
     }
 
     internal fun createBeforeSlice(fragment: BedFragment, hasModel: Boolean): List<BedComposeMenuAction> = listOf(
-        BedComposeMenuAction(R.string.QuickSliceTitle, R.drawable.magic_wand_outline_28, { view ->
+        BedComposeMenuAction(R.string.QuickSliceTitle, R.drawable.vk_magic_wand_outline_24, { view ->
             QuickSliceDialog.show(fragment, view)
         }, enabled = hasModel),
         BedComposeMenuAction(R.string.SmartSliceTitle, R.drawable.sparkle_28, {
@@ -60,7 +60,7 @@ object SliceMenuItems {
                 }
                 activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_EXPORT_GCODE)
             }),
-            BedComposeMenuAction(R.string.MenuSliceShare, R.drawable.share_external_28, {
+            BedComposeMenuAction(R.string.MenuSliceShare, R.drawable.vk_share_external_outline_24, {
                 val activity = fragment.getContext() as? Activity ?: return@BedComposeMenuAction
                 val file = BedFragment.tempGCodePath
                 val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {

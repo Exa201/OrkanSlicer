@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer Nightly 2.5 · 0.8.436\n\n• Die bestehende DP-basierte Anpassung und SliceBeam-Symbole, Abstände und Rundungen bleiben erhalten.\n• Akzentfarbe besser lesbar; Druckplattenzähler klar beschriftet.\n• Mehrfachimport zeigt den Fortschritt in einer einzelnen Meldung.",
-  "en": "OrkanSlicer Nightly 2.5 · 0.8.436\n\n• Preserved the existing dp-based adaptive layout and SliceBeam icons, spacing, and corner tokens.\n• Improved accent readability and clarified the build-plate counter.\n• Batch import progress now updates in one notification.",
-  "ru": "OrkanSlicer Nightly 2.5 · 0.8.436\n\n• Сохранены адаптивная разметка в dp, значки SliceBeam, отступы и скругления.\n• Улучшена читаемость акцентного цвета и подпись счётчика платформ.\n• Прогресс пакетного импорта обновляется в одном уведомлении."
+  "de": "OrkanSlicer Nightly 2.5 · 0.8.439\n\n• Workspace-Menüs zeigen auf Smartphones drei Schaltflächen pro Reihe in zwei Reihen.\n• Kachelhöhen und Beschriftungen sind für große Schrift angepasst.\n• Workspace- und Modellaktionen verwenden jetzt passende VK Icons.",
+  "en": "OrkanSlicer Nightly 2.5 · 0.8.439\n\n• Workspace menus show three actions per row across two portrait rows.\n• Tile and label sizing now accommodates larger text.\n• Workspace and model actions use semantically matched VK Icons.",
+  "ru": "OrkanSlicer Nightly 2.5 · 0.8.439\n\n• В меню рабочей области отображаются три действия в строке и два ряда.\n• Размер плиток и подписей учитывает увеличенный текст.\n• Для навигации и действий модели используются подходящие значки VK Icons."
 }

@@ -4323,3 +4323,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - `NativeSliceDeviceTest#liftedNozzleStaysUpOnConcaveLShapeAvoidCrossingTravel` besteht auf `solidcraft_clean_api36` / Android 16: 1/1, 0 Fehler, 0 Skips; Instrumentierungstest 3,487 s. Verifiziert werden ein realer Slice mit Extrusion, >80 XY-Befehle, mehr als drei tatsächliche reine Z-Liftbewegungen, mindestens zwei aufeinanderfolgende XY-Travel-Wegpunkte über der Layerhöhe und null Travel-Befehle mit gleichzeitig sinkendem Z und XY.
 - Damit ist der konkave Avoid-Crossing-Mehrpunktfall des Orca-Ports jetzt mit einer echten Slice-Ausgabe belegt. Der Nightly Z-Hop-Port wird als ein verifizierter Batch-12-Verhaltenspunkt gezählt (Batchstatus 7/10); separate Ausschlussflächen-/Achsen-Remap-Sonderfälle sind noch nicht abgedeckt, wobei Achsen-Remapping im Android-Writer nicht existiert.
 - Keine APK/kein Release (Batch noch 7/10). HEAD bleibt `2280692dce9517f2297924985bfa6409a4946b6a`; Quelländerungen nicht committet/gepusht. `git diff --check` sauber.
+
+## Nightly — Menü- und VK-Icon-Überarbeitung — 2026-11-05
+
+- Branch: `codex/nightly-batch11-next`; Ausgangs-HEAD `671132f03d3e81cb5d5e4da6c2f10e6400ed3a0f`.
+- Das Workspace-Aktionsmenü verwendet im Hochformat durchgehend drei Spalten und bis zu zwei sichtbare Reihen; weitere Aktionen bleiben horizontal erreichbar. Kachel- und Panelmaße sind für 100–150 % UI-Schrift abgestimmt.
+- Labels umbrechen innerhalb der Kacheln; für lange Aktionen werden vorhandene kompakte Beschriftungen genutzt. Große Schriftstufen geben dem Text zusätzliche Höhe und blenden das Icon in der Kachel aus.
+- Die Workspace-Navigation und ausgewählte Modell-/Druckaktionen verwenden Vektorassets aus dem offiziellen VK Icons Datensatz. Upstream-Attribution und MIT-Lizenz liegen unter `third_party/licenses/`.
+- Gezielte Debug-Unit-Tests: 23/23 bestanden, 0 Fehler, 0 Skips (`BedMenuActionTileWidthPolicyTest`, `WorkspaceToolPanelPolicyTest`, `WorkspaceShellLayoutPolicyTest`). `git diff --check` sauber.
+- Vor dem Release offen: finalen Commit bauen, APK-Metadaten/Hash prüfen, im verfügbaren API-36-Emulator installieren/starten, neuen Nightly-Release veröffentlichen und danach ältere Releases löschen, bis die fünf jüngsten erhalten sind.

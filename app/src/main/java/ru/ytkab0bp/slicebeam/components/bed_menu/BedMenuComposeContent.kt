@@ -106,17 +106,10 @@ internal data class BedComposeMenuAction(
     val enabled: Boolean = true,
 )
 
-/** Keeps phone portrait actions wide enough to read; longer menus remain swipeable. */
+/** Keeps phone portrait action menus consistent with three tiles in each of two rows. */
 internal object BedMenuActionTileWidthPolicy {
-    fun columnsForLayout(fontScale: Float, screenWidthDp: Int): Int =
-        when {
-            // Keep action cells wide enough for readable German labels on phone
-            // portrait. The grid pages horizontally, so fewer columns do not hide
-            // actions; they only reduce the number shown on each page.
-            fontScale >= 1.5f && screenWidthDp <= 400 -> 1
-            fontScale >= 1.3f || screenWidthDp <= 440 -> 2
-            else -> 4
-        }
+    @Suppress("UNUSED_PARAMETER")
+    fun columnsForLayout(fontScale: Float, screenWidthDp: Int): Int = 3
 
     /** Avoid showing a clipped last action in a single-row phone menu. */
     fun usesTwoRows(actionCount: Int, portrait: Boolean, screenWidthDp: Int, fontScale: Float): Boolean =
@@ -215,7 +208,7 @@ internal fun BedMenuActionsContent(
                     delay(16)
                 }
             }
-            val gridTileHeight = if (fontScale >= 1.3f) 88.dp else 82.dp
+            val gridTileHeight = if (fontScale >= 1.15f) 112.dp else 88.dp
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 LazyHorizontalGrid(
                     rows = GridCells.Fixed(rows),
@@ -231,7 +224,9 @@ internal fun BedMenuActionsContent(
                     // (and its click handler) for a result action at the same index.
                     items(actions, key = { action -> action.titleRes }) { action ->
                         BedMenuActionTile(action, portrait = true, menuView = menuView,
-                            compactPortraitGrid = columns == 1,
+                            // Keep all three columns at every font scale. At large
+                            // scales the icon yields its space to the complete label.
+            compactPortraitGrid = fontScale >= 1.3f,
                             // LazyHorizontalGrid can measure the one-row fallback using only the
                             // label's intrinsic height. Set the cell height explicitly so it
                             // keeps a useful touch target on compact viewports.
@@ -387,7 +382,7 @@ private fun BedMenuActionTile(
     onDragAutoScroll: ((Float) -> Unit)?,
 ) {
     val fullTitle = stringResource(action.titleRes)
-    val fontScale = LocalDensity.current.fontScale
+    val fontScale = ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current
     val compactLabel = when (action.titleRes) {
         R.string.MenuCameraIsometric -> if (fontScale >= 1.3f) R.string.MenuCameraIsometricCompact else action.titleRes
         R.string.MenuFileImportProfiles -> if (fontScale >= 1.3f) R.string.MenuFileImportProfilesCompact else action.titleRes
@@ -552,8 +547,8 @@ private fun BedMenuActionTile(
                     fontSize = OrkanUiTokens.menuLabelSize,
                     lineHeight = 16.sp,
                     textAlign = TextAlign.Center,
-                    maxLines = if (portrait && !compactPortraitGrid) 3 else 2,
-                    overflow = if (portrait && !compactPortraitGrid) TextOverflow.Clip else TextOverflow.Ellipsis,
+                    maxLines = if (portrait) 4 else Int.MAX_VALUE,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                 )
             }

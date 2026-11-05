@@ -39,10 +39,10 @@ internal class TransformMenuItems(
                     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextResetScaleDone))
                 }
             },
-            BedComposeMenuAction(R.string.ModelUndo, R.drawable.arrow_left_outline_28, {
+            BedComposeMenuAction(R.string.ModelUndo, R.drawable.vk_arrow_uturn_left_outline_24, {
                 fragment.undoModelEdit()
             }),
-            BedComposeMenuAction(R.string.ModelRedo, R.drawable.refresh_outline_28, {
+            BedComposeMenuAction(R.string.ModelRedo, R.drawable.vk_arrow_uturn_right_outline_24, {
                 fragment.redoModelEdit()
             }),
             selectionAction(R.string.MenuToolbarMove, R.drawable.menu_orientation_position_28, availability) {

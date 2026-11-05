@@ -53,7 +53,7 @@ internal fun WorkspaceProfileStatus(
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
             Icon(
-                painter = painterResource(R.drawable.printer_outline_28),
+                painter = painterResource(R.drawable.vk_printer_outline_24),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(OrkanUiTokens.menuIconSize),

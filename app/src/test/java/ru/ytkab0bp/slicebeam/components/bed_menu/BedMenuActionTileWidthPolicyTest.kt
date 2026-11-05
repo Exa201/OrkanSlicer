@@ -7,20 +7,13 @@ import org.junit.Test
 
 class BedMenuActionTileWidthPolicyTest {
     @Test
-    fun narrowPhonesAndLargeTextGetFewerWiderColumns() {
-        assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1f, 366))
-        assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1f, 411))
-        assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1.15f, 411))
-        assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1.3f, 320))
-    }
-
-    @Test
-    fun phoneWidthsAtOneHundredFiftyPercentUseWideActionTiles() {
-        assertEquals(1, BedMenuActionTileWidthPolicy.columnsForLayout(1.5f, 320))
-        assertEquals(1, BedMenuActionTileWidthPolicy.columnsForLayout(1.5f, 360))
-        assertEquals(1, BedMenuActionTileWidthPolicy.columnsForLayout(1.5f, 400))
-        assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1.5f, 401))
-        assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1.3f, 320))
+    fun workspaceMenuKeepsThreeColumnsAcrossPhoneWidthsAndFontScales() {
+        for (width in listOf(320, 360, 400, 411, 600)) {
+            for (scale in listOf(1f, 1.15f, 1.3f, 1.5f, 2f)) {
+                assertEquals("width=$width, fontScale=$scale", 3,
+                    BedMenuActionTileWidthPolicy.columnsForLayout(scale, width))
+            }
+        }
     }
 
     @Test
@@ -51,7 +44,7 @@ class BedMenuActionTileWidthPolicyTest {
 
     @Test
     fun gridTilesFitViewportIncludingContentPaddingAndColumnSpacing() {
-        for ((width, columns) in listOf(320 to 3, 366 to 3, 400 to 4, 411 to 4)) {
+        for ((width, columns) in listOf(320 to 3, 366 to 3, 400 to 3, 411 to 3)) {
             val tile = BedMenuActionTileWidthPolicy.gridTileWidthDp(width, columns)
             val used = tile * columns + 8 + 2 * (columns - 1)
             assertTrue("$columns grid columns must fit in $width dp (used $used dp)", used <= width)
@@ -62,7 +55,7 @@ class BedMenuActionTileWidthPolicyTest {
     @Test
     fun largeTextGridReservesTheScrollAffordanceInsteadOfClippingTheNextColumn() {
         val width = 320
-        val columns = 2
+        val columns = 3
         val scrollHintAndGap = 52
         val tile = BedMenuActionTileWidthPolicy.gridTileWidthDp(
             screenWidthDp = width,
@@ -72,17 +65,17 @@ class BedMenuActionTileWidthPolicyTest {
             reservedEndDp = scrollHintAndGap,
         )
         val used = tile * columns + 4 + scrollHintAndGap + 2 * (columns - 1)
-        assertEquals("two full columns should end exactly before the scroll hint", width, used)
+        assertTrue("three full columns should fit before the scroll hint", used <= width)
         assertTrue("large text should not shrink targets below 48 dp", tile >= 48)
     }
 
     @Test
     fun actionMenuUsesSecondRowWhenActionsWouldBeClipped() {
-        assertTrue(BedMenuActionTileWidthPolicy.usesTwoRows(3, true, 411, 1f))
+        assertFalse(BedMenuActionTileWidthPolicy.usesTwoRows(3, true, 411, 1f))
         assertTrue(BedMenuActionTileWidthPolicy.usesTwoRows(5, true, 411, 1f))
         assertTrue(BedMenuActionTileWidthPolicy.usesTwoRows(4, true, 320, 1f))
         assertTrue(BedMenuActionTileWidthPolicy.usesTwoRows(4, true, 411, 1.5f))
-        assertTrue(BedMenuActionTileWidthPolicy.usesTwoRows(3, true, 320, 1.5f))
+        assertFalse(BedMenuActionTileWidthPolicy.usesTwoRows(3, true, 320, 1.5f))
         assertFalse(BedMenuActionTileWidthPolicy.usesTwoRows(8, false, 411, 1.5f))
     }
 }

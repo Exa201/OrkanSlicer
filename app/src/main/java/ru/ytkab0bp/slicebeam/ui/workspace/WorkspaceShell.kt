@@ -381,17 +381,17 @@ internal object WorkspaceShellLayoutPolicy {
         val maxOverlay = (viewport * 0.80f).toInt().coerceIn(1, viewport)
         val preferred = preferredHeightDp.coerceAtLeast(0)
         if (preferred <= maxOverlay) return preferred
-        val twoRowMinimum = if (fontScale >= 1.3f) 152 else 112
+        val twoRowMinimum = if (fontScale >= 1.15f) 224 else 176
         if (maxOverlay >= twoRowMinimum) return maxOverlay
         // If two rows no longer fit, retain one touch-friendly row. Its actions
         // remain horizontally scrollable and the full GL view continues behind it.
-        val compactRow = if (fontScale >= 1.3f) 88 else 64
+        val compactRow = if (fontScale >= 1.15f) 112 else 88
         return minOf(maxOverlay, compactRow)
     }
 
     @JvmStatic
     fun portraitMenuRows(availableHeightDp: Int, fontScale: Float): Int =
-        if (availableHeightDp < if (fontScale >= 1.3f) 152 else 112) 1 else 2
+        if (availableHeightDp < if (fontScale >= 1.15f) 224 else 176) 1 else 2
 
     /** Keeps inspection controls outside the GL surface and leaves a visible plate viewport. */
     @JvmStatic

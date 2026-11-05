@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.439 — Nightly workspace menu and icon pass — 2026-11-05
+
+- Workspace action grids now use three columns across phone widths, with a two-row portrait layout when more than three actions are present. Panel and tile heights are aligned for readable labels, including larger system text.
+- Replace mismatched workspace navigation and common model-action symbols with the corresponding VK Icons vectors. Include VKCOM's MIT license and attribution.
+- Focused workspace grid and panel geometry regression tests updated.
+
 ## 0.8.438 — Fix updater page crash on HONOR — 2026-11-05
 
 - Remove a nested unbounded vertical scroller from the setup updater/about page. The short version label now participates in the page's existing scroll container, avoiding the `infinity maximum height constraints` Compose crash reported on HONOR Android 16.

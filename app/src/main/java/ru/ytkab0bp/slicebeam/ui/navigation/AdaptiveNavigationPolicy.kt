@@ -51,15 +51,15 @@ object AdaptiveNavigationPolicy {
 /** Reserves the plate viewport by keeping portrait action menus collapsed until requested. */
 object WorkspaceToolPanelPolicy {
     const val COMPACT_MENU_HEIGHT_DP = 68
-    const val TWO_ROW_MENU_HEIGHT_DP = 140
-    const val LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP = 160
+    const val TWO_ROW_MENU_HEIGHT_DP = 192
+    const val LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP = 236
 
     @JvmStatic
     fun menuHeightDp(needsTwoRows: Boolean, fontScale: Float, additionalChromeDp: Int = 0): Int {
         val base = if (!needsTwoRows) {
             if (fontScale >= 1.3f) 88 else COMPACT_MENU_HEIGHT_DP
         } else {
-            if (fontScale >= 1.3f) 176 else if (fontScale >= 1.15f) LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP else TWO_ROW_MENU_HEIGHT_DP
+            if (fontScale >= 1.15f) LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP else TWO_ROW_MENU_HEIGHT_DP
         }
         return base + additionalChromeDp.coerceAtLeast(0)
     }
