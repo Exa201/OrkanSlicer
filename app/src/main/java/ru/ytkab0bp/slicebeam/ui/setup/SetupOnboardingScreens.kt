@@ -160,7 +160,10 @@ internal fun SetupAboutScreen(
         ) {
             Text(
                 text = stringResource(R.string.SettingsAboutVersion, versionName),
-                modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp),
+                // The whole setup page is already vertically scrollable. Keeping a second,
+                // unbounded vertical scroller on this short version label makes HorizontalPager
+                // measure it with an infinite max height on some devices (e.g. HONOR API 36).
+                modifier = Modifier.padding(20.dp),
                 color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.bodyLarge,
                 fontSize = 16.sp,

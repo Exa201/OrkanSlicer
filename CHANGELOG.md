@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.438 — Fix updater page crash on HONOR — 2026-11-05
+
+- Remove a nested unbounded vertical scroller from the setup updater/about page. The short version label now participates in the page's existing scroll container, avoiding the `infinity maximum height constraints` Compose crash reported on HONOR Android 16.
+
 ## 0.8.437 — Nightly updater recovery and menu readability — 2026-11-05
 
 - Check for Nightly 2.5 updates once per app process at startup while retaining active or completed DownloadManager transfers.
