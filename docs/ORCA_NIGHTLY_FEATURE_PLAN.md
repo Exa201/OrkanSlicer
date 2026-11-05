@@ -1,6 +1,6 @@
 # Aktueller Stand — Nightly Batch 13, 1/10 — 2026-11-05
 
-Batch 12 ist vollständig mit 10/10 Punkten verifiziert und als `v0.8.435-nightly.1` veröffentlicht. Batch 13 hat begonnen. Punkt 1 portiert Orcas natives `Spiral Inset`-Füllmuster einschließlich Profiloptionen für die Richtung von oberen und unteren Flächen. Der ARM64-SliceTest-/Instrumentierungsbuild und die Android-16/API-36-Regressionen für unterscheidbare Sparse-Infill-Pfade sowie Outward-/Inward-Topflächenpfade bestanden. Nächster Schritt: Punkt 2 als eigenständigen Orca-2.5-Verhaltensport auswählen und testen. Das APK-/Release-Gate bleibt bei 10/10 Batch-Punkten plus gebündelter Regression.
+Batch 12 ist vollständig mit 10/10 Punkten verifiziert und als `v0.8.435-nightly.1` veröffentlicht. Batch 13 hat begonnen. Punkt 1 portiert Orcas natives `Spiral Inset`-Füllmuster einschließlich Profiloptionen für die Richtung von oberen und unteren Flächen. Der ARM64-SliceTest-/Instrumentierungsbuild und die Android-16/API-36-Regressionen für unterscheidbare Sparse-Infill-Pfade sowie Outward-/Inward-Topflächenpfade bestanden. Commit `4a67851160` ist auf `nightly25/codex/nightly-batch11-next` gepusht. Nächster Schritt: Punkt 2 als eigenständigen Orca-2.5-Verhaltensport auswählen und testen. Das APK-/Release-Gate bleibt bei 10/10 Batch-Punkten plus gebündelter Regression.
 
 ## Batch 12 – abgeschlossen
 
