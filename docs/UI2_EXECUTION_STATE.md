@@ -1,6 +1,13 @@
-# Nightly 2.5 Fortsetzung — Batch 12 bei 10/10 — 2026-11-05
+# Nightly 2.5 Fortsetzung — Batch 13 bei 1/10 — 2026-11-05
 
-## Aktueller Stand — Feature-HEAD `d32b653456ffd8ff7b4ce76f148214c58057bf05`
+## Aktueller Stand — Batch-12-HEAD `d32b653456ffd8ff7b4ce76f148214c58057bf05`
+
+- Batch 12 bleibt vollständig (10/10) und veröffentlicht als `v0.8.435-nightly.1`.
+- Batch 13, Punkt 1: Orca Spiral Inset ist in Androids nativer Fill-Factory, Prozess-/Support-Enums und Profilkatalog eingebunden. Top-/Bottom-Flächen unterstützen die Orca-Richtungsoptionen Default/Outward/Inward; Slicer-Einstellungen und G-Code verwenden sie.
+- Verifiziert auf Android 16/API 36: `NativeSliceDeviceTest#spiralInsetSparsePatternProducesADistinctNativeToolpath` bestanden (1/1, 0 Fehler/Skips): Enumwerte/Labels, echter Spiral-Inset-Sparse-Toolpath gegenüber Concentric sowie unterschiedliche Topflächenpfade für Outward/Inward. `NativeSliceDeviceTest#orderSensitiveGapFillConfigurationsSliceWithGcode` erneut bestanden (1/1, 0 Fehler/Skips).
+- `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` ARM64 erfolgreich. `git diff --check` sauber. Hardwaredrucker nicht getestet.
+- Aktuelle Arbeitsänderungen für Punkt 1 noch lokal; letzter gepushter Feature-HEAD bleibt `d32b653456ffd8ff7b4ce76f148214c58057bf05`.
+- Nächste Aufgabe: Punkt 2 auswählen und als unabhängigen Orca-2.5-Verhaltensport mit Android-Regression umsetzen.
 
 - Batch 11 bleibt als `v0.8.434-nightly.1` veröffentlicht. Nightly-Paket `com.exa201.orkanslicer.nightly25`; App-Identität, Speicherisolation und adaptive Low-GPU-Vorschau sind im bestehenden Code umgesetzt.
 - Batch 12: **10/10 fokussiert verifiziert**. Punkt 8 portiert Orca `88c4c1e915`: bei order-sensitiven Füllmustern wird Gap-Fill hinter dem angrenzenden Wand-/Oberflächenpfad eingeordnet. `NativeSliceDeviceTest#orderSensitiveGapFillConfigurationsSliceWithGcode` bestand erneut auf Android 16/API 36 (1/1, 0 Fehler/Skips); `monotonicTopSurfaceGapFillPreservesSurfacePathOrder` bestand ebenfalls 1/1. Commit `bf910c4b29`.

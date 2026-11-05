@@ -82,6 +82,10 @@ struct FillParams
     // For Gyroid: when true, use the parameterized "optimized" variant.
     bool        gyroid_optimized { false };
 
+    // Center-based fills default to outward ordering; kept in the shared params so callers can
+    // pass an explicit order when the setting is exposed by the active profile.
+    SurfaceFillOrder fill_order { SurfaceFillOrder::Default };
+
     // Orca: corner smoothing factor for supported sparse infill patterns, in [0, 1].
     double      smooth_factor { 0. };
 

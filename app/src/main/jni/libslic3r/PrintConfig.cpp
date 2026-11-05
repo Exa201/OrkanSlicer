@@ -267,7 +267,8 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "concentric", ipConcentric },
     { "hilbertcurve", ipHilbertCurve },
     { "archimedeanchords", ipArchimedeanChords },
-    { "octagramspiral", ipOctagramSpiral }
+    { "octagramspiral", ipOctagramSpiral },
+    { "spiralinset", ipSpiralInset }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InfillPattern)
 
@@ -352,7 +353,8 @@ static t_config_enum_values s_keys_map_SupportMaterialInterfacePattern {
     { "rectilinear",    smipRectilinear },
     { "concentric",     smipConcentric },
     { "rectilinear_interlaced", smipRectilinearInterlaced},
-    { "grid",           smipGrid }
+    { "grid",           smipGrid },
+    { "spiralinset",    smipSpiralInset }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportMaterialInterfacePattern)
 
@@ -372,6 +374,13 @@ static t_config_enum_values s_keys_map_SeamPosition {
     { "random",         spRandom }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SeamPosition)
+
+static t_config_enum_values s_keys_map_SurfaceFillOrder {
+    { "default", int(SurfaceFillOrder::Default) },
+    { "outward", int(SurfaceFillOrder::Outward) },
+    { "inward", int(SurfaceFillOrder::Inward) },
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SurfaceFillOrder)
 
 // Orca
 static t_config_enum_values s_keys_map_SeamScarfType{
@@ -2121,6 +2130,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("hilbertcurve");
     def->enum_values.push_back("archimedeanchords");
     def->enum_values.push_back("octagramspiral");
+    def->enum_values.push_back("spiralinset");
     def->enum_labels.push_back(L("Monotonic"));
     def->enum_labels.push_back(L("Monotonic line"));
     def->enum_labels.push_back(L("Rectilinear"));
@@ -2129,7 +2139,38 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
+    def->enum_labels.push_back(L("Spiral Inset"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonicLine));
+
+    auto def_top_fill_order = def = this->add("top_surface_fill_order", coEnum);
+    def->label = L("Top surface fill order");
+    def->category = L("Strength");
+    def->tooltip = L("Direction in which top surfaces are filled when using a center-based pattern "
+                     "(Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
+                     "Outward starts at the center of the surface, so any excess material is pushed "
+                     "towards the edge where it is least visible. Inward starts at the edge and ends "
+                     "with the tight curves at the center.\n"
+                     "Default uses shortest-path ordering, which may run in either direction.");
+    def->enum_keys_map = &ConfigOptionEnum<SurfaceFillOrder>::get_enum_values();
+    def->enum_values = { "default", "outward", "inward" };
+    def->enum_labels = { L("Default"), L("Outward"), L("Inward") };
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<SurfaceFillOrder>(SurfaceFillOrder::Default));
+
+    def = this->add("bottom_surface_fill_order", coEnum);
+    def->label = L("Bottom surface fill order");
+    def->category = L("Strength");
+    def->tooltip = L("Direction in which bottom surfaces are filled when using a center-based pattern "
+                     "(Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
+                     "Inward starts each surface with the wider outer curves, which improves first layer "
+                     "adhesion on build plates where the tight curves at the center may not stick. "
+                     "Outward starts at the center, pushing any excess material towards the edge.\n"
+                     "Default uses shortest-path ordering, which may run in either direction.");
+    def->enum_keys_map = &ConfigOptionEnum<SurfaceFillOrder>::get_enum_values();
+    def->enum_values = def_top_fill_order->enum_values;
+    def->enum_labels = def_top_fill_order->enum_labels;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<SurfaceFillOrder>(SurfaceFillOrder::Default));
 
     def = this->add("bottom_surface_pattern", coEnum);
     def->label = L("Bottom surface pattern");
@@ -3073,6 +3114,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("lockedzag");
     def->enum_values.push_back("line");
     def->enum_values.push_back("grid");
+    def->enum_values.push_back("spiralinset");
     def->enum_values.push_back("triangles");
     def->enum_values.push_back("tri-hexagon");
     def->enum_values.push_back("cubic");
@@ -3099,6 +3141,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Locked Zag"));
     def->enum_labels.push_back(L("Line"));
     def->enum_labels.push_back(L("Grid"));
+    def->enum_labels.push_back(L("Spiral Inset"));
     def->enum_labels.push_back(L("Triangles"));
     def->enum_labels.push_back(L("Tri-hexagon"));
     def->enum_labels.push_back(L("Cubic"));
@@ -6401,11 +6444,13 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("concentric");
     def->enum_values.push_back("rectilinear_interlaced");
     def->enum_values.push_back("grid");
+    def->enum_values.push_back("spiralinset");
     def->enum_labels.push_back(L("Default"));
     def->enum_labels.push_back(L("Rectilinear"));
     def->enum_labels.push_back(L("Concentric"));
     def->enum_labels.push_back(L("Rectilinear Interlaced"));
     def->enum_labels.push_back(L("Grid"));
+    def->enum_labels.push_back(L("Spiral Inset"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<SupportMaterialInterfacePattern>(smipAuto));
 

@@ -528,6 +528,101 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test(timeout = 180_000)
+    fun spiralInsetSparsePatternProducesADistinctNativeToolpath() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        val source = createThinCubeFixture("spiral-inset-sparse.stl", 20.0, 20.0, 12.0)
+        val output = File(context.cacheDir, "spiral-inset-sparse.gcode")
+        val model = Model(source).also { it.ensureOnBed(0) }
+        val keys = listOf("sparse_infill_pattern", "sparse_infill_density", "top_surface_pattern",
+            "top_surface_fill_order", "wall_loops", "top_shell_layers", "bottom_shell_layers",
+            "brim_type", "skirt_loops")
+        val previous = keys.associateWith { process[it] }
+        try {
+            val optionCatalog = PrintConfigDef.getInstance().options
+            for (key in listOf("sparse_infill_pattern", "top_surface_pattern", "bottom_surface_pattern",
+                    "internal_solid_infill_pattern", "support_interface_pattern")) {
+                val option = requireNotNull(optionCatalog[key])
+                val index = requireNotNull(option.enumValues).indexOf("spiralinset")
+                assertTrue("$key must expose the native Spiral Inset value", index >= 0)
+                assertEquals("$key must pair Spiral Inset with its label", "Spiral Inset",
+                    requireNotNull(option.enumLabels).getOrNull(index))
+            }
+            for (key in listOf("top_surface_fill_order", "bottom_surface_fill_order")) {
+                val option = requireNotNull(optionCatalog[key])
+                assertArrayEquals(arrayOf("default", "outward", "inward"), option.enumValues)
+                assertArrayEquals(arrayOf("Default", "Outward", "Inward"), option.enumLabels)
+            }
+
+            process.put("sparse_infill_density", "25%")
+            process.put("wall_loops", "2")
+            process.put("top_shell_layers", "3")
+            process.put("bottom_shell_layers", "3")
+            process.put("brim_type", "no_brim")
+            process.put("skirt_loops", "0")
+
+            fun sparseMoves(pattern: String): List<String> {
+                process.put("sparse_infill_pattern", pattern)
+                SliceBeam.genCurrentConfig(model)
+                output.delete()
+                val result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+                try {
+                    val moves = ArrayList<String>()
+                    var sparse = false
+                    output.forEachLine { line ->
+                        if (line.startsWith(";TYPE:")) sparse = line == ";TYPE:Sparse infill"
+                        else if (sparse && line.startsWith("G1 ") && line.contains('E') &&
+                            (line.contains(" X") || line.contains(" Y"))) moves += line
+                    }
+                    return moves
+                } finally {
+                    result.release()
+                }
+            }
+
+            val spiral = sparseMoves("spiralinset")
+            assertTrue("Spiral Inset must produce sparse infill extrusion paths", spiral.isNotEmpty())
+            assertHasExtrusion(output.readText())
+            val concentric = sparseMoves("concentric")
+            assertTrue("The control pattern must also produce sparse infill", concentric.isNotEmpty())
+            assertNotEquals("Spiral Inset must not silently fall back to Concentric", concentric, spiral)
+
+            fun topSurfaceMoves(order: String): List<String> {
+                process.put("sparse_infill_pattern", "concentric")
+                process.put("top_surface_pattern", "spiralinset")
+                process.put("top_surface_fill_order", order)
+                SliceBeam.genCurrentConfig(requireNotNull(model))
+                output.delete()
+                val result = requireNotNull(model).slice(
+                    SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+                try {
+                    val moves = ArrayList<String>()
+                    var topSurface = false
+                    output.forEachLine { line ->
+                        if (line.startsWith(";TYPE:")) topSurface = line == ";TYPE:Top surface"
+                        else if (topSurface && line.startsWith("G1 ") && line.contains('E') &&
+                            (line.contains(" X") || line.contains(" Y"))) moves += line
+                    }
+                    return moves
+                } finally {
+                    result.release()
+                }
+            }
+
+            val outward = topSurfaceMoves("outward")
+            val inward = topSurfaceMoves("inward")
+            assertTrue("Spiral Inset must emit top surface infill", outward.isNotEmpty())
+            assertNotEquals("Top surface fill order must change the generated path", outward, inward)
+        } finally {
+            previous.forEach { (key, value) -> if (value != null) process.put(key, value) }
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
     @Test
     fun sparseInfillArcFittingDoesNotFitWallsAndLegacyBooleanProfilesRemainCompatible() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
