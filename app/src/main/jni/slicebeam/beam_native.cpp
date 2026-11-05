@@ -3341,7 +3341,8 @@ extern "C" {
     }
 
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1arrange_1new_1objects(
-            JNIEnv* env, jclass, jlong ptr, jlong model, jint first_object, jdouble min_distance_mm) {
+            JNIEnv* env, jclass, jlong ptr, jlong model, jint first_object, jdouble min_distance_mm,
+            jboolean rearrange_existing_objects) {
         BedRef* ref = reinterpret_cast<BedRef*>(static_cast<intptr_t>(ptr));
         ModelRef* mRef = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(model));
         if (ref == nullptr || mRef == nullptr || first_object < 0 ||
@@ -3352,7 +3353,8 @@ extern "C" {
             ArrangeParams params;
             params.min_obj_distance = scaled(std::max(0.0, min_distance_mm));
             params.allow_rotations = true;
-            return arrange_new_objects(mRef->model, static_cast<size_t>(first_object), bed, params);
+            return arrange_new_objects(mRef->model, static_cast<size_t>(first_object), bed, params,
+                                       rearrange_existing_objects == JNI_TRUE);
         } catch (const std::exception& e) {
             BOOST_LOG_TRIVIAL(warning) << "Could not arrange newly imported objects: " << e.what();
             return JNI_FALSE;

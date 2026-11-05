@@ -93,7 +93,9 @@ class Native {
     @JvmStatic
     external fun bed_arrange_with_distance(ptr: Long, modelPtr: Long, minDistanceMm: Double): Boolean
     @JvmStatic
-    external fun bed_arrange_new_objects(ptr: Long, modelPtr: Long, firstObject: Int, minDistanceMm: Double): Boolean
+    external fun bed_arrange_new_objects(
+        ptr: Long, modelPtr: Long, firstObject: Int, minDistanceMm: Double, rearrangeExistingObjects: Boolean,
+    ): Boolean
     @JvmStatic
     external fun bed_release(ptr: Long): Unit
     @JvmStatic

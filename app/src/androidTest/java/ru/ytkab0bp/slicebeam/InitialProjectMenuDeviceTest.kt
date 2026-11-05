@@ -4281,6 +4281,94 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun fillBedFindsFreeSpaceWithoutRearrangingExistingPlateObjects() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 60_000) { glView.renderer.bed?.isValid() == true }
+        val activeBed = requireNotNull(glView.renderer.bed)
+        val modelFile = File(activity.cacheDir, "fill-bed-many-existing-${System.nanoTime()}.stl")
+        val sourceModel = Model(modelFile.apply { writeScaledCubeStl(activity, this, 1.0f) })
+        val model = Model.merge(sourceModel)
+        try {
+            // Twenty five small, independently placed objects leave broad unused areas. Filling
+            // the bed must test the requested copy against this fixed layout, not require all
+            // existing objects to be successfully packed again as part of every trial.
+            repeat(24) { model.addObject(model, 0) }
+            val bedMin = requireNotNull(activeBed.getVolumeMin())
+            val fixedCount = model.objectsCount
+            val fixedTranslations = (0 until fixedCount).map { index ->
+                val current = Vec3d()
+                model.getTranslation(index, current)
+                val targetX = bedMin.x + 12.0 + (index % 6) * 28.0
+                val targetY = bedMin.y + 12.0 + (index / 6) * 28.0
+                val targetZ = bedMin.z
+                model.translate(index, targetX - current.x, targetY - current.y, targetZ - current.z)
+                Vec3d(targetX, targetY, targetZ)
+            }
+
+            val copies = FillBedModelOperation.run(
+                activeModel = model,
+                objectIndex = 0,
+                viewerEnabled = false,
+                estimatedCapacity = fixedCount + 1,
+            ) { candidate, firstNewObject ->
+                val complete = CountDownLatch(1)
+                val arranged = AtomicReference<Boolean>()
+                glView.queueEvent {
+                    try {
+                        assertEquals("new copy range should begin after the existing objects",
+                            fixedCount, firstNewObject)
+                        arranged.set(activeBed.arrangeNewObjects(
+                            candidate, firstNewObject, 2.0, rearrangeExistingObjects = false,
+                        ) || activeBed.arrangeNewObjects(
+                            candidate, firstNewObject, 0.5, rearrangeExistingObjects = false,
+                        ))
+                    } finally {
+                        complete.countDown()
+                    }
+                }
+                assertTrue("new-copy placement should finish on the GL thread",
+                    complete.await(30, TimeUnit.SECONDS))
+                arranged.get() == true
+            }
+
+            assertEquals("one extra object should fit in the visibly open plate area", 1, copies)
+            assertEquals(fixedCount + 1, model.objectsCount)
+            fixedTranslations.forEachIndexed { index, before ->
+                val after = Vec3d()
+                model.getTranslation(index, after)
+                assertEquals("filling the plate must preserve object $index X", before.x, after.x, 0.001)
+                assertEquals("filling the plate must preserve object $index Y", before.y, after.y, 0.001)
+                assertEquals("filling the plate must preserve object $index Z", before.z, after.z, 0.001)
+            }
+            val placedBounds = (0 until model.objectsCount).map { index ->
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(index, min, max)
+                doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+            }
+            val bedMax = requireNotNull(activeBed.getVolumeMax())
+            placedBounds.forEachIndexed { index, bounds ->
+                assertTrue("object $index must stay within the build plate",
+                    bounds[0] >= bedMin.x - 0.1 && bounds[1] >= bedMin.y - 0.1 &&
+                        bounds[3] <= bedMax.x + 0.1 && bounds[4] <= bedMax.y + 0.1)
+                for (other in 0 until index) {
+                    val overlapX = minOf(bounds[3], placedBounds[other][3]) -
+                        maxOf(bounds[0], placedBounds[other][0])
+                    val overlapY = minOf(bounds[4], placedBounds[other][4]) -
+                        maxOf(bounds[1], placedBounds[other][1])
+                    assertTrue("filling must not overlap object $other with object $index",
+                        overlapX <= 0.0 || overlapY <= 0.0)
+                }
+            }
+        } finally {
+            model.release()
+            sourceModel.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun objectListGroupCanBeCombinedAsPartsFromTheModelMenu() {
         var modelEditStageStartedAt = SystemClock.elapsedRealtime()
         fun logModelEditStage(stage: String, details: String = "") {

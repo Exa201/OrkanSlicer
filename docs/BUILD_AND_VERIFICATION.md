@@ -2464,3 +2464,8 @@ This validates import placement and mesh separation for this archive, not optima
 - The supplied Settlers archive (109 STL files) passed `settlersArchiveModelsAreOrientedPackedAndMovedToOverflowPlates` on the Android 16 emulator: 109 unique objects on 15 plates, all within bed boundaries and without detected same-plate mesh intersections. The previous measured result was 30 plates. This is a packing-quality improvement, not proof of a globally minimal number of plates. The full archive device test took about 15 minutes 37 seconds.
 - `modelMenuArrangeBringsOffBedObjectBackIntoWorkspace` and `positionEditorMovesEverySelectedObjectTogetherOnXYZAndKeepsUndoRedo` passed together (2/2), verifying explicit re-arrange and continued XYZ movement/undo/redo after placement.
 - No Xiaomi device was connected. No full unit suite, release APK, commit, or GitHub upload was produced in this pass.
+
+## False no-space result in fill-bed and arrangement — Android 16 — 2026-11-05
+
+- Six focused emulator instrumentation tests passed: finding free bed area despite 24 existing objects, compact-arrange fallback, fill-bed copies with material/undo/redo, zero coarse-capacity estimate, rollback after a failed placement, and the actual arrange menu handler. A stale test first expected the original source object to move; it was corrected to assert that fill-bed preserves the source placement, then the focused three-test run passed 3/3.
+- `git diff --check` passed. Xiaomi was not connected through ADB. No Debug APK or GitHub upload has been produced yet.

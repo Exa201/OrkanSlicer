@@ -272,8 +272,10 @@ queueEvent {
     }
     fillBedExecutor.execute {
         val addedCopies = try {
-            renderer.fillBedModel(workingModel, selectedObject, viewerEnabled, estimatedBedCapacity) { candidate ->
-                arrangeFillBedCandidateOnGlThread(activeModel, activeBed, bedRevision, candidate)
+            renderer.fillBedModel(workingModel, selectedObject, viewerEnabled, estimatedBedCapacity) { candidate, firstNewObject ->
+                arrangeFillBedCandidateOnGlThread(
+                    activeModel, activeBed, bedRevision, firstNewObject, candidate,
+                )
             }
         } catch (error: Throwable) {
             android.util.Log.e("GLView", "Failed to arrange model copies", error)
@@ -320,6 +322,7 @@ private fun arrangeFillBedCandidateOnGlThread(
     expectedModel: Model,
     expectedBed: Bed3D,
     expectedBedRevision: Long,
+    firstNewObject: Int,
     candidateModel: Model,
 ): Boolean {
     val gate = Any()
@@ -334,10 +337,15 @@ private fun arrangeFillBedCandidateOnGlThread(
                 return@queueEvent
             }
             try {
-                // Fill-bed is commonly used after the standard 6 mm packer rejected a plate
-                // whose visible gaps can still hold another model. Use the same compact,
-                // exact-geometry retry path as dense imports before reporting no room.
-                result.complete(expectedBed.arrangeCompact(candidateModel))
+                // Existing user-placed parts already fit and should not be repacked for this
+                // action. Place only speculative copies into the remaining free space; failed
+                // trials then cannot reject an otherwise valid crowded plate or move its models.
+                val fitted = expectedBed.arrangeNewObjects(
+                    candidateModel, firstNewObject, 2.0, rearrangeExistingObjects = false,
+                ) || expectedBed.arrangeNewObjects(
+                    candidateModel, firstNewObject, 0.5, rearrangeExistingObjects = false,
+                )
+                result.complete(fitted)
             } catch (error: Throwable) {
                 result.completeExceptionally(error)
             }

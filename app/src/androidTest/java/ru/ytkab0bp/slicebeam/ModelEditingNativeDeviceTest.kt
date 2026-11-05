@@ -156,6 +156,7 @@ class ModelEditingNativeDeviceTest {
         try {
             model.translate(0, 13.0, 17.0, 5.0)
             model.setUniformFilament(0, 2)
+            val sourceTranslation = Vec3d().also { model.getTranslation(0, it) }
             val sourceTriangles = model.getTriangleCount(0)
             val sourceVolume = model.getObjectVolume(0)
             val attempts = mutableListOf<Int>()
@@ -181,8 +182,17 @@ class ModelEditingNativeDeviceTest {
             for (index in 0 until model.objectsCount) {
                 val translation = Vec3d()
                 model.getTranslation(index, translation)
-                assertEquals("object $index should receive its accepted arrangement", index * 28.0,
-                    translation.x, 0.001)
+                if (index == 0) {
+                    assertEquals("fill-bed must keep the original object X", sourceTranslation.x,
+                        translation.x, 0.001)
+                    assertEquals("fill-bed must keep the original object Y", sourceTranslation.y,
+                        translation.y, 0.001)
+                    assertEquals("fill-bed must keep the original object Z", sourceTranslation.z,
+                        translation.z, 0.001)
+                } else {
+                    assertEquals("copy $index should receive its accepted arrangement", index * 28.0,
+                        translation.x, 0.001)
+                }
                 assertEquals("object $index should retain its material assignment", listOf(2),
                     model.getUsedFilaments(index).toList())
                 assertEquals("object $index should retain printable mesh triangles", sourceTriangles,

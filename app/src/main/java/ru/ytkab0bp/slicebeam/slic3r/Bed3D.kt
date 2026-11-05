@@ -73,8 +73,14 @@ open class Bed3D {
 
     /** Arrange only newly imported objects while keeping existing plate transforms fixed. */
     @Synchronized
-    open fun arrangeNewObjects(model: Model, firstObject: Int, minDistanceMm: Double = 2.0): Boolean =
-        Native.bed_arrange_new_objects(pointer, model.pointer, firstObject, minDistanceMm)
+    open fun arrangeNewObjects(
+        model: Model,
+        firstObject: Int,
+        minDistanceMm: Double = 2.0,
+        rearrangeExistingObjects: Boolean = true,
+    ): Boolean = Native.bed_arrange_new_objects(
+        pointer, model.pointer, firstObject, minDistanceMm, rearrangeExistingObjects,
+    )
 
 
     @Synchronized

@@ -234,7 +234,7 @@ bool validate_arrange_placements(ArrangePolygons &polygons, const Points &bed, s
 static bool arrange_with_rectangular_bed_maxrects(ArrangePolygons &polygons, const Points &bed,
                                                    const ArrangeParams &params)
 {
-    if (bed.size() < 4 || polygons.size() < 2)
+    if (bed.size() < 4 || polygons.empty())
         return false;
 
     const Polygon bed_polygon(bed);
@@ -376,14 +376,14 @@ static bool arrange_with_rectangular_bed_maxrects(ArrangePolygons &polygons, con
     return true;
 }
 
-bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Points &bed,
-                                           const ArrangeParams &params)
+bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const ArrangePolygons &fixed,
+                                           const Points &bed, const ArrangeParams &params)
 {
     // The regular NFP packer can fail to find a layout even when the bed has room. Retry with
     // actual projected outlines (including concavities and disconnected islands) for every
     // failed layout, not only compounds: the alternate deterministic search is bounded and
     // also gives ordinary models a second packing strategy.
-    if (bed.size() < 3 || polygons.size() < 2 || polygons.size() > 160)
+    if (bed.size() < 3 || polygons.empty() || polygons.size() > 160)
         return false;
 
     struct ItemGeometry {
@@ -412,7 +412,7 @@ bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Poin
     if (!bed_bounds.defined || bed_area <= 0.0)
         return false;
 
-    if (arrange_with_rectangular_bed_maxrects(polygons, bed, params))
+    if (fixed.empty() && arrange_with_rectangular_bed_maxrects(polygons, bed, params))
         return true;
 
     struct PlacedGeometry { ExPolygons clearance; BoundingBox bounds; };
@@ -420,14 +420,18 @@ bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Poin
     const double half_pi = std::acos(-1.0) / 2.0;
     const std::array<double, 4> rotations{{0.0, half_pi, 2.0 * half_pi, 3.0 * half_pi}};
     const coord_t inflation = std::max<coord_t>(0, params.min_obj_distance / 2);
-    size_t total_candidate_checks = 0;
-    // A fixed global budget makes the fallback stop after only a handful of objects when a
-    // plate contains many small parts: each object can require several thousand anchor pairs.
-    constexpr size_t candidate_check_budget = 50000;
+    // Limit contour sampling rather than terminating a whole plate after a fixed number of
+    // checks. A global 50k cap made dense plates fail after only a few objects even when the
+    // remaining free bed was large. Scale the bounded search with the item count so every item
+    // gets a meaningful chance, while keeping detailed meshes practical on mobile devices.
+    constexpr size_t MAX_ANCHORS = 32;
+    const size_t candidate_check_budget = std::max<size_t>(
+        50000, polygons.size() * 4 * MAX_ANCHORS * MAX_ANCHORS);
 
     // Try hull-heavy objects first, then use true projected area as a second deterministic
     // ordering. Every attempt is built separately; a failed attempt never mutates the caller.
     for (int ordering = 0; ordering < 2; ++ordering) {
+        size_t total_candidate_checks = 0;
         std::vector<size_t> order(polygons.size());
         std::iota(order.begin(), order.end(), size_t(0));
         std::stable_sort(order.begin(), order.end(), [&](size_t lhs, size_t rhs) {
@@ -437,7 +441,22 @@ bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Poin
         });
 
         std::vector<PlacedGeometry> placed;
-        placed.reserve(polygons.size());
+        placed.reserve(fixed.size() + polygons.size());
+        for (const ArrangePolygon &obstacle : fixed) {
+            ExPolygons parts = obstacle.physical_parts;
+            if (parts.empty() && !obstacle.poly.contour.empty()) parts.emplace_back(obstacle.poly);
+            for (ExPolygon &part : parts) {
+                part.rotate(obstacle.rotation);
+                part.translate(obstacle.translation.x(), obstacle.translation.y());
+            }
+            if (inflation > 0)
+                parts = offset_ex(parts, float(inflation), ClipperLib::jtSquare);
+            PlacedGeometry geometry;
+            geometry.clearance = std::move(parts);
+            for (const ExPolygon &part : geometry.clearance)
+                geometry.bounds.merge(part.contour.bounding_box());
+            if (!geometry.clearance.empty()) placed.emplace_back(std::move(geometry));
+        }
         std::vector<Placement> results(polygons.size());
         double total_clearance_area = 0.0;
         bool failed = false;
@@ -465,8 +484,15 @@ bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Poin
                     size.x() > bed_bounds.size().x() || size.y() > bed_bounds.size().y())
                     continue;
 
-                std::vector<coord_t> xs{bed_bounds.min.x(), bed_bounds.max.x() - size.x()};
-                std::vector<coord_t> ys{bed_bounds.min.y(), bed_bounds.max.y() - size.y()};
+                // Clipper's polygon containment check treats points exactly on a contour as
+                // outside. Without a tiny inward epsilon, a single isolated model has only
+                // bed-edge anchors, all are rejected, and the fallback falsely reports no
+                // room despite the wide open bed. This is far below the print clearance.
+                const coord_t edge_epsilon = scaled(0.01);
+                std::vector<coord_t> xs{bed_bounds.min.x() + edge_epsilon,
+                                        bed_bounds.max.x() - size.x() - edge_epsilon};
+                std::vector<coord_t> ys{bed_bounds.min.y() + edge_epsilon,
+                                        bed_bounds.max.y() - size.y() - edge_epsilon};
                 for (const PlacedGeometry &other : placed) {
                     for (const ExPolygon &part : other.clearance) {
                         const BoundingBox bounds = part.contour.bounding_box();
@@ -497,7 +523,6 @@ bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Poin
                     std::sort(values.begin(), values.end());
                     values.erase(std::unique(values.begin(), values.end()), values.end());
                     // Keep candidates across the full bed while bounding runtime on detailed meshes.
-                    constexpr size_t MAX_ANCHORS = 120;
                     if (values.size() > MAX_ANCHORS) {
                         std::vector<coord_t> sampled;
                         sampled.reserve(MAX_ANCHORS);
@@ -548,8 +573,9 @@ bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Poin
                                 break;
                             }
                         }
-                        if (collision)
+                        if (collision) {
                             continue;
+                        }
 
                         const double score = double(target_y - bed_bounds.min.y()) *
                             double(bed_bounds.size().x() + 1) + double(target_x - bed_bounds.min.x());
@@ -589,23 +615,32 @@ bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Poin
             placed.emplace_back(std::move(best_geometry));
         }
 
-        if (failed || placed.size() != polygons.size())
+        if (failed || placed.size() != fixed.size() + polygons.size()) {
             continue;
+        }
         ArrangePolygons arranged = polygons;
         for (size_t i = 0; i < arranged.size(); ++i) {
             arranged[i].translation = results[i].translation;
             arranged[i].rotation = results[i].rotation;
             arranged[i].bed_idx = 0;
         }
-        if (!validate_arrange_placements(arranged, bed))
+        if (!validate_arrange_placements(arranged, bed)) {
             continue;
+        }
         polygons = std::move(arranged);
         return true;
     }
     return false;
 }
 
-bool arrange_new_objects(Model &model, size_t first_object, const Points &bed, const ArrangeParams &params)
+bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Points &bed,
+                                           const ArrangeParams &params)
+{
+    return arrange_with_exact_footprint_fallback(polygons, ArrangePolygons{}, bed, params);
+}
+
+bool arrange_new_objects(Model &model, size_t first_object, const Points &bed, const ArrangeParams &params,
+                         bool rearrange_existing_objects)
 {
     if (first_object >= model.objects.size())
         return false;
@@ -674,17 +709,58 @@ bool arrange_new_objects(Model &model, size_t first_object, const Points &bed, c
         if (!polygon.is_virt_object) polygon.inflation = inflation;
     }
 
-    arrangement::arrange(movable, fixed, bed, params);
-    if (std::any_of(movable.begin(), movable.end(), [](const ArrangePolygon &polygon) {
-            return polygon.bed_idx != 0;
-        }))
-        return rearrange_whole_plate();
+    if (!rearrange_existing_objects && !fixed.empty()) {
+        // Fill-bed must preserve existing placements. If one is already outside the build
+        // volume, there is no valid arrangement that keeps the current layout intact; reject
+        // immediately instead of spending time searching around an off-bed obstacle.
+        ArrangePolygons fixed_on_bed = fixed;
+        if (!validate_arrange_placements(fixed_on_bed, bed, fixed_on_bed.size()))
+            return false;
+    }
 
-    ArrangePolygons combined = fixed;
-    const size_t movable_from = combined.size();
-    combined.insert(combined.end(), movable.begin(), movable.end());
-    if (!validate_arrange_placements(combined, bed, movable_from))
-        return rearrange_whole_plate();
+    // Fill-bed probes one copy at a time. Run the bounded exact-footprint check before the
+    // general NFP solver for that case: a nearly full plate can make the latter spend a long
+    // time exploring an impossible placement. A successful exact result is validated against
+    // the fixed objects before it is committed.
+    if (!rearrange_existing_objects && movable.size() == 1) {
+        if (!arrange_with_exact_footprint_fallback(movable, fixed, bed, params))
+            return false;
+        ArrangePolygons combined = fixed;
+        const size_t movable_from = combined.size();
+        combined.insert(combined.end(), movable.begin(), movable.end());
+        if (!validate_arrange_placements(combined, bed, movable_from))
+            return false;
+        return apply_arrange_polys(movable, instances, throw_if_out_of_bed);
+    }
+
+    const ArrangePolygons original_movable = movable;
+    arrangement::arrange(movable, fixed, bed, params);
+    const auto fits_with_fixed = [&]() {
+        if (std::any_of(movable.begin(), movable.end(), [](const ArrangePolygon &polygon) {
+                return polygon.bed_idx != 0;
+            })) return false;
+        ArrangePolygons combined = fixed;
+        const size_t movable_from = combined.size();
+        combined.insert(combined.end(), movable.begin(), movable.end());
+        return validate_arrange_placements(combined, bed, movable_from);
+    };
+    if (!fits_with_fixed()) {
+        // A fixed-exclusion NFP can reject simple placements even when the bed is mostly empty.
+        // First pack the incoming objects against the bed alone, then accept that placement only
+        // if exact footprint validation proves it clears every fixed object. This keeps existing
+        // transforms untouched while avoiding a false no-space result for the common one-copy case.
+        movable = original_movable;
+        arrangement::arrange(movable, bed, params);
+        if (fits_with_fixed())
+            return apply_arrange_polys(movable, instances, throw_if_out_of_bed);
+
+        movable = original_movable;
+        // The standard NFP search can reject valid layouts on crowded plates. Try the exact
+        // projected footprints with fixed objects seeded as obstacles; never move user-placed
+        // objects to make this fallback succeed.
+        if (!arrange_with_exact_footprint_fallback(movable, fixed, bed, params) || !fits_with_fixed())
+            return rearrange_existing_objects ? rearrange_whole_plate() : false;
+    }
     return apply_arrange_polys(movable, instances, throw_if_out_of_bed);
 }
 

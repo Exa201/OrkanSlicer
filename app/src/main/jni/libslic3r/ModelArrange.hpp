@@ -30,7 +30,10 @@ bool validate_arrange_placements(ArrangePolygons &polygons, const Points &bed, s
 // This is intentionally a fallback: the normal NFP packer remains the fast first choice.
 bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Points &bed,
                                            const ArrangeParams &params);
-bool arrange_new_objects(Model &model, size_t first_object, const Points &bed, const ArrangeParams &params);
+bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const ArrangePolygons &fixed,
+                                           const Points &bed, const ArrangeParams &params);
+bool arrange_new_objects(Model &model, size_t first_object, const Points &bed, const ArrangeParams &params,
+                         bool rearrange_existing_objects = true);
 bool apply_arrange_polys(ArrangePolygons &polys, ModelInstancePtrs &instances, VirtualBedFn);
 
 void duplicate(Model &model, ArrangePolygons &copies, VirtualBedFn);
