@@ -1,10 +1,11 @@
 # Nightly updater recovery and menu orientation pass — 2026-11-05
 
 - Repository/branch: `Exa201/OrkanSlicer-Nightly-2.5`, `codex/nightly-batch11-next`; starting HEAD `14aad73956a14808b1b389242cf8c17b11ac632b`.
-- Nightly updater now checks once each app process, keeps DownloadManager transfers across launches, exposes progress/status in About, and offers a persistent install action after completion. Failed/missing transfers remain visible there until retry. Installation remains an explicit user action and requests Android's per-app unknown-source permission when needed.
+- Nightly updater checks once per app process, preserves DownloadManager transfers across launches, shows progress/status in About, and offers a persistent install action after completion. Installation remains an explicit user action and requests Android's per-app unknown-source permission when needed.
 - Portrait action pages use wider cells with up to three visible label lines; landscape action labels wrap without ellipsis in a vertically scrollable menu. Model, transform, orientation and tools action availability refreshes on orientation changes. Existing SliceBeam vector icon resources and design tokens are retained.
-- App version advanced to `0.8.437` / code `472`. Kotlin debug compilation and the debug APK build succeeded; JVM/instrumentation suites and physical device interaction were not run. API-36 emulator is available for install/launch smoke verification.
-- Next: finish APK metadata and emulator smoke checks, commit/push to the Nightly branch, then publish the authorized Nightly prerelease and add its checksum to `docs/BUILD_AND_VERIFICATION.md`.
+- App version `0.8.437` / code `472`; code commit `718955e4050a6563b222ac0d66318382ec0d6c9a`. Kotlin debug compilation and full debug APK build succeeded. APK installed and launched on API-36 emulator `emulator-5554`; startup log sample had no fatal exception/ANR/OOM. The emulator did not provide a reliable full-width landscape app window, so landscape action availability remains unverified on a real device. JVM/instrumentation suites were not run; Xiaomi is not connected.
+- APK `OrkanSlicerNightly25_718955e405.apk`, 240,471,883 bytes, SHA-256 `5260EC990735195286D1AAB189D74608613CC1391C78BE88EB4C9654584BA3D7`, package `com.exa201.orkanslicer.nightly25`, versionCode 472. Published prerelease: [v0.8.437-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.437-nightly.1).
+- Next: continue Nightly UI checks on physical hardware, especially landscape interaction and updater download/install recovery.
 
 # Nightly-UI-Konsistenz — 2026-11-05
 

@@ -1,3 +1,12 @@
+# OrkanSlicer Nightly 2.5 — updater recovery and adaptive menu labels — 2026-11-05
+
+- App-code commit `718955e4050a6563b222ac0d66318382ec0d6c9a`; branch `codex/nightly-batch11-next`; package `com.exa201.orkanslicer.nightly25`; version 0.8.437 / code 472.
+- Nightly updater now keeps Android DownloadManager state visible in About, including progress and a persistent install action after notification dismissal or app restart. Failed/missing downloads expose retry status; installation remains explicit.
+- Workspace action menus use wider portrait cells and multi-line labels; landscape menu content wraps and scrolls vertically. Existing SliceBeam icons and visual tokens are retained. Orientation-sensitive action availability refreshes after configuration changes.
+- `:app:compileDebugKotlin` and `:app:assembleDebug` succeeded. APK `OrkanSlicerNightly25_718955e405.apk`, 240,471,883 bytes, SHA-256 `5260EC990735195286D1AAB189D74608613CC1391C78BE88EB4C9654584BA3D7`. Package/version metadata and APK signature verified.
+- Installed and launched on API-36 emulator `emulator-5554`. The startup log sample had no fatal exception, ANR, or OOM. The attempted emulator rotation did not provide a reliable full-width landscape application window; landscape behavior is not claimed as fully verified. No Xiaomi device was connected. Unit/instrumentation suites were not run.
+- Published prerelease [v0.8.437-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.437-nightly.1) with the APK and SHA-256 sidecar. No printer or print-start path was exercised.
+
 # OrkanSlicer Nightly 2.5 — Batch 9 Abschluss und Preset-Listen-Transfer — 2026-11-03
 
 - Code commit `d9cceb9a40d36dd4b9015c30e2614aec0e98600f`; Nightly branch `nightly-2.5`; package `com.exa201.orkanslicer.nightly25`; app version 0.8.428 / code 463; native engine identity unchanged.
