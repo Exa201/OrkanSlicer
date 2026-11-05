@@ -16,11 +16,13 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,6 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
+import ru.ytkab0bp.slicebeam.utils.UpdateDownloadState
+import ru.ytkab0bp.slicebeam.utils.UpdateDownloadStatus
+import kotlinx.coroutines.delay
 
 @Composable
 internal fun SetupIntroScreen(onNext: () -> Unit) {
@@ -127,11 +132,28 @@ internal fun SetupPresetSourceScreen(
 }
 
 @Composable
-internal fun SetupAboutScreen(versionName: String, updateStatus: String, onCheckUpdate: () -> Unit, onClose: () -> Unit) {
-    Column(modifier = Modifier.fillMaxSize().navigationBarsPadding(), verticalArrangement = Arrangement.Bottom) {
-        Spacer(modifier = Modifier.weight(1f))
+internal fun SetupAboutScreen(
+    versionName: String,
+    updateStatus: String,
+    downloadState: UpdateDownloadState,
+    onCheckUpdate: () -> Unit,
+    onInstallUpdate: () -> Unit,
+    onRefreshDownload: () -> Unit,
+    onClose: () -> Unit,
+) {
+    LaunchedEffect(Unit) {
+        while (true) {
+            onRefreshDownload()
+            delay(1_000)
+        }
+    }
+    Column(
+        modifier = Modifier.fillMaxSize().navigationBarsPadding().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.Bottom,
+    ) {
+        Spacer(modifier = Modifier.height(20.dp))
         Surface(
-            modifier = Modifier.fillMaxWidth().weight(1f, fill = false).padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface,
             shadowElevation = 6.dp,
@@ -147,6 +169,70 @@ internal fun SetupAboutScreen(versionName: String, updateStatus: String, onCheck
         }
         Button(onClick = onCheckUpdate, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(min = 52.dp)) {
             Text("Auf GitHub nach Updates suchen")
+        }
+        when (downloadState.status) {
+            UpdateDownloadStatus.PENDING, UpdateDownloadStatus.RUNNING, UpdateDownloadStatus.PAUSED -> {
+                val progress = downloadState.progressPercent
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                    shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
+                    color = MaterialTheme.colorScheme.surface,
+                ) {
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        val stateText = when (downloadState.status) {
+                            UpdateDownloadStatus.PAUSED -> "Download pausiert${downloadState.version?.let { " · Version $it" }.orEmpty()}"
+                            UpdateDownloadStatus.PENDING -> "Download wartet auf eine Verbindung${downloadState.version?.let { " · Version $it" }.orEmpty()}"
+                            else -> "Update wird im Hintergrund geladen${downloadState.version?.let { " · Version $it" }.orEmpty()}"
+                        }
+                        Text(stateText, color = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = { (progress ?: 0).coerceIn(0, 100) / 100f },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Text(
+                            progress?.let { "$it % · Der Download läuft über Androids Downloadmanager." }
+                                ?: "Der Download läuft über Androids Downloadmanager.",
+                            modifier = Modifier.padding(top = 6.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            }
+            UpdateDownloadStatus.COMPLETE -> {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                    shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                ) {
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        Text(
+                            "Update ${downloadState.version?.let { "v$it " }.orEmpty()}heruntergeladen. Du kannst die Installation jederzeit von hier starten.",
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                        Text(
+                            "Gespeichert im App-Downloadordner von Android; die Datei bleibt der App und dem Downloadmanager zugeordnet.",
+                            modifier = Modifier.padding(top = 4.dp),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                Button(
+                    onClick = onInstallUpdate,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(min = 52.dp),
+                ) { Text("Heruntergeladenes Update installieren") }
+            }
+            UpdateDownloadStatus.FAILED -> {
+                Text(
+                    "Der letzte Download ist fehlgeschlagen oder wurde entfernt. Tippe auf „Auf GitHub nach Updates suchen“, um ihn erneut zu laden.",
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            UpdateDownloadStatus.NONE -> Unit
         }
         if (updateStatus.isNotEmpty()) Surface(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),

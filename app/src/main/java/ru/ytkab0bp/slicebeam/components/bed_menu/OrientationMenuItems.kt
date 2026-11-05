@@ -118,6 +118,9 @@ internal class OrientationMenuItems(
         )
     }
 
+    /** A renderer-preserving rotation invalidates geometry selection snapshots. */
+    fun invalidateSelectionState() = selectionObserver.invalidate()
+
     fun onFlattenModeReset() = resetFlattenCheckedState()
 
     fun onObjectsChanged() {

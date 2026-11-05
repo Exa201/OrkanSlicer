@@ -3,10 +3,13 @@ package ru.ytkab0bp.slicebeam.utils
 import android.app.Activity
 import android.app.DownloadManager
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import org.json.JSONArray
 import org.json.JSONObject
 import ru.ytkab0bp.slicebeam.BuildConfig
@@ -21,29 +24,41 @@ internal data class NightlyReleaseCandidate(
     val assets: JSONArray? = null,
 )
 
+enum class UpdateDownloadStatus { NONE, PENDING, RUNNING, PAUSED, COMPLETE, FAILED }
+
+data class UpdateDownloadState(
+    val status: UpdateDownloadStatus = UpdateDownloadStatus.NONE,
+    val version: String? = null,
+    val downloadedBytes: Long = 0L,
+    val totalBytes: Long = -1L,
+    val reason: Int = 0,
+) {
+    val progressPercent: Int?
+        get() = if (totalBytes > 0L) {
+            ((downloadedBytes.coerceAtLeast(0L) * 100L) / totalBytes).toInt().coerceIn(0, 100)
+        } else null
+}
+
 /** Checks the official GitHub release and delegates APK transfers to Android's download service. */
 object GitHubUpdater {
     private const val RELEASES = "https://api.github.com/repos/Exa201/OrkanSlicer-Nightly-2.5/releases?per_page=30"
     private const val RELEASE_ASSET_PREFIX = "https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/download/"
     private const val MAX_APK_BYTES = 300L * 1024 * 1024
     private const val PREFS = "github_updater"
-    private const val KEY_LAST_CHECKED = "last_checked_at"
     private const val KEY_DOWNLOAD_ID = "download_id"
     private const val KEY_DOWNLOAD_VERSION = "download_version"
-    private const val STARTUP_CHECK_INTERVAL_MS = 12L * 60L * 60L * 1000L
     private val main by lazy(LazyThreadSafetyMode.SYNCHRONIZED) { Handler(Looper.getMainLooper()) }
     private val checkInProgress = AtomicBoolean(false)
+    private val startupCheckTriggered = AtomicBoolean(false)
 
-    /** Checks at launch, throttled to avoid exhausting GitHub's unauthenticated API limit. */
+    /** Checks once per app process at launch, unless a transfer is already available. */
     fun checkAtAppStart(context: Context) {
+        if (!startupCheckTriggered.compareAndSet(false, true)) return
         val appContext = context.applicationContext
         try {
-            val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            // Inspect an older transfer before applying the API throttle. This lets the next
-            // launch retry a failed download and removes the downloaded APK after it was installed.
+            // Keep a running or completed transfer and remove it after it was installed.
             val manager = appContext.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager ?: return
             if (hasUsableExistingDownload(appContext, manager)) return
-            if (System.currentTimeMillis() - prefs.getLong(KEY_LAST_CHECKED, 0L) < STARTUP_CHECK_INTERVAL_MS) return
             checkForUpdate(appContext, status = null)
         } catch (_: Exception) {
             // Update availability must never prevent the slicer workspace from opening.
@@ -54,6 +69,75 @@ object GitHubUpdater {
     fun check(activity: Activity, status: (String) -> Unit) {
         checkForUpdate(activity.applicationContext) { message ->
             if (!activity.isFinishing && !activity.isDestroyed) status(message)
+        }
+    }
+
+    /** Snapshot that lets the About screen recover a transfer after its system notification is gone. */
+    fun downloadState(context: Context): UpdateDownloadState {
+        val appContext = context.applicationContext
+        val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val id = prefs.getLong(KEY_DOWNLOAD_ID, -1L)
+        val version = prefs.getString(KEY_DOWNLOAD_VERSION, null)
+        if (id < 0L) return UpdateDownloadState()
+        val manager = appContext.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
+            ?: return UpdateDownloadState(version = version, status = UpdateDownloadStatus.FAILED)
+        return try {
+            manager.query(DownloadManager.Query().setFilterById(id)).use { cursor ->
+                if (!cursor.moveToFirst()) {
+                    UpdateDownloadState(version = version, status = UpdateDownloadStatus.FAILED)
+                } else {
+                    val status = when (cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))) {
+                        DownloadManager.STATUS_PENDING -> UpdateDownloadStatus.PENDING
+                        DownloadManager.STATUS_RUNNING -> UpdateDownloadStatus.RUNNING
+                        DownloadManager.STATUS_PAUSED -> UpdateDownloadStatus.PAUSED
+                        DownloadManager.STATUS_SUCCESSFUL -> UpdateDownloadStatus.COMPLETE
+                        else -> UpdateDownloadStatus.FAILED
+                    }
+                    UpdateDownloadState(
+                        status = status,
+                        version = version,
+                        downloadedBytes = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)),
+                        totalBytes = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)),
+                        reason = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON)),
+                    )
+                }
+            }
+        } catch (_: Exception) {
+            UpdateDownloadState(version = version, status = UpdateDownloadStatus.FAILED)
+        }
+    }
+
+    /** Opens the package installer only after an explicit user action. */
+    fun installDownloaded(activity: Activity, status: (String) -> Unit) {
+        val prefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val id = prefs.getLong(KEY_DOWNLOAD_ID, -1L)
+        if (id < 0L || downloadState(activity).status != UpdateDownloadStatus.COMPLETE) {
+            status("Das Update ist noch nicht vollständig heruntergeladen.")
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !activity.packageManager.canRequestPackageInstalls()) {
+            try {
+                activity.startActivity(
+                    Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${activity.packageName}")),
+                )
+                status("Erlaube OrkanSlicer Nightly die Installation unbekannter Apps. Danach hier auf „Installieren“ tippen.")
+            } catch (error: Exception) {
+                status("Installationsberechtigung konnte nicht geöffnet werden: ${error.localizedMessage ?: "Einstellungen prüfen"}")
+            }
+            return
+        }
+        try {
+            val manager = activity.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            val uri = manager.getUriForDownloadedFile(id)
+                ?: error("Der Downloadmanager findet die fertige APK nicht mehr")
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            activity.startActivity(intent)
+            status("Installationsdialog für Version ${prefs.getString(KEY_DOWNLOAD_VERSION, "").orEmpty()} geöffnet.")
+        } catch (error: Exception) {
+            status("Installation konnte nicht gestartet werden: ${error.localizedMessage ?: "APK erneut laden"}")
         }
     }
 
@@ -74,9 +158,6 @@ object GitHubUpdater {
                 val connection = open(RELEASES)
                 val releases = connection.inputStream.bufferedReader().use { JSONArray(it.readText()) }
                 connection.disconnect()
-                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                    .edit().putLong(KEY_LAST_CHECKED, System.currentTimeMillis()).apply()
-
                 val release = selectNightlyRelease((0 until releases.length()).mapNotNull { index ->
                     val json = releases.optJSONObject(index) ?: return@mapNotNull null
                     NightlyReleaseCandidate(

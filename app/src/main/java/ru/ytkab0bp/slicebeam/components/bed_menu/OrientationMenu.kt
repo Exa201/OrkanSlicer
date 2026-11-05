@@ -29,8 +29,9 @@ class OrientationMenu : ListBedMenu() {
                 ::refreshActionItems,
             )
         }
-        LaunchedEffect(items) {
+        LaunchedEffect(items, portrait) {
             menuItems = items
+            items.invalidateSelectionState()
             composeActions.value = items.createItems()
         }
         BedMenuActionsContent(composeActions.value, portrait)

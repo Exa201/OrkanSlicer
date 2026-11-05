@@ -8,9 +8,9 @@ import org.junit.Test
 class BedMenuActionTileWidthPolicyTest {
     @Test
     fun narrowPhonesAndLargeTextGetFewerWiderColumns() {
-        assertEquals(3, BedMenuActionTileWidthPolicy.columnsForLayout(1f, 366))
-        assertEquals(4, BedMenuActionTileWidthPolicy.columnsForLayout(1f, 411))
-        assertEquals(3, BedMenuActionTileWidthPolicy.columnsForLayout(1.15f, 411))
+        assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1f, 366))
+        assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1f, 411))
+        assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1.15f, 411))
         assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1.3f, 320))
     }
 
@@ -78,7 +78,7 @@ class BedMenuActionTileWidthPolicyTest {
 
     @Test
     fun actionMenuUsesSecondRowWhenActionsWouldBeClipped() {
-        assertFalse(BedMenuActionTileWidthPolicy.usesTwoRows(3, true, 411, 1f))
+        assertTrue(BedMenuActionTileWidthPolicy.usesTwoRows(3, true, 411, 1f))
         assertTrue(BedMenuActionTileWidthPolicy.usesTwoRows(5, true, 411, 1f))
         assertTrue(BedMenuActionTileWidthPolicy.usesTwoRows(4, true, 320, 1f))
         assertTrue(BedMenuActionTileWidthPolicy.usesTwoRows(4, true, 411, 1.5f))

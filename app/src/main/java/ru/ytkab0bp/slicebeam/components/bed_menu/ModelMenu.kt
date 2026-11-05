@@ -39,7 +39,7 @@ class ModelMenu : ListBedMenu() {
         val bed = fragment ?: return
         val items = remember(this, bed) { ModelMenuItems(bed, ::refreshActionItems) }
         val transforms = remember(this, bed) { createTransformMenuItems(bed, ::refreshActionItems) }
-        LaunchedEffect(items, transforms) {
+        LaunchedEffect(items, transforms, portrait) {
             menuItems = items
             transformItems = transforms
             items.invalidateSelectionState()

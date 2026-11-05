@@ -110,12 +110,11 @@ internal data class BedComposeMenuAction(
 internal object BedMenuActionTileWidthPolicy {
     fun columnsForLayout(fontScale: Float, screenWidthDp: Int): Int =
         when {
-            // At the largest supported text scale on phone-sized displays, two
-            // columns leave common file actions visibly ellipsized. A single wide
-            // column keeps the toolbar scrollable while making labels readable.
+            // Keep action cells wide enough for readable German labels on phone
+            // portrait. The grid pages horizontally, so fewer columns do not hide
+            // actions; they only reduce the number shown on each page.
             fontScale >= 1.5f && screenWidthDp <= 400 -> 1
-            fontScale >= 1.3f -> 2
-            fontScale >= 1.15f || screenWidthDp < 400 -> 3
+            fontScale >= 1.3f || screenWidthDp <= 440 -> 2
             else -> 4
         }
 
@@ -216,7 +215,7 @@ internal fun BedMenuActionsContent(
                     delay(16)
                 }
             }
-            val gridTileHeight = if (fontScale >= 1.3f) 82.dp else OrkanUiTokens.menuTileHeight
+            val gridTileHeight = if (fontScale >= 1.3f) 88.dp else 82.dp
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 LazyHorizontalGrid(
                     rows = GridCells.Fixed(rows),
@@ -553,8 +552,8 @@ private fun BedMenuActionTile(
                     fontSize = OrkanUiTokens.menuLabelSize,
                     lineHeight = 16.sp,
                     textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = if (portrait && !compactPortraitGrid) 3 else 2,
+                    overflow = if (portrait && !compactPortraitGrid) TextOverflow.Clip else TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                 )
             }
@@ -576,8 +575,6 @@ private fun BedMenuActionTile(
                     fontSize = OrkanUiTokens.menuLabelSize,
                     lineHeight = 16.sp,
                     textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                 )
             }

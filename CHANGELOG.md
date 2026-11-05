@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.437 — Nightly updater recovery and menu readability — 2026-11-05
+
+- Check for Nightly 2.5 updates once per app process at startup while retaining active or completed DownloadManager transfers.
+- Keep transfer status and progress visible in the About page after the Android notification is dismissed; provide a persistent install action for a completed APK and retry guidance for a failed transfer.
+- Give phone-portrait menu actions wider two-column pages and more room for labels. Landscape action lists now show complete labels in a scrollable column and refresh their enabled state on rotation.
+- Preserve the original SliceBeam icon resources, app-specific download location, and existing design tokens. No orientation-only permission changes were introduced.
+- Android/Kotlin compile passed; no test suite or physical-device test was run in this verification pass.
+
 ## 0.8.436 — Nightly UI polish — 2026-11-05
 
 - Preserve Android dp-based adaptive layout sizing and existing SliceBeam navigation icons, padding, and corner tokens.

@@ -1042,25 +1042,36 @@ Toast.makeText(this, R.string.ChangelogSupportLinkOpenFailed, Toast.LENGTH_SHORT
 private inner class AboutItem:SetupComposePage {
 private var updateStatus by mutableStateOf("")
 private var updateRunning = false
+private var downloadState by mutableStateOf(ru.ytkab0bp.slicebeam.utils.UpdateDownloadState())
 private val versionName = try {
 packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
 } catch (ignored:PackageManager.NameNotFoundException) { "" }
 
 @Composable
 override fun Content() {
-SetupAboutScreen(versionName, updateStatus, onCheckUpdate = {
+SetupAboutScreen(versionName, updateStatus, downloadState, onCheckUpdate = {
     if (!updateRunning) {
         updateRunning = true
         updateStatus = "Suche nach neuer Version …"
         ru.ytkab0bp.slicebeam.utils.GitHubUpdater.check(this@SetupActivity) { message ->
             updateStatus = message
-            if (!message.contains("wird geladen") && !message.contains("gefunden.")) updateRunning = false
+            updateRunning = false
+            downloadState = ru.ytkab0bp.slicebeam.utils.GitHubUpdater.downloadState(this@SetupActivity)
         }
     }
+}, onInstallUpdate = {
+    ru.ytkab0bp.slicebeam.utils.GitHubUpdater.installDownloaded(this@SetupActivity) { message ->
+        updateStatus = message
+        downloadState = ru.ytkab0bp.slicebeam.utils.GitHubUpdater.downloadState(this@SetupActivity)
+    }
+}, onRefreshDownload = {
+    downloadState = ru.ytkab0bp.slicebeam.utils.GitHubUpdater.downloadState(this@SetupActivity)
 }, onClose = { finish() })
 }
 
-override fun onPageCreated() = Unit
+override fun onPageCreated() {
+    downloadState = ru.ytkab0bp.slicebeam.utils.GitHubUpdater.downloadState(this@SetupActivity)
+}
 }
 private inner class IntroItem:SetupComposePage {
 @Composable

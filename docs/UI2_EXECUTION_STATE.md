@@ -1,3 +1,11 @@
+# Nightly updater recovery and menu orientation pass — 2026-11-05
+
+- Repository/branch: `Exa201/OrkanSlicer-Nightly-2.5`, `codex/nightly-batch11-next`; starting HEAD `14aad73956a14808b1b389242cf8c17b11ac632b`.
+- Nightly updater now checks once each app process, keeps DownloadManager transfers across launches, exposes progress/status in About, and offers a persistent install action after completion. Failed/missing transfers remain visible there until retry. Installation remains an explicit user action and requests Android's per-app unknown-source permission when needed.
+- Portrait action pages use wider cells with up to three visible label lines; landscape action labels wrap without ellipsis in a vertically scrollable menu. Model, transform, orientation and tools action availability refreshes on orientation changes. Existing SliceBeam vector icon resources and design tokens are retained.
+- App version advanced to `0.8.437` / code `472`. Kotlin debug compilation and the debug APK build succeeded; JVM/instrumentation suites and physical device interaction were not run. API-36 emulator is available for install/launch smoke verification.
+- Next: finish APK metadata and emulator smoke checks, commit/push to the Nightly branch, then publish the authorized Nightly prerelease and add its checksum to `docs/BUILD_AND_VERIFICATION.md`.
+
 # Nightly-UI-Konsistenz — 2026-11-05
 
 - Auf `codex/nightly-batch11-next` (Nightly 2.5) die UI-Kritik übernommen, ohne das Orca-Feature-Batch umzubauen: Akzentkontrast wird auf der aktiven Oberfläche mindestens lesbar gemischt; der Plattenzähler zeigt eine sichtbare Beschriftung und `aktuell/gesamt`.

@@ -18,7 +18,10 @@ class OptionsMenu : ListBedMenu() {
 
     @Composable
     override fun WorkspaceContent(portrait: Boolean) {
-        LaunchedEffect(this, fragment) { refreshActions() }
+        // Re-read selection and availability after an orientation change as well as
+        // after changing the hosted fragment. Otherwise a landscape recreation can
+        // retain the previous action snapshot and make still-valid actions appear disabled.
+        LaunchedEffect(this, fragment, portrait) { refreshActions() }
         CustomizableBedMenuActionsContent("tools", composeActions.value, portrait)
     }
 
