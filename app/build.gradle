@@ -10,7 +10,7 @@ def usePrebuiltNative = (project.findProperty("usePrebuiltNative") ?: "false").t
 // Keep the native engine build identity separate from the Android package version.
 // Bumping an app-only release should not invalidate every C++ compilation unit.
 def nativeSlicerVersion = "0.8.408"
-def nativeSlicerBuildId = 444
+def nativeSlicerBuildId = 443
 
 android {
     namespace 'ru.ytkab0bp.slicebeam'
