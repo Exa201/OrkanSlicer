@@ -5726,6 +5726,66 @@ extern "C" {
         }
     }
 
+    // Exercises Orca's by-layer/as-object-list ordering with copies split into PrintObjects by
+    // alternating rotations. The returned indices are the actual production G-code instance order.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_by_1layer_1copy_1order_1regression(
+        JNIEnv* env, jclass, jlong model_ptr, jstring config_path)
+    {
+        try {
+            auto* model_ref = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(model_ptr));
+            if (model_ref == nullptr || config_path == nullptr || model_ref->model.objects.size() != 1)
+                throw std::invalid_argument("By-layer copy-order regression expects one model object");
+            ModelObject* object = model_ref->model.objects.front();
+            if (object == nullptr || object->instances.size() < 2)
+                throw std::invalid_argument("By-layer copy-order regression needs at least two instances");
+
+            const char* path = env->GetStringUTFChars(config_path, nullptr);
+            if (path == nullptr) return nullptr;
+            DynamicPrintConfig config;
+            config.load(path, ForwardCompatibilitySubstitutionRule::Disable);
+            env->ReleaseStringUTFChars(config_path, path);
+            config.normalize_fdm();
+            config.option<ConfigOptionEnum<PrintSequence>>("print_sequence")->value = PrintSequence::ByLayer;
+            config.option<ConfigOptionEnum<PrintOrder>>("print_order")->value = PrintOrder::AsObjectList;
+
+            for (size_t index = 0; index < object->instances.size(); ++index) {
+                ModelInstance* instance = object->instances[index];
+                if (instance == nullptr)
+                    throw std::runtime_error("By-layer copy-order regression found a null instance");
+                instance->set_offset(Vec3d(10. + 12. * double(index % 5), 10. + 12. * double(index / 5), instance->get_offset().z()));
+                instance->set_rotation(Vec3d(0., 0., index % 2 == 0 ? 0. : PI / 2.));
+            }
+
+            Print print;
+            print.is_BBL_printer() = false;
+            print.apply(model_ref->model, config);
+            const StringObjectException error = print.validate();
+            if (!error.string.empty())
+                throw std::runtime_error("By-layer copy-order regression fixture is invalid: " + error.string);
+
+            const auto ordered = sort_object_instances_by_model_order(print);
+            const ModelObject* print_object = print.model().objects.front();
+            if (ordered.size() != print_object->instances.size())
+                throw std::runtime_error("By-layer copy-order regression lost a model instance");
+            std::vector<jint> values;
+            values.reserve(ordered.size() + 1);
+            values.emplace_back(static_cast<jint>(ordered.size()));
+            for (const PrintInstance* instance : ordered) {
+                auto found = std::find(print_object->instances.begin(), print_object->instances.end(), instance->model_instance);
+                if (found == print_object->instances.end())
+                    throw std::runtime_error("By-layer copy-order regression returned an unknown instance");
+                values.emplace_back(static_cast<jint>(std::distance(print_object->instances.begin(), found)));
+            }
+            jintArray result = env->NewIntArray(static_cast<jsize>(values.size()));
+            if (result != nullptr) env->SetIntArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
+            return result;
+        } catch (const std::exception& error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
+    }
+
     // Exercises Orca's height-range Z-shrinkage behavior and cached-region invalidation on
     // one reused Print. The synthetic range mirrors Orca's 10-15 mm thin/dense fixture.
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_z_1shrinkage_1height_1range_1regression(

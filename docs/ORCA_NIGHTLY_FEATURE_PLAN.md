@@ -1,6 +1,12 @@
-# Aktueller Stand — Nightly Batch 13, 1/10 — 2026-11-05
+# Aktueller Stand — Nightly Batch 13, 2/10 — 2026-11-05
 
-Batch 12 ist vollständig mit 10/10 Punkten verifiziert und als `v0.8.435-nightly.1` veröffentlicht. Batch 13 hat begonnen. Punkt 1 portiert Orcas natives `Spiral Inset`-Füllmuster einschließlich Profiloptionen für die Richtung von oberen und unteren Flächen. Der ARM64-SliceTest-/Instrumentierungsbuild und die Android-16/API-36-Regressionen für unterscheidbare Sparse-Infill-Pfade sowie Outward-/Inward-Topflächenpfade bestanden. Commit `4a67851160` ist auf `nightly25/codex/nightly-batch11-next` gepusht. Nächster Schritt: Punkt 2 als eigenständigen Orca-2.5-Verhaltensport auswählen und testen. Das APK-/Release-Gate bleibt bei 10/10 Batch-Punkten plus gebündelter Regression.
+Batch 12 ist vollständig mit 10/10 Punkten verifiziert und als `v0.8.435-nightly.1` veröffentlicht. Batch 13: Punkt 1 portiert Orcas natives `Spiral Inset`-Füllmuster; Punkt 2 portiert Orcas Kopierreihenfolge für `By layer` + `As object list`. Unterschiedlich gedrehte Kopien erhalten eindeutige Sortierschlüssel in der Modell-Instanzlistenreihenfolge, auch wenn sie in getrennte `PrintObject`s gruppiert werden. API-36-Regression mit 20 abwechselnd gedrehten Kopien bestanden (1/1, 0 Fehler/Skips); ARM64-Slice-/Instrumentierungsbuild erfolgreich. Nächster Schritt: Punkt 3 auswählen und unabhängig testen. Das APK-/Release-Gate bleibt bei 10/10 Punkten plus gebündelter Regression.
+
+### Batch 13, Punkt 2/10 — Kopienreihenfolge bei By-layer / As-object-list
+
+Port von Orca `a620d804ef`: `sort_object_instances_by_model_order()` nummeriert Kopien nach ihrer Position in den Modell-Objekt- und Instanzlisten. Dadurch behalten verschieden gedrehte Kopien eines Objekts ihre Listenreihenfolge, obwohl `Print::apply()` sie in getrennte `PrintObject`s gruppiert.
+
+Verifikation: `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich (ARM64). `NativeSliceDeviceTest#byLayerAsObjectListKeepsRotatedCopiesInTheirListOrder` auf Android 16/API 36 bestanden (1/1, 0 Fehler/Skips); `Print::validate()` und die Produktions-Sortierfunktion wurden mit 20 abwechselnd gedrehten Kopien geprüft. Noch kein APK-/Release-Gate.
 
 ## Batch 12 – abgeschlossen
 

@@ -57,6 +57,9 @@ class Native {
     /** Reapplies one native Print from a single-filament model to a two-filament model. */
     @JvmStatic
     external fun reused_print_prime_tower_regression(firstModel: Long, nextModel: Long, configPath: String): IntArray
+    /** Verifies by-layer/as-object-list ordering preserves rotated copies' model-list order. */
+    @JvmStatic
+    external fun by_layer_copy_order_regression(model: Long, configPath: String): IntArray
     /** Reads layer-height limits for first and third logical filaments through production slicing parameters. */
     @JvmStatic
     external fun object_nozzle_layer_limits_regression(): DoubleArray
