@@ -2,7 +2,7 @@
 
 - Auf `codex/nightly-batch11-next` (Nightly 2.5) die UI-Kritik übernommen, ohne das Orca-Feature-Batch umzubauen: Akzentkontrast wird auf der aktiven Oberfläche mindestens lesbar gemischt; der Plattenzähler zeigt eine sichtbare Beschriftung und `aktuell/gesamt`.
 - Die vorhandenen Compose-DP-Maße, adaptive Ein-Zeilen-Navigation sowie SliceBeam-Symbole, Abstände und Rundungstokens bleiben Grundlage. Mehrfachimport-Fortschritt aktualisiert dieselbe getaggte Snackbar, statt animierte Meldungen anzuhäufen.
-- App-Version auf `0.8.436` / versionCode `471` erhöht. Debug-Build und Release-Upload stehen noch aus; keine Geräteprüfung behauptet.
+- App-Version `0.8.436` / versionCode `471`. `:app:assembleDebug` erfolgreich; APK `OrkanSlicerNightly25_a7817ef154.apk`, 240,471,887 Byte, SHA-256 `8E8C7E402543145249E8C0536DC0E1703BFD01BB96C4A75B7C6B88570B6EC4A0`, Paket `com.exa201.orkanslicer.nightly25`, gebaut aus Code-Commit `a7817ef154e2984a8b8cc9c704f2ef49fb97af47`. Unit-/Instrumentierungstests und physische Xiaomi-Prüfung in diesem Durchgang nicht ausgeführt. GitHub-Upload steht noch aus.
 
 # Nightly 2.5 Fortsetzung — Batch 13 bei 1/10 — 2026-11-05
 
