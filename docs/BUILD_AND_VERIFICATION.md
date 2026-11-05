@@ -1,3 +1,11 @@
+# OrkanSlicer Nightly 2.5 — HONOR updater page scroll crash fix — 2026-11-05
+
+- App-code commit `8920f08ef4`; branch `codex/nightly-batch11-next`; package `com.exa201.orkanslicer.nightly25`; version 0.8.438 / code 473.
+- Removed a nested unbounded vertical scroller from the setup/About page's short version label. This fixes the `Vertically scrollable component was measured with an infinity maximum height constraints` Compose failure reported on HONOR Android 16.
+- `:app:assembleDebug` succeeded. APK `OrkanSlicerNightly25_8920f08ef4.apk`, 240,471,882 bytes, SHA-256 `CCB55E28F718AD2DE4651E80FDAF2BB567E6F58CA070A550C353CCB49728E8B8`. Manifest metadata confirms version 0.8.438/code 473 and package ID.
+- Installed on API-36 emulator `emulator-5554`; navigated through App → App information → About app and observed SetupActivity showing version 0.8.438. Captured logcat contained no fatal exception, the reported infinite-constraint exception, ANR, or OOM. HONOR was not connected; no physical-device or automated test suite is claimed.
+- Nightly prerelease and APK/SHA sidecar publication pending.
+
 # OrkanSlicer Nightly 2.5 — updater recovery and adaptive menu labels — 2026-11-05
 
 - App-code commit `718955e4050a6563b222ac0d66318382ec0d6c9a`; branch `codex/nightly-batch11-next`; package `com.exa201.orkanslicer.nightly25`; version 0.8.437 / code 472.

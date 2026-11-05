@@ -1,3 +1,11 @@
+# Nightly HONOR Compose scroll crash fix — 2026-11-05
+
+- Root cause from the HONOR Android 16 trace: the setup/About pager page contained an inner vertically scrolling version `Text` inside the page's outer `verticalScroll`. The parent scroller measured the child without a finite height; Compose rejected it while measuring the pager page.
+- Removed the unnecessary inner scroller from the short version label. The rest of the page remains vertically scrollable.
+- App version `0.8.438` / code `473`; code commit `8920f08ef4`. `:app:assembleDebug` succeeded. Installed on API-36 emulator and navigated through App → App information → About app; SetupActivity displayed version 0.8.438 without the reported constraint exception. Recent logcat sample had no fatal exception/ANR/OOM.
+- HONOR PTP-N49 was not attached during this verification, so physical-device reproduction is still outstanding. No unit or instrumentation suite was run.
+- Next: publish the fixed Nightly APK, then repeat the same About/update-page path on HONOR when available.
+
 # Nightly updater recovery and menu orientation pass — 2026-11-05
 
 - Repository/branch: `Exa201/OrkanSlicer-Nightly-2.5`, `codex/nightly-batch11-next`; starting HEAD `14aad73956a14808b1b389242cf8c17b11ac632b`.
