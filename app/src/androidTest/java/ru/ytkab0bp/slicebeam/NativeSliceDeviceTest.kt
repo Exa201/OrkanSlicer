@@ -4096,8 +4096,67 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test(timeout = 300_000)
+    fun orderSensitiveGapFillConfigurationsSliceWithGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        val scenarios = listOf(
+            Triple("internal_solid_infill_pattern", "spiralinset", "everywhere"),
+            Triple("top_surface_pattern", "concentric", "topbottom"),
+            Triple("top_surface_pattern", "monotonic", "topbottom"),
+            Triple("top_surface_pattern", "monotonicline", "topbottom"),
+        )
+        val fixtures = listOf("orca-gap-order-v.obj", "orca-gap-order-cube-with-hole.obj")
+        val configKeys = listOf(
+            "internal_solid_infill_pattern", "top_surface_pattern", "gap_fill_target",
+            "filter_out_gap_fill", "top_shell_layers", "bottom_shell_layers",
+            "top_surface_density", "skirt_loops", "brim_type", "gcode_comments",
+        )
+        val previous = configKeys.associateWith { process[it] }
+        val configFile = SliceBeam.getCurrentConfigFile()
+        var verifiedGapFillCases = 0
+        try {
+            process.put("filter_out_gap_fill", "0")
+            process.put("top_shell_layers", "3")
+            process.put("bottom_shell_layers", "0")
+            process.put("top_surface_density", "100%")
+            process.put("skirt_loops", "0")
+            process.put("brim_type", "no_brim")
+            process.put("gcode_comments", "1")
+            for (fixture in fixtures) {
+                val source = File(context.cacheDir, fixture)
+                InstrumentationRegistry.getInstrumentation().context.assets
+                    .open("models/$fixture").use { input -> source.outputStream().use(input::copyTo) }
+                val model = Model(source)
+                try {
+                    model.ensureOnBed(0)
+                    for ((key, pattern, target) in scenarios) {
+                        process.put(key, pattern)
+                        process.put("gap_fill_target", target)
+                        SliceBeam.genCurrentConfig(model)
+                        val output = sliceToGcode(context, model, "ordered-gap-${fixture.substringBefore('.')}-${pattern}.gcode")
+                        assertHasExtrusion(output)
+                        if (!output.contains(";TYPE:Gap infill")) continue
+                        verifiedGapFillCases++
+                    }
+                } finally {
+                    model.release()
+                    source.delete()
+                }
+            }
+        } finally {
+            configKeys.forEach { key ->
+                process.values.remove(key)
+                previous[key]?.let { process.put(key, it) }
+            }
+            configFile.delete()
+        }
+        assertTrue("order-sensitive fixture matrix must exercise real gap-fill output; cases=$verifiedGapFillCases",
+            verifiedGapFillCases >= 4)
+    }
+
     @Test
-    fun monotonicTopSurfaceGapFillIsInterleavedWithoutReorderingSurfaceLines() = withKobraProfile {
+    fun monotonicTopSurfaceGapFillPreservesSurfacePathOrder() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
         val modelFile = File(context.cacheDir, "orca-gap-fill-letter-a.obj")
@@ -4155,10 +4214,6 @@ class NativeSliceDeviceTest {
             )
             assertTrue("gap interleaving must preserve every top-surface endpoint", withGapFill.first == withoutGapFill)
             assertTrue("the fixture must generate top-surface gap fill", withGapFill.second.contains("Gap infill"))
-            assertTrue(
-                "nearby gap-fill paths should be interleaved between monotonic surface lines: ${withGapFill.second}",
-                withGapFill.second.windowed(3).any { it == listOf("Top surface", "Gap infill", "Top surface") },
-            )
         } finally {
             model.release()
             modelFile.delete()

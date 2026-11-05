@@ -222,6 +222,37 @@ static void insert_gap_fill(const ThickPolylines &gaps, const Flow &flow, Extrus
         return sum;
     };
 
+    // Keep order-sensitive fill paths ahead of any gap fill that borders them.
+    // A travel-saving insertion alone can place gap fill before its own wall/surface.
+    std::vector<size_t> after(gaps.size(), npos);
+    {
+        Lines lines;
+        std::vector<size_t> owner;
+        for (size_t i = 0; i < entities.size(); ++i)
+            for (const Polyline &polyline : entities[i]->as_polylines())
+                for (const Line &line : polyline.lines()) {
+                    lines.push_back(line);
+                    owner.push_back(i);
+                }
+        AABBTreeLines::LinesDistancer<Line> distancer(std::move(lines));
+        const double spacing = flow.scaled_spacing();
+        for (size_t gap = 0; gap < gaps.size(); ++gap) {
+            const ThickPolyline &polyline = gaps[gap];
+            if (polyline.width.empty())
+                continue;
+            const double radius = 0.5 * *std::max_element(polyline.width.begin(), polyline.width.end()) + spacing;
+            for (size_t j = 0; j + 1 < polyline.points.size(); ++j) {
+                const Vec2d a = polyline.points[j].cast<double>();
+                const Vec2d b = polyline.points[j + 1].cast<double>();
+                const size_t steps = std::max<size_t>(1, size_t(std::ceil((b - a).norm() / (0.5 * spacing))));
+                for (size_t k = 0; k <= steps; ++k)
+                    for (size_t line : distancer.all_lines_in_radius(Point((a + double(k) / double(steps) * (b - a)).cast<coord_t>()), radius))
+                        if (after[gap] == npos || owner[line] > after[gap])
+                            after[gap] = owner[line];
+            }
+        }
+    }
+
     std::vector<Item> items;
     items.reserve(entities.size() + gaps.size());
     for (const ExtrusionEntity *entity : entities)
@@ -233,7 +264,12 @@ static void insert_gap_fill(const ThickPolylines &gaps, const Flow &flow, Extrus
         double best = std::numeric_limits<double>::max();
         size_t best_slot = 0;
         Item best_item{};
+        size_t extrusions_before = 0;
         for (size_t slot = 0; slot <= items.size(); ++slot) {
+            if (slot > 0 && items[slot - 1].gap == npos)
+                ++extrusions_before;
+            if (after[gap] != npos && extrusions_before <= after[gap])
+                continue;
             const Point *prev = slot > 0 ? &items[slot - 1].out : nullptr;
             const Point *next = slot < items.size() ? &items[slot].in : nullptr;
             const auto consider = [&](const Point &in, const Point &out, bool reversed) {
