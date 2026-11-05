@@ -58,7 +58,7 @@ internal class ModelMenuItems(
             BedComposeMenuAction(R.string.ModelMenuModifiers, R.drawable.square_stack_up_outline_28, { anchor ->
                 showModifierVolumesDialog(anchor, currentSelection.selectedObject)
             }, enabled = availability.hasSelectedObject),
-            BedComposeMenuAction(R.string.ModelMenuObjectSettings, R.drawable.sliders_outline_28, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuObjectSettings, R.drawable.vk_sliders_outline_20, { anchor ->
                 showObjectProcessSettingsDialog(anchor)
             }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuCenterOnBed, R.drawable.vk_scan_viewfinder_outline_24, { anchor ->

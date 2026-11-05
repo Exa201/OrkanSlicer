@@ -32,7 +32,7 @@ object SliceMenuItems {
         BedComposeMenuAction(R.string.SmartSliceTitle, R.drawable.sparkle_28, {
             SmartSliceDialog.show(fragment)
         }, enabled = hasModel),
-        BedComposeMenuAction(R.string.MenuSliceCurrentSettings, R.drawable.sliders_outline_28, {
+        BedComposeMenuAction(R.string.MenuSliceCurrentSettings, R.drawable.vk_sliders_outline_20, {
             fragment.startSlicing()
         }, enabled = hasModel),
     )
@@ -49,7 +49,7 @@ object SliceMenuItems {
             BedComposeMenuAction(R.string.MenuSliceLayers, R.drawable.square_stack_up_outline_28, {
                 showSliceLayersWorkspace(fragment)
             }),
-            BedComposeMenuAction(R.string.MenuSliceExportToFile, R.drawable.folder_simple_arrow_right_outline_28, {
+            BedComposeMenuAction(R.string.MenuSliceExportToFile, R.drawable.vk_share_external_outline_24, {
                 val activity = fragment.getContext() as? Activity ?: return@BedComposeMenuAction
                 val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                     type = "application/x-gcode"

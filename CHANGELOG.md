@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.440 — Nightly VK navigation icon consistency — 2026-11-05
+
+- Replace the six global navigation icons and additional file, edit, and slice action icons with semantically matched VK Icons vectors.
+- Keep the 3×2 portrait workspace grid, large-text sizing, and complete wrapped action labels from 0.8.439.
+
 ## 0.8.439 — Nightly workspace menu and icon pass — 2026-11-05
 
 - Workspace action grids now use three columns across phone widths, with a two-row portrait layout when more than three actions are present. Panel and tile heights are aligned for readable labels, including larger system text.

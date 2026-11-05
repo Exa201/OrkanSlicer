@@ -241,7 +241,7 @@ class FileMenu : ListBedMenu() {
 
         items += BedMenuItem(R.string.MenuFileCalibrations, R.drawable.menu_calibrate_la_28)
             .onClick { showCalibrationWorkspace(bed) }
-        items += BedMenuItem(R.string.MenuFileImportProfiles, R.drawable.folder_simple_arrow_up_outline_28)
+        items += BedMenuItem(R.string.MenuFileImportProfiles, R.drawable.vk_folder_simple_outline_24)
             .onClick {
                 val activity = bed.getContext() as? Activity ?: return@onClick
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -254,7 +254,7 @@ class FileMenu : ListBedMenu() {
                 }
                 activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_IMPORT_PROFILES)
             }
-        items += BedMenuItem(R.string.MenuFileExportProfiles, R.drawable.folder_simple_arrow_right_outline_28)
+        items += BedMenuItem(R.string.MenuFileExportProfiles, R.drawable.vk_share_external_outline_24)
             .onClick(::showProfileExportDialog)
         return items
     }
@@ -500,7 +500,7 @@ private fun AIGeneratorMenuContent(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         AIGeneratorActionRow(
-            icon = R.drawable.camera_outline_28,
+            icon = R.drawable.vk_camera_outline_24,
             title = stringResource(R.string.MenuFileAIGeneratorFromCamera),
             testTag = "ai-generator-camera",
             onClick = onCamera,

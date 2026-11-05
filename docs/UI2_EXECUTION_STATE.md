@@ -4332,3 +4332,8 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Die Workspace-Navigation und ausgewählte Modell-/Druckaktionen verwenden Vektorassets aus dem offiziellen VK Icons Datensatz. Upstream-Attribution und MIT-Lizenz liegen unter `third_party/licenses/`.
 - Gezielte Debug-Unit-Tests: 23/23 bestanden, 0 Fehler, 0 Skips (`BedMenuActionTileWidthPolicyTest`, `WorkspaceToolPanelPolicyTest`, `WorkspaceShellLayoutPolicyTest`). `git diff --check` sauber.
 - Vor dem Release offen: finalen Commit bauen, APK-Metadaten/Hash prüfen, im verfügbaren API-36-Emulator installieren/starten, neuen Nightly-Release veröffentlichen und danach ältere Releases löschen, bis die fünf jüngsten erhalten sind.
+
+## Nightly — globale VK-Navigation erweitert — 2026-11-05
+
+- Folgeänderung für Nightly 0.8.440: auch die sechs globalen Hauptbereiche sowie ausgewählte Datei-, Bearbeitungs- und Slice-Aktionen verwenden semantisch passende VK-Vektoricons.
+- Der Release 0.8.439 bleibt als einer der fünf zuletzt veröffentlichten Releases verfügbar. Die abschließende APK und Releaseprüfung erfolgt für 0.8.440.

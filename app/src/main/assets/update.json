@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer Nightly 2.5 · 0.8.439\n\n• Workspace-Menüs zeigen auf Smartphones drei Schaltflächen pro Reihe in zwei Reihen.\n• Kachelhöhen und Beschriftungen sind für große Schrift angepasst.\n• Workspace- und Modellaktionen verwenden jetzt passende VK Icons.",
-  "en": "OrkanSlicer Nightly 2.5 · 0.8.439\n\n• Workspace menus show three actions per row across two portrait rows.\n• Tile and label sizing now accommodates larger text.\n• Workspace and model actions use semantically matched VK Icons.",
-  "ru": "OrkanSlicer Nightly 2.5 · 0.8.439\n\n• В меню рабочей области отображаются три действия в строке и два ряда.\n• Размер плиток и подписей учитывает увеличенный текст.\n• Для навигации и действий модели используются подходящие значки VK Icons."
+  "de": "OrkanSlicer Nightly 2.5 · 0.8.440\n\n• Die sechs globalen Navigationssymbole sowie ausgewählte Datei-, Bearbeitungs- und Slice-Aktionen verwenden passende VK Icons.\n• Workspace-Menüs zeigen drei Schaltflächen pro Reihe in zwei Reihen.\n• Beschriftungen umbrechen in angepassten Kacheln auch bei großer Schrift.",
+  "en": "OrkanSlicer Nightly 2.5 · 0.8.440\n\n• The six global navigation icons and selected file, edit, and slice actions now use matching VK Icons.\n• Workspace menus show three actions per row across two portrait rows.\n• Labels wrap in resized tiles, including at larger text scales.",
+  "ru": "OrkanSlicer Nightly 2.5 · 0.8.440\n\n• Для шести основных разделов и выбранных действий файлов, редактирования и нарезки используются соответствующие значки VK Icons.\n• В меню рабочей области отображаются три действия в строке и два ряда.\n• Подписи помещаются в плитках даже при увеличенном размере текста."
 }
