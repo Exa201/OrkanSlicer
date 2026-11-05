@@ -3718,6 +3718,102 @@ class InitialProjectMenuDeviceTest {
         }
     }
 
+    @Test(timeout = 180_000)
+    fun arrangeCompactsFourDifferentRealMeshesAfterManualMoves() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 15_000) {
+            glView.isAttachedToWindow && glView.width > 0 && glView.height > 0 &&
+                glView.renderer.bed != null
+        }
+        val assetNames = listOf("models/calicat.stl", "models/OrcaPlug_v2.stl", "models/xyz_cube.stl", "models/cylinder.stl")
+        val modelFiles = assetNames.mapIndexed { index, asset ->
+            File(activity.cacheDir, "arrange-real-mesh-$index-${System.nanoTime()}.stl").also { file ->
+                activity.assets.open(asset).buffered().use { input ->
+                    file.outputStream().buffered().use(input::copyTo)
+                }
+            }
+        }
+        try {
+            modelFiles.forEachIndexed { index, file ->
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(file, preserveProjectLayout = false, plateCount = 1,
+                    callback = object : BedFragment.ModelLoadCallback {
+                        override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                            completed.countDown()
+                        }
+                        override fun onFailed(error: Exception) {
+                            failure.set(error)
+                            completed.countDown()
+                        }
+                    }, autoOrientImportedModels = true)
+                assertTrue("real mesh ${index + 1}/${modelFiles.size} must import", completed.await(45, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("Could not import ${file.name}", it) }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            val model = requireNotNull(bed.currentModel)
+            assertEquals("fixture must contain four distinct real meshes", 4, model.objectsCount)
+            val before = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+            val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            val targets = before.mapIndexed { index, bounds ->
+                val halfWidth = (bounds[3] - bounds[0]) / 2.0
+                val halfDepth = (bounds[4] - bounds[1]) / 2.0
+                when (index) {
+                    0 -> bedMin.x + halfWidth + 5.0 to bedMin.y + halfDepth + 5.0
+                    1 -> bedMax.x - halfWidth - 5.0 to bedMin.y + halfDepth + 5.0
+                    2 -> bedMin.x + halfWidth + 5.0 to bedMax.y - halfDepth - 5.0
+                    else -> bedMax.x - halfWidth - 5.0 to bedMax.y - halfDepth - 5.0
+                }
+            }
+            val moved = CountDownLatch(1)
+            glView.queueEvent {
+                before.forEachIndexed { index, bounds ->
+                    val x = (bounds[0] + bounds[3]) / 2.0
+                    val y = (bounds[1] + bounds[4]) / 2.0
+                    model.translate(index, targets[index].first - x, targets[index].second - y, 0.0)
+                }
+                model.resetBoundingBox()
+                glView.requestRender()
+                moved.countDown()
+            }
+            assertTrue("manual moves must complete", moved.await(10, TimeUnit.SECONDS))
+            val movedBounds = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+            assertTrue("all four real meshes must be visibly displaced",
+                movedBounds.zip(before).all { (after, original) -> !after.contentEquals(original) })
+
+            val previewRevisionField = BedFragment::class.java.getDeclaredField("platePreviewRevision")
+                .apply { isAccessible = true }
+            val previewRevisionBefore = previewRevisionField.getInt(bed)
+            openModelMenu(activity)
+            selectAllObjectsScope()
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuArrangeShort))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                val bounds = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+                val width = bounds.maxOf { it[3] } - bounds.minOf { it[0] }
+                val depth = bounds.maxOf { it[4] } - bounds.minOf { it[1] }
+                width < (bedMax.x - bedMin.x) * 0.9 && depth < (bedMax.y - bedMin.y) * 0.9 &&
+                    previewRevisionField.getInt(bed) > previewRevisionBefore
+            }
+            assertEquals("Arrange must keep these four models on one plate", 1, bed.plateCount)
+            val after = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+            after.forEachIndexed { index, bounds ->
+                assertTrue("real mesh $index must remain on the active build plate",
+                    bounds[0] >= bedMin.x - 0.1 && bounds[1] >= bedMin.y - 0.1 &&
+                        bounds[3] <= bedMax.x + 0.1 && bounds[4] <= bedMax.y + 0.1)
+            }
+        } finally {
+            modelFiles.forEach(File::delete)
+        }
+    }
+
     @Test
     fun multiFileImportCreatesPlatesAndPreservesExistingModelsWhenBedFills() {
         val activity = compose.activity

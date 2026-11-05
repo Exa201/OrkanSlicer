@@ -4355,3 +4355,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Gezielte Unit-/Layouttests: 23/23 bestanden. Debug-APK-Build erfolgreich. Installiert und gestartet im API-36-Emulator; globale Navigation und 3×2 Modellaktionsmenü visuell geprüft; kein App-Absturz im erfassten Logcat.
 - Release-Aufbewahrung geprüft: die fünf jüngsten sind `v0.8.440-nightly.1` bis `v0.8.436-nightly.1`. Insgesamt 26 ältere Releases samt Tags gelöscht.
 - Physische Xiaomi-/HONOR-Prüfung war in dieser Ausführung nicht verfügbar.
+
+## Nightly — Arrange nach manuellem Verschieben — 2026-11-06
+
+- Die aktuelle veröffentlichte Version enthielt noch einen Arrange-Fehler: Bei vier unterschiedlichen Meshes fand der Hauptpacker gültige Positionen, aber die anschließende Gap-Fill-/Kollisionsprüfung lehnte sie wegen erneut aufgeblasener Sicherheitsabstände ab. Dadurch wurde die gesamte Anordnung atomar zurückgerollt und die Plattenvorschau blieb unverändert.
+- Die optionale Gap-Fill-Optimierung verwirft jetzt ihre Verbesserung, wenn sie keine sichere Lücke findet, statt die gültige Hauptanordnung zu annullieren. Die Schlussprüfung verhindert weiterhin echte Überschneidungen der projizierten Modellteile; den bereits vom Packer berücksichtigten Abstandspuffer wird sie nicht ein zweites Mal anwenden.
+- Native Arrange-Fehler werden unter `BeamArrange` mit Ursache und Modellanzahl protokolliert.
+- API-36-Gerätetest mit vier unterschiedlichen echten Meshes (Calicat, OrcaPlug, XYZ-Cube, Cylinder): manuell in vier Bereiche der Platte verschoben, Compose-Aktion „Alle anordnen“ ausgelöst, kompaktere Positionen und Aktualisierung der Plattenvorschau geprüft; 1/1 bestanden. Bestehender Vier-Würfel-Manuellverschiebe-/Arrange-Regressionstest ebenfalls 1/1 bestanden.
+- `git diff --check` erfolgreich. Xiaomi war während dieser Prüfung nicht angeschlossen. Der Fix ist verifiziert im Arbeitsstand, aber noch nicht in einem neuen APK/Release enthalten.

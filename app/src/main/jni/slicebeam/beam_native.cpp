@@ -4151,6 +4151,7 @@ extern "C" {
             jstring arrange_config, jdouble min_distance_mm, jint selected_object_index = -1) {
         BedRef* ref = (BedRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
+        bool sequential_print = false;
 
         try {
             // Keep the active build volume from BedRef, but use the current printer/process
@@ -4184,7 +4185,7 @@ extern "C" {
             // to be pre-inflated (the desktop does this via update_selected_items_inflation()). Without it,
             // parts pack edge-to-edge. Inflate each real object by half the min distance so neighbouring
             // parts end up a full min_obj_distance (6mm) apart, which keeps them separable/printable.
-            const bool sequential_print = config.has("print_sequence") &&
+            sequential_print = config.has("print_sequence") &&
                 config.opt_enum<PrintSequence>("print_sequence") == PrintSequence::ByObject;
 
             ModelInstancePtrs instances;
@@ -4342,12 +4343,24 @@ extern "C" {
             arrangement::arrange(input, fixed_geometry, bed, arrange_cfg);
             if (!sequential_print && selected_object_index < 0) {
                 fill_compound_arrange_gaps(input, bed);
-                validate_arrange_placements(input, bed);
+                if (!validate_arrange_placements(input, bed)) {
+                    __android_log_print(ANDROID_LOG_WARN, "BeamArrange",
+                        "Arrangement rejected by final footprint validation: objects=%zu bed=%zu",
+                        input.size(), bed.size());
+                }
             }
             return apply_arrange_polys(input, instances, throw_if_out_of_bed);
         } catch (const std::exception& e) {
             // If the model cannot fit the bed, it throws "Objects could not fit on the bed".
             // Catch it here to avoid JNI crash.
+            __android_log_print(ANDROID_LOG_WARN, "BeamArrange",
+                "Arrangement failed: %s (models=%zu selected=%d sequential=%d)", e.what(),
+                mRef->model.objects.size(), selected_object_index, sequential_print);
+            return false;
+        } catch (...) {
+            __android_log_print(ANDROID_LOG_ERROR, "BeamArrange",
+                "Arrangement failed with unknown native exception (models=%zu selected=%d)",
+                mRef->model.objects.size(), selected_object_index);
             return false;
         }
     }

@@ -91,7 +91,6 @@ void fill_compound_arrange_gaps(ArrangePolygons &polygons, const Points &bed)
 
         size_t visited = 0;
         bool placed = false;
-        bool has_unsafe_overlap = false;
         for (size_t host_idx : hosts) {
             if (host_idx == candidate_idx || !geometry[host_idx].bounds.defined) continue;
             const BoundingBox &host_bounds = geometry[host_idx].bounds;
@@ -116,7 +115,6 @@ void fill_compound_arrange_gaps(ArrangePolygons &polygons, const Points &bed)
                 !intersection_ex(geometry[host_idx].clearance,
                                 geometry[candidate_idx].clearance).empty();
             if (!nearby && !overlaps_clearance) continue;
-            has_unsafe_overlap |= overlaps_clearance;
 
             for (coord_t y = host_bounds.min.y();
                  y + local_bounds.size().y() <= host_bounds.max.y() && !placed; y += search_step) {
@@ -166,10 +164,10 @@ void fill_compound_arrange_gaps(ArrangePolygons &polygons, const Points &bed)
             }
             if (placed || visited > MAX_SEARCH_POSITIONS) break;
         }
-        // Never report a successful one-bed arrangement while retaining a known collision.
-        // The import caller will retry the model on an automatically created overflow plate.
-        if (has_unsafe_overlap && !placed)
-            candidate.bed_idx = arrangement::UNARRANGED;
+        // Gap filling is an optional compaction pass. If no free cavity is found, retain
+        // the safe position produced by the primary polygon packer. In particular, a
+        // conservative clearance overlap is not proof that the physical meshes collide;
+        // marking the candidate UNARRANGED here used to cancel the entire Arrange action.
     }
 }
 
@@ -178,7 +176,7 @@ bool validate_arrange_placements(ArrangePolygons &polygons, const Points &bed)
     // Validate final bed containment and packed outlines before applying transforms to instances.
     // This is a last safety net for imported meshes whose projection is approximated by a
     // hull or whose exact-outline gap-fill changed a placement after the main NFP pass.
-    std::vector<ExPolygons> clearances(polygons.size());
+    std::vector<ExPolygons> footprints(polygons.size());
     std::vector<BoundingBox> bounds(polygons.size());
     const Polygon bed_polygon(bed);
     for (size_t i = 0; i < polygons.size(); ++i) {
@@ -202,19 +200,20 @@ bool validate_arrange_placements(ArrangePolygons &polygons, const Points &bed)
         }
         if (parts.empty())
             continue;
-        clearances[i] = item.inflation > 0
-            ? offset_ex(parts, float(item.inflation), ClipperLib::jtSquare)
-            : std::move(parts);
+        // libnest2d already packs the inflated outlines with the configured separation.
+        // This final safety check guards actual mesh footprints; inflating them again here
+        // can reject valid placements because it applies the same clearance twice.
+        footprints[i] = std::move(parts);
     }
 
     for (size_t first = 0; first < polygons.size(); ++first) {
-        if (polygons[first].bed_idx != 0 || clearances[first].empty())
+        if (polygons[first].bed_idx != 0 || footprints[first].empty())
             continue;
         for (size_t second = first + 1; second < polygons.size(); ++second) {
-            if (polygons[second].bed_idx != 0 || clearances[second].empty() ||
+            if (polygons[second].bed_idx != 0 || footprints[second].empty() ||
                 !bounds[first].overlap(bounds[second]))
                 continue;
-            if (!intersection_ex(clearances[first], clearances[second]).empty()) {
+            if (!intersection_ex(footprints[first], footprints[second]).empty()) {
                 // Keep already-arranged objects in place and let the importer retry this
                 // later object on the current or a new plate. No partial transforms commit.
                 polygons[second].bed_idx = arrangement::UNARRANGED;
