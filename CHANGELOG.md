@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.415
+
+- Keep the Fill Bed operation from rejecting a plate just because existing placements fragment the remaining free area; retry by safely repacking existing objects when needed.
+- Show one in-place progress card while importing multiple STL files, label the plate counter, and ensure accent labels meet readable contrast against the current theme.
+- Keep phone navigation in a single density-independent row and retain the existing SliceBeam icon and spacing language.
+- Compile the debug Kotlin application successfully. Focused Fill Bed device checks passed on the Android 16 emulator before this release build; Xiaomi hardware was not available for this build.
+
 ## 0.8.409
 
 - Reduce printer upload preparation overhead for Kobra 3 V2 and Qidi Q2; avoid redundant native mesh conversions while packing Qidi preview files.

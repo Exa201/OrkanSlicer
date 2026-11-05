@@ -665,6 +665,21 @@ bool arrange_new_objects(Model &model, size_t first_object, const Points &bed, c
     if (movable.empty())
         return false;
 
+    // Reject geometrically impossible items before the NFP/exact-footprint solvers. This
+    // bound is independent of orientation: two points farther apart than the bed's largest
+    // possible diagonal cannot both lie on that bed. It also protects Fill Bed from spending
+    // minutes retrying a plate that already contains an un-packable oversized model.
+    const BoundingBox bed_bounds = get_extents(bed);
+    const Point bed_size = bed_bounds.size();
+    const double bed_diagonal = std::hypot(double(bed_size.x()), double(bed_size.y()));
+    const auto individually_impossible = [bed_diagonal](const ArrangePolygon &polygon) {
+        const Point shape_size = polygon.poly.contour.bounding_box().size();
+        return std::max(double(shape_size.x()), double(shape_size.y())) > bed_diagonal;
+    };
+    if (std::any_of(movable.begin(), movable.end(), individually_impossible) ||
+        std::any_of(fixed.begin(), fixed.end(), individually_impossible))
+        return false;
+
     // The first choice is a non-disruptive import: nest only the incoming objects against the
     // current layout. If that cannot use the bed, fall back to a fresh pack of the whole plate.
     // This fallback happens only inside the model-load operation; subsequent user transforms
@@ -688,6 +703,7 @@ bool arrange_new_objects(Model &model, size_t first_object, const Points &bed, c
             }
         }
         if (all.empty()) return false;
+
         arrangement::arrange(all, bed, params);
         fill_compound_arrange_gaps(all, bed);
         if (!validate_arrange_placements(all, bed)) return false;

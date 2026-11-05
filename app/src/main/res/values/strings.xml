@@ -250,6 +250,8 @@
     <string name="MenuPlates">Plates</string>
     <string name="PlateNumber">Plate %1$s</string>
     <string name="PlatePickerTitle">Build plates</string>
+    <string name="PlatePickerCounterLabel">Plate</string>
+    <string name="PlatePickerCounterDescription">Build plate %1$d of %2$d. Open plate selection.</string>
     <string name="PlatePickerSelectDescription">Select build plate %1$s</string>
     <plurals name="PlateObjectCount"><item quantity="one">%d object</item><item quantity="other">%d objects</item></plurals>
     <string name="EditUndoShort">Undo</string>
@@ -1381,6 +1383,7 @@
     <string-array name="SmartSlicePriorities"><item>Best quality</item><item>Balanced</item><item>Fast</item><item>Maximum strength</item><item>Dimensional accuracy</item></string-array>
     <plurals name="MenuFileDuplicatedCount"><item quantity="one">Created %1$d copy.</item><item quantity="other">Created %1$d copies.</item></plurals>
     <plurals name="ModelContextFillBedFinished"><item quantity="one">Added %1$d copy.</item><item quantity="other">Added %1$d copies.</item></plurals>
+    <string name="ModelContextFillBedRearranged">Added %1$d copies. Existing models were rearranged to make room.</string>
     <plurals name="MenuFileAIGeneratorRemaining"><item quantity="one">Remaining: %1$d / %2$d generation</item><item quantity="other">Remaining: %1$d / %2$d generations</item></plurals>
     <plurals name="MenuToolbarSplitDone"><item quantity="one">Split into %1$d object.</item><item quantity="other">Split into %1$d objects.</item></plurals>
     <plurals name="ModelSimplifyCurrent"><item quantity="one">Current: %1$d triangle</item><item quantity="other">Current: %1$d triangles</item></plurals>

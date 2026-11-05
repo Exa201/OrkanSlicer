@@ -386,16 +386,25 @@ class InitialProjectMenuDeviceTest {
             }
 
             val fillArranged = AtomicReference<Boolean?>()
+            val fixedCount = combined.objectsCount
+            val positionsBeforeFill = (0 until fixedCount).map { index ->
+                Vec3d().also { combined.getTranslation(index, it) }
+            }
             val copies = FillBedModelOperation.run(
                 activeModel = combined,
                 objectIndex = 0,
                 viewerEnabled = false,
                 estimatedCapacity = combined.objectsCount + 1,
-            ) { candidate ->
+            ) { candidate, firstNewObject ->
                 val fillCompleted = CountDownLatch(1)
                 glView.queueEvent {
                     try {
-                        fillArranged.set(requireNotNull(glView.renderer.bed).arrangeCompact(candidate))
+                        val activeBed = requireNotNull(glView.renderer.bed)
+                        fillArranged.set(activeBed.arrangeNewObjects(
+                            candidate, firstNewObject, 2.0, rearrangeExistingObjects = false,
+                        ) || activeBed.arrangeNewObjects(
+                            candidate, firstNewObject, 0.5, rearrangeExistingObjects = false,
+                        ))
                     } finally {
                         fillCompleted.countDown()
                     }
@@ -407,10 +416,129 @@ class InitialProjectMenuDeviceTest {
             assertEquals("fill-bed should fit one more small Catan part in remaining plate area", 1, copies)
             assertEquals("fill-bed should retain all parts and add one distinct copy", wantedIndices.size + 1,
                 combined.objectsCount)
+            positionsBeforeFill.forEachIndexed { index, before ->
+                val after = Vec3d()
+                combined.getTranslation(index, after)
+                assertEquals("fill-bed must not move existing Catan object $index in X", before.x, after.x, 0.001)
+                assertEquals("fill-bed must not move existing Catan object $index in Y", before.y, after.y, 0.001)
+                assertEquals("fill-bed must not move existing Catan object $index in Z", before.z, after.z, 0.001)
+            }
         } finally {
             combined.release()
             files.values.forEach(File::delete)
             fixtureDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun fillBedRepackagesManualPlacementsWhenPlateHasRoomOnlyAfterReflow() {
+        val activity = compose.activity
+        val fragment = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(fragment.glView)
+        compose.waitUntil(timeoutMillis = 60_000) { glView.renderer.bed?.isValid() == true }
+        val bed = requireNotNull(glView.renderer.bed)
+        val barFile = File(activity.cacheDir, "fill-bed-reflow-bar-${System.nanoTime()}.stl")
+        val squareFile = File(activity.cacheDir, "fill-bed-reflow-square-${System.nanoTime()}.stl")
+        val model = Model()
+        try {
+            writeScaledBoxStl(activity, barFile, 7f, 3f, 0.05f) // 140 x 60 x 1 mm.
+            writeScaledBoxStl(activity, squareFile, 3f, 3f, 0.05f) // 60 x 60 x 1 mm.
+            val bedMin = requireNotNull(bed.getVolumeMin())
+            val bedMax = requireNotNull(bed.getVolumeMax())
+            assertTrue("test plate should fit the planned reflow layout",
+                bedMax.x - bedMin.x >= 200.0 && bedMax.y - bedMin.y >= 200.0)
+            val existingSquares = (((bedMax.x - bedMin.x - 60.0) / 62.0).toInt() + 1).coerceAtLeast(1)
+            val bar = Model(barFile)
+            val square = Model(squareFile)
+            try {
+                model.addObject(bar, 0)
+                model.addObject(bar, 0)
+                repeat(existingSquares) { model.addObject(square, 0) }
+            } finally {
+                bar.release()
+                square.release()
+            }
+
+            fun moveObjectCenter(index: Int, x: Double, y: Double) {
+                val current = Vec3d()
+                val min = Vec3d()
+                val max = Vec3d()
+                model.getTranslation(index, current)
+                model.getBoundingBoxExact(index, min, max)
+                model.translate(index, x - current.x, y - current.y,
+                    bedMin.z + (max.z - min.z) / 2.0 - current.z)
+            }
+            val centerX = (bedMin.x + bedMax.x) / 2.0
+            moveObjectCenter(0, centerX, bedMin.y + 30.0)
+            moveObjectCenter(1, centerX, bedMin.y + 92.0)
+            repeat(existingSquares) { index ->
+                moveObjectCenter(2 + index, bedMin.x + 30.0 + index * 62.0, bedMin.y + 180.0)
+            }
+            val originalState = model.getArrangementState()
+            val fixedAttempt = AtomicReference(false)
+            val reflowAttempt = AtomicReference(false)
+
+            val result = FillBedModelOperation.runDetailed(
+                activeModel = model,
+                objectIndex = 2,
+                viewerEnabled = false,
+                estimatedCapacity = model.objectsCount + 1,
+            ) { candidate, firstNewObject, rearrangeExistingObjects ->
+                if (rearrangeExistingObjects) reflowAttempt.set(true) else fixedAttempt.set(true)
+                val complete = CountDownLatch(1)
+                val arranged = AtomicReference(false)
+                glView.queueEvent {
+                    try {
+                        arranged.set(bed.arrangeNewObjects(
+                            candidate, firstNewObject, 2.0,
+                            rearrangeExistingObjects = rearrangeExistingObjects,
+                        ) || bed.arrangeNewObjects(
+                            candidate, firstNewObject, 0.5,
+                            rearrangeExistingObjects = rearrangeExistingObjects,
+                        ))
+                    } finally {
+                        complete.countDown()
+                    }
+                }
+                assertTrue("native placement should complete on the GL thread",
+                    complete.await(90, TimeUnit.SECONDS))
+                arranged.get()
+            }
+
+            assertTrue("first attempt should keep the manual positions", fixedAttempt.get())
+            assertTrue("a failed fixed attempt should retry with full plate reflow", reflowAttempt.get())
+            assertEquals("one copy should fit after reflow", 1, result.addedCopies)
+            assertTrue("the result should disclose existing-object movement", result.rearrangedExistingObjects)
+            assertEquals("all objects should have complete transform snapshots", (3 + existingSquares) * 6,
+                model.getArrangementState().size)
+            val arrangedState = model.getArrangementState()
+            assertFalse("reflow should change the existing arrangement", originalState.contentEquals(arrangedState))
+            assertTrue("reflow should retain the packer's needed rotation for long parts",
+                (0 until originalState.size / 6).any { instance ->
+                    (3..5).any { axis -> kotlin.math.abs(
+                        originalState[instance * 6 + axis] - arrangedState[instance * 6 + axis],
+                    ) > 0.05
+                } })
+
+            val bounds = (0 until model.objectsCount).map { index ->
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(index, min, max)
+                doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+            }
+            bounds.forEachIndexed { index, box ->
+                assertTrue("object $index should stay inside the plate",
+                    box[0] >= bedMin.x - 0.2 && box[1] >= bedMin.y - 0.2 &&
+                        box[3] <= bedMax.x + 0.2 && box[4] <= bedMax.y + 0.2)
+                for (other in 0 until index) {
+                    assertTrue("objects $other and $index should not overlap after reflow",
+                        box[3] <= bounds[other][0] || bounds[other][3] <= box[0] ||
+                            box[4] <= bounds[other][1] || bounds[other][4] <= box[1])
+                }
+            }
+        } finally {
+            model.release()
+            barFile.delete()
+            squareFile.delete()
         }
     }
 
@@ -3915,16 +4043,18 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun detailedConcaveImportKeepsFreeBedAreaAboveTwentyThousandFacets() {
+    fun detailedConcaveImportKeepsFreeBedAreaAboveFiftyThousandFacets() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
         val lShapeFile = File(activity.cacheDir, "auto-arrange-detailed-concave-l.stl")
         val insertFile = File(activity.cacheDir, "auto-arrange-detailed-concave-insert.stl")
+        var overlapProbe: Model? = null
         try {
-            // The silhouette stays the same while the fixture crosses the old 20k facet limit.
+            // The silhouette stays the same while the fixture crosses the 50k projection limit
+            // that rejected high-detail miniature parts and treated their openings as occupied.
             // A 110 mm insert fits in the 125 mm opening with the configured object clearance.
-            writeConcavePrismStl(lShapeFile, subdivisionLevels = 5)
+            writeConcavePrismStl(lShapeFile, subdivisionLevels = 6)
             // A cube fixture keeps auto-orientation from changing its XY footprint in this
             // test, so the assertion isolates packing accuracy rather than face selection.
             writeScaledBoxStl(activity, insertFile, 5.5f, 5.5f, 5.5f)
@@ -3952,32 +4082,35 @@ class InitialProjectMenuDeviceTest {
             importAndWait(lShapeFile)
             val platesAfterL = readPlateModels(bed)
             assertEquals("detailed L should be on the active plate", 1, platesAfterL.size)
-            assertTrue("the fixture must exceed the previous 20k facet limit",
-                platesAfterL.single().getTriangleCount(0) > 20_000)
+            assertTrue("the fixture must exceed the previous 50k facet limit",
+                platesAfterL.single().getTriangleCount(0) > 50_000)
 
             importAndWait(insertFile)
             val plates = readPlateModels(bed)
             assertEquals("the insert should use the L's actual open footprint", 1, plates.size)
             assertEquals("the two models stay independent", 2, plates.single().objectsCount)
             val bounds = readExactBoundsOnGl(glView, 0, 1)
-            val lModel = bounds.maxBy { (it[3] - it[0]) * (it[4] - it[1]) }
-            val insert = bounds.minBy { (it[3] - it[0]) * (it[4] - it[1]) }
-            val openingClearance = 3.0
-            val insertUsesOpening = listOf(
-                insert[0] >= lModel[0] + 25.0 + openingClearance &&
-                    insert[1] >= lModel[1] + 25.0 + openingClearance,
-                insert[0] >= lModel[0] + 25.0 + openingClearance &&
-                    insert[4] <= lModel[4] - 25.0 - openingClearance,
-                insert[3] <= lModel[3] - 25.0 - openingClearance &&
-                    insert[1] >= lModel[1] + 25.0 + openingClearance,
-                insert[3] <= lModel[3] - 25.0 - openingClearance &&
-                    insert[4] <= lModel[4] - 25.0 - openingClearance,
-            ).any { it }
-            assertTrue("the insert should occupy free concave space rather than a convex-hull gap; " +
-                "L=${lModel.contentToString()}, insert=${insert.contentToString()}", insertUsesOpening)
+            val probe = Model()
+            overlapProbe = probe
+            val overlap = AtomicReference<Int>()
+            val checked = CountDownLatch(1)
+            glView.queueEvent {
+                try {
+                    val arrangedModel = requireNotNull(glView.renderer.model)
+                    probe.addObject(arrangedModel, 0)
+                    probe.addObject(arrangedModel, 1)
+                    overlap.set(probe.booleanObjects(0, 1, BooleanOperation.INTERSECTION))
+                } finally {
+                    checked.countDown()
+                }
+            }
+            assertTrue("exact mesh overlap check should finish", checked.await(30, TimeUnit.SECONDS))
+            assertTrue("the high-detail L opening must remain usable without intersecting either solid",
+                requireNotNull(overlap.get()) < 0)
         } finally {
             lShapeFile.delete()
             insertFile.delete()
+            overlapProbe?.release()
         }
     }
 

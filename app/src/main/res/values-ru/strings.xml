@@ -352,6 +352,7 @@
     <string name="Yes">Да</string>
     <string name="No">Нет</string>
     <plurals name="ModelContextFillBedFinished"><item quantity="one">Добавлена %1$d копия.</item><item quantity="few">Добавлены %1$d копии.</item><item quantity="many">Добавлено %1$d копий.</item><item quantity="other">Добавлено копий: %1$d.</item></plurals>
+    <string name="ModelContextFillBedRearranged">Добавлено копий: %1$d. Существующие модели переставлены, чтобы освободить место.</string>
     <plurals name="MenuFileAIGeneratorRemaining"><item quantity="one">Осталось: %1$d / %2$d генерация</item><item quantity="few">Осталось: %1$d / %2$d генерации</item><item quantity="many">Осталось: %1$d / %2$d генераций</item><item quantity="other">Осталось: %1$d / %2$d генерации</item></plurals>
     <plurals name="SettingsCloudManageFeatureAIGeneratorDescription"><item quantity="one">%1$d модель по фото в месяц</item><item quantity="few">%1$d модели по фото в месяц</item><item quantity="many">%1$d моделей по фото в месяц</item><item quantity="other">%1$d модели по фото в месяц</item></plurals>
     <string name="ProfileGroupStateExpanded">Развернуто</string>

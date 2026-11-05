@@ -6,6 +6,8 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <limits>
+#include <vector>
 
 #include <thread>
 
@@ -890,6 +892,68 @@ extern "C" {
             model->model.objects[i] == nullptr)
             return;
         model->model.delete_object(i);
+    }
+
+    // Bed arrangement changes ModelInstance offsets and rotations, not only object centers.
+    // Fill-bed trials must snapshot the complete instance transforms so failed probes roll back
+    // exactly and successful probes can be committed without losing a 90-degree pack rotation.
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1arrangement_1state(
+            JNIEnv* env, jclass, jlong ptr) {
+        ModelRef* model = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(ptr));
+        if (model == nullptr) return env->NewDoubleArray(0);
+        size_t instance_count = 0;
+        for (const ModelObject* object : model->model.objects)
+            if (object != nullptr) instance_count += object->instances.size();
+        if (instance_count > static_cast<size_t>(std::numeric_limits<jsize>::max() / 6))
+            return env->NewDoubleArray(0);
+        std::vector<jdouble> values;
+        values.reserve(instance_count * 6);
+        for (const ModelObject* object : model->model.objects) {
+            if (object == nullptr) continue;
+            for (const ModelInstance* instance : object->instances) {
+                if (instance == nullptr) {
+                    values.insert(values.end(), 6, 0.0);
+                    continue;
+                }
+                const Vec3d offset = instance->get_offset();
+                const Vec3d rotation = instance->get_rotation();
+                values.insert(values.end(), {offset.x(), offset.y(), offset.z(),
+                                             rotation.x(), rotation.y(), rotation.z()});
+            }
+        }
+        jdoubleArray result = env->NewDoubleArray(static_cast<jsize>(values.size()));
+        if (result != nullptr && !values.empty())
+            env->SetDoubleArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
+        return result;
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1set_1arrangement_1state(
+            JNIEnv* env, jclass, jlong ptr, jdoubleArray state) {
+        ModelRef* model = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(ptr));
+        if (model == nullptr || state == nullptr) return JNI_FALSE;
+        size_t instance_count = 0;
+        for (const ModelObject* object : model->model.objects)
+            if (object != nullptr) instance_count += object->instances.size();
+        if (instance_count > static_cast<size_t>(std::numeric_limits<jsize>::max() / 6) ||
+            env->GetArrayLength(state) != static_cast<jsize>(instance_count * 6)) return JNI_FALSE;
+        std::vector<jdouble> values(instance_count * 6);
+        if (!values.empty()) env->GetDoubleArrayRegion(state, 0, static_cast<jsize>(values.size()), values.data());
+        if (env->ExceptionCheck()) return JNI_FALSE;
+        if (std::any_of(values.begin(), values.end(), [](jdouble value) { return !std::isfinite(value); }))
+            return JNI_FALSE;
+        size_t index = 0;
+        for (ModelObject* object : model->model.objects) {
+            if (object == nullptr) continue;
+            for (ModelInstance* instance : object->instances) {
+                if (instance != nullptr) {
+                    instance->set_offset(Vec3d(values[index], values[index + 1], values[index + 2]));
+                    instance->set_rotation(Vec3d(values[index + 3], values[index + 4], values[index + 5]));
+                }
+                index += 6;
+            }
+            object->invalidate_bounding_box();
+        }
+        return JNI_TRUE;
     }
 
     enum class ModelVectorProperty { Translation, Scale, Mirror, Rotation };

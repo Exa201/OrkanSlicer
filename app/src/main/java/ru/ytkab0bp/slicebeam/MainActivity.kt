@@ -1588,16 +1588,21 @@ IOUtils.IO_POOL.submit {
     }
 }
 }
-private fun showStlImportProgress(tag: String, step: Int, cancelled: java.util.concurrent.atomic.AtomicBoolean) {
+private fun showStlImportProgress(
+    tag: String,
+    step: Int,
+    cancelled: java.util.concurrent.atomic.AtomicBoolean,
+    updateInPlace: Boolean = false,
+) {
     val title = if (step == 10) getString(R.string.MenuFileOpenStlPreparing)
         else getString(R.string.MenuFileOpenStlReading, step * 10)
-    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING, title)
-        .tag(tag)
+    val event = NeedSnackbarEvent(SnackbarsLayout.Type.LOADING, title)
         .button(android.R.string.cancel, android.view.View.OnClickListener {
             cancelled.set(true)
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
                 SnackbarsLayout.Type.LOADING, R.string.MenuFileOpenStlCancelling).tag(tag))
-        }))
+        })
+    SliceBeam.EVENT_BUS.fireEvent(if (updateInPlace) event.updateTaggedInPlace(tag) else event.tag(tag))
 }
 
 private fun loadFile(f:File, autoorient:Boolean) = loadFile(f, autoorient, null)
@@ -2011,7 +2016,7 @@ private fun loadMultipleStlFiles(files:List<Uri>) {
 if (files.isEmpty()) return
 val tag = UUID.randomUUID().toString()
 SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING,
-getString(R.string.MenuFileOpenMultipleStlProgress, 1, files.size)).tag(tag))
+getString(R.string.MenuFileOpenMultipleStlProgress, 1, files.size)).updateTaggedInPlace(tag))
 loadMultipleStlFileAt(files, 0, 0, 0, tag)
 }
 /** Copies and imports one STL at a time so native model loading never overlaps. */
@@ -2045,7 +2050,7 @@ return
 }
 val cachedFile = getSafeCachedModelFile(fileName)
 SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING,
-getString(R.string.MenuFileOpenMultipleStlProgress, index + 1, files.size)).tag(tag))
+getString(R.string.MenuFileOpenMultipleStlProgress, index + 1, files.size)).updateTaggedInPlace(tag))
 IOUtils.IO_POOL.submit({ try
 {
 getContentResolver().openInputStream(uri).use({ `in`-> FileOutputStream(cachedFile).use({ out->
@@ -2064,7 +2069,7 @@ override fun onProgress(fraction: Float): Boolean {
     val step = if (fraction >= 0.5f) 10 else ((fraction.coerceAtLeast(0f) * 20f).toInt()).coerceIn(0, 9)
     if (step != lastReadStep) {
         lastReadStep = step
-        showStlImportProgress(tag, step, cancelled)
+        showStlImportProgress(tag, step, cancelled, updateInPlace = true)
     }
     return !cancelled.get()
 }

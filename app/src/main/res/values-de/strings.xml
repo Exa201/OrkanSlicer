@@ -247,6 +247,8 @@
     <string name="MenuPlates">Druckplatten</string>
     <string name="PlateNumber">Druckplatte %1$s</string>
     <string name="PlatePickerTitle">Druckplatten</string>
+    <string name="PlatePickerCounterLabel">Platte</string>
+    <string name="PlatePickerCounterDescription">Druckplatte %1$d von %2$d. Druckplattenauswahl öffnen.</string>
     <string name="PlatePickerSelectDescription">Druckplatte %1$s auswählen</string>
     <plurals name="PlateObjectCount"><item quantity="one">%d Objekt</item><item quantity="other">%d Objekte</item></plurals>
     <string name="EditUndoShort">Zurück</string>
@@ -1514,6 +1516,7 @@
         <item quantity="one">%1$d Kopie hinzugefügt.</item>
         <item quantity="other">%1$d Kopien hinzugefügt.</item>
     </plurals>
+    <string name="ModelContextFillBedRearranged">%1$d Kopien hinzugefügt. Vorhandene Modelle wurden neu angeordnet, um Platz zu schaffen.</string>
     <plurals name="MenuFileAIGeneratorRemaining">
         <item quantity="one">Verbleibend: %1$d von %2$d Generierung</item>
         <item quantity="other">Verbleibend: %1$d von %2$d Generierungen</item>

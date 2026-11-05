@@ -9,6 +9,7 @@ object SnackbarsLayout {
         @JvmField var type: Type = type
         @JvmField var lifetime = if (type == Type.WARNING || type == Type.ERROR) 5000 else 2500
         @JvmField var tag: String? = null
+        @JvmField var updateTaggedEntryInPlace = false
         @JvmField var buttonTitle: CharSequence? = null
         @JvmField var buttonClick: View.OnClickListener? = null
 

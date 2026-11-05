@@ -153,6 +153,10 @@ class Native {
     @JvmStatic
     external fun model_get_translation(ptr: Long, objectIndex: Int): DoubleArray
     @JvmStatic
+    external fun model_get_arrangement_state(ptr: Long): DoubleArray
+    @JvmStatic
+    external fun model_set_arrangement_state(ptr: Long, state: DoubleArray): Boolean
+    @JvmStatic
     external fun model_get_scale(ptr: Long, objectIndex: Int): DoubleArray
     @JvmStatic
     external fun model_get_mirror(ptr: Long, objectIndex: Int): DoubleArray

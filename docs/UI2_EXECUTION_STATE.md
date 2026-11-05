@@ -1,5 +1,14 @@
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 
+## Fill-Bed kann bei verstreuten manuellen Platzierungen unnötig „kein Platz“ melden — 2026-11-05
+
+- Ursache: Der Befehl „Druckplatte füllen“ versuchte neue Kopien nur in freien Nischen der bestehenden Anordnung unterzubringen. Wenn keine einzelne Nische passte, obwohl ein vollständiges Neu-Packen aller Modelle Platz schaffen konnte, meldete die App fälschlich, dass kein Platz vorhanden sei.
+- Korrektur: Der Füllvorgang versucht weiterhin zuerst eine nicht-invasive Platzierung. Nur wenn diese scheitert, wird ein vollständiger Platten-Repack versucht. Die Aktion meldet nun ausdrücklich, wenn bestehende Modelle dafür verschoben wurden. Alle Probeversuche sichern und stellen die vollständigen Instanzpositionen und Drehungen wieder her; ein Fehlschlag verändert das Arbeitsmodell nicht. Ein geometrischer Unmöglichkeitscheck beendet Repacks sofort, wenn ein einzelnes Objekt länger als die maximal mögliche Bett-Diagonale ist.
+- Verifikation auf `emulator-5554` (API 36): erfolgreicher Reflow bei absichtlich fragmentierter Platte 1/1; normale freie Nische ohne Verschieben 1/1; Füllen mit Filamenterhalt und Undo/Redo 1/1; unmöglicher Arrange-Fehler mit vollständig restaurierten Positionen 1/1; übergroßes Objekt 1/1; Planner-Unit-Tests bestanden; Catan-Teile-Arrange 1/1 mit 32 realen Einzelteilen. SliceTest-App und Instrumentierungs-APK wurden erfolgreich gebaut.
+- Testhinweis: Ein früherer Versuch des bestehenden Rollback-Tests lief vor der geometrischen Frühprüfung in einen 30-s-Instrumentierungstimeout; nach der Frühprüfung bestand er in 12 s. Ein erster Reflow-Testaufbau ließ noch eine freie Nische offen und wurde vor Abschluss korrigiert.
+- Nicht geprüft: physisches Xiaomi, vollständige Unit-/Slice-Suiten und Release-/Produkt-APK. Kein Commit oder GitHub-Upload erfolgt. Arbeitsbasis HEAD `0d1ac124f0ad30969820a2cd1fb2979dad729cee`.
+- Nächster konkreter Schritt: den geänderten SliceTest-Build auf dem physischen Xiaomi mit einer manuell verstreuten Platte prüfen; danach bei erfolgreicher Hardwareabnahme die Debug-APK bauen und den Branch/PR aktualisieren.
+
 ## Falscher „kein Platz“-Abbruch bei detailreichen Modellen — 2026-11-05
 
 - Ursache: `arrange_footprint_2d` war am 3. November von 20.000 auf 1.000 Facetten begrenzt worden. Detailreiche, intakte Modelle fielen dadurch auf die konvexe Hülle zurück; diese behandelt sichtbare Aussparungen als belegt und kann beim Füllen oder Anordnen fälschlich „kein Platz“ auslösen. Die vorherige Null-Kapazitätsschätzung war bereits so geändert, dass sie den nativen Packversuch nicht mehr überspringt.

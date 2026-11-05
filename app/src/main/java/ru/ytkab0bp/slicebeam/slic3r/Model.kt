@@ -364,6 +364,15 @@ open class Model private constructor(@JvmField var pointer: Long) {
         vec.set(translation[0], translation[1], translation[2])
     }
 
+    /** Snapshot/apply every instance's world offset and rotation for transactional plate packing. */
+    open fun getArrangementState(): DoubleArray = Native.model_get_arrangement_state(pointer)
+
+    open fun setArrangementState(state: DoubleArray): Boolean {
+        val applied = Native.model_set_arrangement_state(pointer, state)
+        if (applied) resetBoundingBox()
+        return applied
+    }
+
     open fun getRotation(i: Int, vec: Vec3d) {
         val rotation = Native.model_get_rotation(pointer, i)
         vec.set(rotation[0], rotation[1], rotation[2])

@@ -213,6 +213,9 @@ private fun applyPaintPoint(point: PaintInputCoalescer.Point) {
 fun interface FillBedCallback {
 fun onFillBedComplete(addedCopies:Int)
 }
+fun interface FillBedResultCallback {
+fun onFillBedComplete(addedCopies:Int, rearrangedExistingObjects:Boolean)
+}
 init{
 xferPaint.setXfermode(PorterDuffXfermode(PorterDuff.Mode.CLEAR))
 setEGLContextClientVersion(3)
@@ -236,6 +239,9 @@ fun arrange(onComplete: ((Boolean) -> Unit)? = null) {
     }
 }
 fun fillBedWithSelectedModel(callback:FillBedCallback) {
+    fillBedWithSelectedModelDetailed { addedCopies, _ -> callback.onFillBedComplete(addedCopies) }
+}
+fun fillBedWithSelectedModelDetailed(callback:FillBedResultCallback) {
 if (isFillBedInProgress) return
 isFillBedInProgress = true
 queueEvent {
@@ -248,7 +254,7 @@ queueEvent {
     ) {
         ViewUtils.postOnMainThread {
             isFillBedInProgress = false
-            callback.onFillBedComplete(0)
+            callback.onFillBedComplete(0, false)
         }
         return@queueEvent
     }
@@ -266,20 +272,20 @@ queueEvent {
         android.util.Log.e("GLView", "Failed to create fill-bed model snapshot", error)
         ViewUtils.postOnMainThread {
             isFillBedInProgress = false
-            callback.onFillBedComplete(0)
+            callback.onFillBedComplete(0, false)
         }
         return@queueEvent
     }
     fillBedExecutor.execute {
-        val addedCopies = try {
-            renderer.fillBedModel(workingModel, selectedObject, viewerEnabled, estimatedBedCapacity) { candidate, firstNewObject ->
+        val fillResult = try {
+            renderer.fillBedModel(workingModel, selectedObject, viewerEnabled, estimatedBedCapacity) { candidate, firstNewObject, rearrangeExistingObjects ->
                 arrangeFillBedCandidateOnGlThread(
-                    activeModel, activeBed, bedRevision, firstNewObject, candidate,
+                    activeModel, activeBed, bedRevision, firstNewObject, candidate, rearrangeExistingObjects,
                 )
             }
         } catch (error: Throwable) {
             android.util.Log.e("GLView", "Failed to arrange model copies", error)
-            0
+            ru.ytkab0bp.slicebeam.render.FillBedResult(0, false)
         }
         queueEvent {
             val currentModel = renderer.model
@@ -295,12 +301,14 @@ queueEvent {
                         (activeModel.hasPaint(index) to activeModel.paintMaxFilament(index)) == selectedPaintState[index]
                 }
             var committedCopies = 0
+            var committedRearrangement = false
             try {
-                if (addedCopies > 0 && stillCurrent) {
+                if (fillResult.addedCopies > 0 && stillCurrent) {
                     activeModel.replaceContentsFrom(workingModel)
                     renderer.resetGlModels()
                     SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
-                    committedCopies = addedCopies
+                    committedCopies = fillResult.addedCopies
+                    committedRearrangement = fillResult.rearrangedExistingObjects
                 }
             } catch (error: Throwable) {
                 android.util.Log.e("GLView", "Failed to apply fill-bed result", error)
@@ -309,7 +317,7 @@ queueEvent {
                 requestRender()
                 ViewUtils.postOnMainThread {
                     isFillBedInProgress = false
-                    callback.onFillBedComplete(committedCopies)
+                    callback.onFillBedComplete(committedCopies, committedRearrangement)
                 }
             }
         }
@@ -324,6 +332,7 @@ private fun arrangeFillBedCandidateOnGlThread(
     expectedBedRevision: Long,
     firstNewObject: Int,
     candidateModel: Model,
+    rearrangeExistingObjects: Boolean,
 ): Boolean {
     val gate = Any()
     var cancelled = false
@@ -337,13 +346,13 @@ private fun arrangeFillBedCandidateOnGlThread(
                 return@queueEvent
             }
             try {
-                // Existing user-placed parts already fit and should not be repacked for this
-                // action. Place only speculative copies into the remaining free space; failed
-                // trials then cannot reject an otherwise valid crowded plate or move its models.
+                // Keep the normal Fill Bed path non-invasive. The operation sets this flag
+                // only after a fixed-layout placement has failed and it is probing one copy;
+                // then the native packer may repack existing objects to expose usable space.
                 val fitted = expectedBed.arrangeNewObjects(
-                    candidateModel, firstNewObject, 2.0, rearrangeExistingObjects = false,
+                    candidateModel, firstNewObject, 2.0, rearrangeExistingObjects = rearrangeExistingObjects,
                 ) || expectedBed.arrangeNewObjects(
-                    candidateModel, firstNewObject, 0.5, rearrangeExistingObjects = false,
+                    candidateModel, firstNewObject, 0.5, rearrangeExistingObjects = rearrangeExistingObjects,
                 )
                 result.complete(fitted)
             } catch (error: Throwable) {

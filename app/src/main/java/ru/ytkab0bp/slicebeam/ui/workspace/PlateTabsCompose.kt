@@ -103,7 +103,11 @@ internal fun PlateTabs(
     val estimatedGridColumns = ((configuration.screenWidthDp - 88) / 104).coerceIn(1, 4)
     val pickerLayout = PlatePickerLayoutPolicy.choose(plateCount, configuration.screenWidthDp,
         screenHeightDp, ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current)
-    val label = stringResource(R.string.PlateNumber, (selectedIndex + 1).toString())
+    val label = stringResource(
+        R.string.PlatePickerCounterDescription,
+        selectedIndex + 1,
+        plateCount,
+    )
     Surface(
         // The two counter labels scale with system font size. Keep the 48 dp minimum
         // touch target, but let the control grow vertically instead of clipping `/count`.
@@ -115,8 +119,9 @@ internal fun PlateTabs(
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text((selectedIndex + 1).toString(), fontWeight = FontWeight.Bold)
-            Text("/$plateCount", style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(R.string.PlatePickerCounterLabel), style = MaterialTheme.typography.labelSmall)
+            Text("${selectedIndex + 1}/$plateCount", fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelMedium, maxLines = 1)
         }
     }
     if (open) {

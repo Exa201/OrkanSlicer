@@ -130,11 +130,13 @@ internal class ModelMenuItems(
                 showBooleanDialog(anchor)
             }, enabled = selectedCount >= 2),
             BedComposeMenuAction(R.string.ModelMenuFillBed, R.drawable.picture_stack_outline_28, { anchor ->
-                fragment.glView!!.fillBedWithSelectedModel { addedCopies ->
+                fragment.glView!!.fillBedWithSelectedModelDetailed { addedCopies, rearrangedExistingObjects ->
                     if (addedCopies > 0) fragment.updateModel()
                     Toast.makeText(
                         anchor.context,
-                        if (addedCopies > 0) anchor.resources.getQuantityString(
+                        if (addedCopies > 0 && rearrangedExistingObjects) anchor.context.getString(
+                            R.string.ModelContextFillBedRearranged, addedCopies,
+                        ) else if (addedCopies > 0) anchor.resources.getQuantityString(
                             R.plurals.ModelContextFillBedFinished, addedCopies, addedCopies,
                         ) else anchor.context.getString(R.string.ModelContextFillBedNoRoom),
                         Toast.LENGTH_SHORT,

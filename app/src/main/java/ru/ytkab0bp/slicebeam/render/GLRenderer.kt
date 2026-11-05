@@ -2014,8 +2014,8 @@ internal fun fillBedModel(
     objectIndex: Int,
     viewerEnabled: Boolean,
     estimatedCapacity: Int,
-    arrangeCandidate: (Model, firstNewObject: Int) -> Boolean,
-): Int = FillBedModelOperation.run(
+    arrangeCandidate: (Model, firstNewObject: Int, rearrangeExistingObjects: Boolean) -> Boolean,
+): FillBedResult = FillBedModelOperation.runDetailed(
     activeModel = activeModel,
     objectIndex = objectIndex,
     viewerEnabled = viewerEnabled,
