@@ -588,7 +588,11 @@ abstract class ProfileListFragment : Fragment() {
     fun createOptionElement(definition: ConfigOptionDef): ProfileOptionElement =
         createOptionElement(definition, -1)
 
-    fun createOptionElement(definition: ConfigOptionDef, elementIndex: Int): ProfileOptionElement {
+    fun createOptionElement(
+        definition: ConfigOptionDef,
+        elementIndex: Int,
+        onValueChanged: Runnable? = null,
+    ): ProfileOptionElement {
         val profileType = getProfileListType()
         return ProfileOptionElement(
             getContext(),
@@ -619,6 +623,7 @@ abstract class ProfileListFragment : Fragment() {
                         definition.defaultValue,
                     )
                     refreshPendingActions()
+                    onValueChanged?.run()
                 }
             },
             IntConsumer { position ->

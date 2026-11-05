@@ -158,6 +158,10 @@ class PrintConfigFragment : ProfileListFragment() {
         return value ?: ""
     }
 
+    internal fun currentSettingValue(key: String): String = optionValue(key)
+
+    internal fun refreshConditionalSettings() = onUpdateConfigItems()
+
     private fun applyOptionValue(key: String, value: String) {
         val definition = PrintConfigDef.getInstance().options[key]
         if (definition != null) {
