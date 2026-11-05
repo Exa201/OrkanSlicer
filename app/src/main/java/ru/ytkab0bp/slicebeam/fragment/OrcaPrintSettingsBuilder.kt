@@ -19,9 +19,15 @@ object OrcaPrintSettingsBuilder {
             fragment.currentSettingValue("sparse_infill_density"),
             fragment.currentSettingValue("sparse_infill_pattern"),
         )
+        val showInfillAnchorOptions = OrcaConditionalSettingsPolicy.showInfillAnchorOptions(
+            fragment.currentSettingValue("sparse_infill_density"),
+            fragment.currentSettingValue("sparse_infill_pattern"),
+        )
 
         OrcaProcessSettingsCatalog.categories().forEach { category ->
-            items.addAll(buildCategory(fragment, definition, addedKeys, category, showLightningOptions))
+            items.addAll(buildCategory(
+                fragment, definition, addedKeys, category, showLightningOptions, showInfillAnchorOptions,
+            ))
         }
         return items
     }
@@ -32,12 +38,15 @@ object OrcaPrintSettingsBuilder {
         addedKeys: MutableSet<String>,
         category: OrcaSettingsCategory,
         showLightningOptions: Boolean,
+        showInfillAnchorOptions: Boolean,
     ): List<ProfileOptionElement> {
         val items = ArrayList<ProfileOptionElement>()
         items.add(ProfileOptionElement(category.iconResId, category.title))
 
         category.sections.forEach { section ->
-            if (!OrcaConditionalSettingsPolicy.showSection(section.title, showLightningOptions)) return@forEach
+            if (!OrcaConditionalSettingsPolicy.showSection(
+                    section.title, showLightningOptions, showInfillAnchorOptions,
+                )) return@forEach
             items.add(ProfileOptionElement(ProfileSubHeader(section.title)))
             section.keys.forEach { key ->
                 val option = definition.options[key]

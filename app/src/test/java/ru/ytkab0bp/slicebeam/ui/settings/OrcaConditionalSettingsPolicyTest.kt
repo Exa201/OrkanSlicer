@@ -21,4 +21,21 @@ class OrcaConditionalSettingsPolicyTest {
         assertTrue(OrcaConditionalSettingsPolicy.showSection("Lightning infill", true))
         assertTrue(OrcaConditionalSettingsPolicy.showSection("Infill", false))
     }
+
+    @Test
+    fun infillAnchorsRequireSparseInfillAndACompatiblePattern() {
+        assertTrue(OrcaConditionalSettingsPolicy.showInfillAnchorOptions("15%", "grid"))
+        assertTrue(OrcaConditionalSettingsPolicy.showInfillAnchorOptions("0,5", "lightning"))
+        assertFalse(OrcaConditionalSettingsPolicy.showInfillAnchorOptions("0%", "grid"))
+        assertFalse(OrcaConditionalSettingsPolicy.showInfillAnchorOptions("15%", "concentric"))
+        assertFalse(OrcaConditionalSettingsPolicy.showInfillAnchorOptions("15%", "spiralinset"))
+        assertFalse(OrcaConditionalSettingsPolicy.showInfillAnchorOptions(null, "grid"))
+    }
+
+    @Test
+    fun onlyAnchorSectionFollowsTheAnchorVisibilityRule() {
+        assertFalse(OrcaConditionalSettingsPolicy.showSection("Infill anchors", true, false))
+        assertTrue(OrcaConditionalSettingsPolicy.showSection("Infill anchors", false, true))
+        assertTrue(OrcaConditionalSettingsPolicy.showSection("Flush into infill", false, false))
+    }
 }
