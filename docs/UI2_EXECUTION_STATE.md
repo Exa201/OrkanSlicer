@@ -4337,3 +4337,13 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 
 - Folgeänderung für Nightly 0.8.440: auch die sechs globalen Hauptbereiche sowie ausgewählte Datei-, Bearbeitungs- und Slice-Aktionen verwenden semantisch passende VK-Vektoricons.
 - Der Release 0.8.439 bleibt als einer der fünf zuletzt veröffentlichten Releases verfügbar. Die abschließende APK und Releaseprüfung erfolgt für 0.8.440.
+
+## Nightly 0.8.440 — veröffentlicht — 2026-11-05
+
+- Release: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.440-nightly.1
+- APK: `OrkanSlicerNightly25_b0ea7cf2e9.apk`, 240,586,419 Bytes (ARM64), versionCode 475, versionName 0.8.440.
+- SHA-256: `ffbd54d0d5c8f462b926219ac61bd37df3a0722a85e357cdf46b927a752509dc`.
+- Produktcode im APK: `b0ea7cf2e9a0ac0472e21800ea86208343652013`; dieser Commit ist das Release-Tag-Ziel. Der folgende Commit aktualisiert nur diese Statusdokumentation.
+- Gezielte Unit-/Layouttests: 23/23 bestanden. Debug-APK-Build erfolgreich. Installiert und gestartet im API-36-Emulator; globale Navigation und 3×2 Modellaktionsmenü visuell geprüft; kein App-Absturz im erfassten Logcat.
+- Release-Aufbewahrung geprüft: die fünf jüngsten sind `v0.8.440-nightly.1` bis `v0.8.436-nightly.1`. Insgesamt 26 ältere Releases samt Tags gelöscht.
+- Physische Xiaomi-/HONOR-Prüfung war in dieser Ausführung nicht verfügbar.
