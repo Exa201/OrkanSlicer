@@ -1,11 +1,11 @@
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 
-## „Druckplatte füllen“ bricht bei Null-Kapazitätsschätzung zu früh ab — 2026-11-05
+## Falscher „kein Platz“-Abbruch bei detailreichen Modellen — 2026-11-05
 
-- Ursache: `FillBedModelOperation` behandelte die grobe, achsenparallele Rasterkapazität `0` als endgültiges Packversagen und übersprang damit die native exakte Anordnung. Bei gedrehten oder nicht rechteckigen Modellumrissen kann diese Schätzung zu pessimistisch sein.
-- Änderung: Eine Nullschätzung löst jetzt einen einzelnen sicheren nativen Packversuch aus. Die vorhandene atomare Rücksetzung bleibt aktiv; Kopien werden nur bei erfolgreicher Platzierung übernommen.
-- Verifikation: `ModelEditingNativeDeviceTest#fillBedStillTriesExactPackingWhenGridEstimateIsZero` 1/1 sowie `InitialProjectMenuDeviceTest#fillBedRejectsOversizedObjectWithoutChangingItsPlacement` und `#fillBedCopiesPreserveFilamentsAndDistinctPlacementsWithUndoRedo` 2/2 auf Android-16-AVD `solidcraft_clean_api36`. Kein physischer Xiaomi-Test und kein Produkt-APK-Build in diesem Schritt.
-- Nächster Schritt: Mit den tatsächlich betroffenen Modellen „Druckplatte füllen“ und „Alle anordnen“ getrennt auf dem Xiaomi prüfen; bei Bedarf die echte Meshgeometrie als Regression-Fixture ergänzen.
+- Ursache: `arrange_footprint_2d` war am 3. November von 20.000 auf 1.000 Facetten begrenzt worden. Detailreiche, intakte Modelle fielen dadurch auf die konvexe Hülle zurück; diese behandelt sichtbare Aussparungen als belegt und kann beim Füllen oder Anordnen fälschlich „kein Platz“ auslösen. Die vorherige Null-Kapazitätsschätzung war bereits so geändert, dass sie den nativen Packversuch nicht mehr überspringt.
+- Änderung: Die genaue Meshprojektion ist für geprüfte, intakte Modelle wieder bis 50.000 Facetten aktiv. Offene, reparierte und nicht-manifold Meshes behalten weiterhin den sicheren Hüllen-Fallback; die Projektion bleibt auf 50.000 Facetten begrenzt.
+- Verifikation auf Android-16-AVD `solidcraft_clean_api36`: `InitialProjectMenuDeviceTest#detailedConcaveImportKeepsFreeBedAreaAboveTwentyThousandFacets` 1/1, `#explicitArrangeUsesCompoundVoidsWhenConservativeHullsDoNotFit` 1/1 und `#fillBedCopiesPreserveFilamentsAndDistinctPlacementsWithUndoRedo` 1/1 bestanden. Der erste Detailkonturtest scheiterte mit der alten 1.000-Grenze und bestand nach der Korrektur. Kein physischer Xiaomi-Test und kein Produkt-APK-Build in diesem Schritt.
+- Nächster Schritt: Den Fix auf Xiaomi mit dem betroffenen Projekt prüfen; bei Erfolg Debug-APK bauen und Branch/PR aktualisieren.
 
 ## Falscher „kein Platz“-Abbruch beim Anordnen/Füllen — 2026-11-04
 

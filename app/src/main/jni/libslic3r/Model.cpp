@@ -1721,10 +1721,10 @@ ExPolygon ModelObject::arrange_footprint_2d(const Transform3d& trafo_instance, E
     // Use the projected mesh outline for ordinary closed parts so concave openings are not
     // incorrectly treated as occupied by the convex hull. Keep this bounded because imports
     // arrange synchronously on Android's GL thread; unusual meshes fall back to the safe hull.
-    // Projection unions are both expensive and fragile for detailed imported STLs. Keep the
-    // exact outline for low-complexity parts (where it yields reliable packing gains) and use
-    // the safe convex hull for larger meshes.
-    constexpr size_t MAX_PROJECTION_FACETS = 1000;
+    // Allow detailed but valid imported meshes to retain their real concavities. Keep a hard
+    // bound for phone-side projection cost; open, repaired, or non-manifold meshes still use
+    // the conservative hull so Clipper never receives unreliable outlines.
+    constexpr size_t MAX_PROJECTION_FACETS = 50000;
     size_t facet_count = 0;
     Polygons projected;
     for (const ModelVolume *volume : this->volumes) {
