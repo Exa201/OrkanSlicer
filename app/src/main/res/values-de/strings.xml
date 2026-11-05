@@ -289,6 +289,8 @@
     <string name="ModelMenuPlaceGroupOnBed">Ausgewählte Objektgruppe auf die Platte ablegen</string>
     <string name="ModelMenuPlaceGroupOnBedShort">Auf Platte ablegen</string>
     <string name="ModelMenuPlaceGroupOnBedDone">Ausgewählte Objekte auf die Platte gestellt</string>
+    <string name="ModelMenuPlaceGroupOnBedFailed">Die ausgewählten Objekte konnten nicht auf der Druckplatte platziert werden.</string>
+    <string name="ModelContextDuplicateFailed">Das ausgewählte Modell konnte nicht kopiert werden.</string>
     <string name="ModelMenuAlignSelected">Ausgewählte Objekte ausrichten</string>
     <string name="ModelMenuAlignMinX">Kleinste X-Kanten ausrichten</string>
     <string name="ModelMenuAlignCenterX">X-Mittelpunkte ausrichten</string>
@@ -674,7 +676,7 @@
     <string name="BedContextMenuTitle">Aktionen für Druckplatte</string>
     <string name="ModelContextMenuTitle">Modellaktionen</string>
     <string name="ModelContextFillBed">Druckplatte mit diesem Modell füllen</string>
-    <string name="ModelContextFillBedNoRoom">Auf der Druckplatte ist kein Platz für weitere Kopien.</string>
+    <string name="ModelContextFillBedNoRoom">Keine weitere Kopie des ausgewählten Modells passt auf die Druckplatte.</string>
     <string name="ModelMenuArrangeFailed">Die Modelle konnten nicht sicher auf dieser Druckplatte angeordnet werden. Prüfe Modellgrößen und freien Platz.</string>
     <string name="ModelContextDuplicate">Duplizieren</string>
     <string name="ModelContextDuplicated">Modell dupliziert.</string>

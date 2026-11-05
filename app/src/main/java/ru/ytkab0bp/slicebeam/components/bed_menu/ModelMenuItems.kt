@@ -81,7 +81,7 @@ internal class ModelMenuItems(
                                 SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
                             else -> Toast.makeText(
                                 anchor.context,
-                                R.string.ModelContextFillBedNoRoom,
+                                R.string.ModelMenuPlaceGroupOnBedFailed,
                                 Toast.LENGTH_SHORT,
                             ).show()
                         }

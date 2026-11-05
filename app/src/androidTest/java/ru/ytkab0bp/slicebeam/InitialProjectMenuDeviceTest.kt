@@ -101,6 +101,7 @@ import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.SliceListener
 import ru.ytkab0bp.slicebeam.render.GLRenderer
+import ru.ytkab0bp.slicebeam.render.FillBedModelOperation
 import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
@@ -298,6 +299,7 @@ class InitialProjectMenuDeviceTest {
             assertTrue("mesh collision validation should complete on the GL thread",
                 collisionCheck.await(5, TimeUnit.MINUTES))
             assertEquals("Every same-plate model pair must have disjoint meshes", null, overlap.get())
+
             android.util.Log.i("SettlersArrangeTest",
                 "Verified ${selected.size} models across ${plates.size} plates; " +
                     "${checkedPairs.get()} same-plate mesh pairs are disjoint")
@@ -305,6 +307,110 @@ class InitialProjectMenuDeviceTest {
             modelFiles.forEach(File::delete)
             fixtureDir.deleteRecursively()
             archive.delete()
+        }
+    }
+
+    @Test
+    fun settlersSmallPartsCanBeExplicitlyArrangedTogetherOnOnePlate() {
+        val activity = compose.activity
+        val bedFragment = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bedFragment.glView)
+        compose.waitUntil(timeoutMillis = 60_000) { glView.renderer.bed?.isValid() == true }
+        val archive = File(requireNotNull(activity.getExternalFilesDir(null)), "settlers-arrangement-fixture.zip")
+        assumeTrue("Push the supplied Settlers archive into the slice-test app external files directory", archive.isFile)
+        val fixtureDir = File(activity.cacheDir, "settlers-explicit-arrange-${System.nanoTime()}").apply { mkdirs() }
+        val files = mutableMapOf<String, File>()
+        val combined = Model()
+        try {
+            val wantedIndices = (23..29).toSet() + (41..65).toSet()
+            ZipInputStream(archive.inputStream().buffered()).use { input ->
+                while (true) {
+                    val entry = input.nextEntry ?: break
+                    val name = File(entry.name).name
+                    val index = Regex("^obj_(\\d+)_").find(name)?.groupValues?.get(1)?.toIntOrNull()
+                    if (!entry.isDirectory && name.endsWith(".stl", ignoreCase = true) && index != null && index in wantedIndices) {
+                        val output = File(fixtureDir, name)
+                        output.outputStream().buffered().use(input::copyTo)
+                        files[name] = output
+                    }
+                    input.closeEntry()
+                }
+            }
+            assertEquals("real small Catan parts should be available", wantedIndices.size, files.size)
+            files.toSortedMap().values.forEach { file ->
+                val source = Model(file)
+                try {
+                    assertTrue("${file.name} should contain one model object", source.objectsCount == 1)
+                    source.orientForImport(0)
+                    val translation = Vec3d()
+                    val minimum = Vec3d()
+                    val maximum = Vec3d()
+                    source.getTranslation(0, translation)
+                    source.getBoundingBoxExact(0, minimum, maximum)
+                    source.translate(0, -translation.x, -translation.y,
+                        -translation.z + (maximum.z - minimum.z) / 2.0)
+                    combined.addObject(source, 0)
+                } finally {
+                    source.release()
+                }
+            }
+            assertEquals("all selected Catan parts should be independent objects", wantedIndices.size,
+                combined.objectsCount)
+            val arranged = AtomicReference<Boolean?>()
+            val completed = CountDownLatch(1)
+            glView.queueEvent {
+                try {
+                    arranged.set(requireNotNull(glView.renderer.bed).arrange(combined))
+                    combined.resetBoundingBox()
+                } catch (failure: Throwable) {
+                    android.util.Log.e("SettlersArrangeTest", "Explicitly arranging small Catan parts failed", failure)
+                    arranged.set(false)
+                } finally {
+                    completed.countDown()
+                }
+            }
+            assertTrue("native arrange should return for the real Catan part group", completed.await(90, TimeUnit.SECONDS))
+            assertEquals("the real Catan small parts fit together on the available plate", true, arranged.get())
+            val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            val boxes = (0 until combined.objectsCount).map { index -> readExactBoundsOnGl(glView, combined, index) }
+            boxes.forEachIndexed { index, box ->
+                assertTrue("Catan part $index must remain within the build volume",
+                    box[0] >= bedMin.x - 0.2 && box[1] >= bedMin.y - 0.2 &&
+                        box[3] <= bedMax.x + 0.2 && box[4] <= bedMax.y + 0.2)
+                for (other in 0 until index) {
+                    assertTrue("Catan parts $index and $other must not overlap after arrange",
+                        box[3] <= boxes[other][0] || boxes[other][3] <= box[0] ||
+                            box[4] <= boxes[other][1] || boxes[other][4] <= box[1])
+                }
+            }
+
+            val fillArranged = AtomicReference<Boolean?>()
+            val copies = FillBedModelOperation.run(
+                activeModel = combined,
+                objectIndex = 0,
+                viewerEnabled = false,
+                estimatedCapacity = combined.objectsCount + 1,
+            ) { candidate ->
+                val fillCompleted = CountDownLatch(1)
+                glView.queueEvent {
+                    try {
+                        fillArranged.set(requireNotNull(glView.renderer.bed).arrangeCompact(candidate))
+                    } finally {
+                        fillCompleted.countDown()
+                    }
+                }
+                assertTrue("the fill-bed candidate should finish native arrangement",
+                    fillCompleted.await(90, TimeUnit.SECONDS))
+                fillArranged.get() == true
+            }
+            assertEquals("fill-bed should fit one more small Catan part in remaining plate area", 1, copies)
+            assertEquals("fill-bed should retain all parts and add one distinct copy", wantedIndices.size + 1,
+                combined.objectsCount)
+        } finally {
+            combined.release()
+            files.values.forEach(File::delete)
+            fixtureDir.deleteRecursively()
         }
     }
 

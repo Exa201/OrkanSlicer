@@ -231,6 +231,151 @@ bool validate_arrange_placements(ArrangePolygons &polygons, const Points &bed, s
     return true;
 }
 
+static bool arrange_with_rectangular_bed_maxrects(ArrangePolygons &polygons, const Points &bed,
+                                                   const ArrangeParams &params)
+{
+    if (bed.size() < 4 || polygons.size() < 2)
+        return false;
+
+    const Polygon bed_polygon(bed);
+    const BoundingBox bed_bounds(bed);
+    const double bed_area = std::abs(bed_polygon.area());
+    const double bounds_area = double(bed_bounds.size().x()) * bed_bounds.size().y();
+    // This fast rectangular packer is not suitable for round or irregular build plates.
+    if (!bed_bounds.defined || bounds_area <= 0.0 || bed_area < bounds_area * 0.999)
+        return false;
+
+    struct Rect { coord_t min_x, min_y, max_x, max_y; };
+    struct Placement { Vec2crd translation{0, 0}; double rotation = 0.0; };
+    struct FreeRect { Rect rect; };
+    const coord_t inflation = std::max<coord_t>(0, params.min_obj_distance / 2);
+    std::vector<BoundingBox> source_bounds(polygons.size());
+    for (size_t i = 0; i < polygons.size(); ++i) {
+        ExPolygons parts = polygons[i].physical_parts;
+        if (parts.empty() && !polygons[i].poly.contour.empty()) parts.emplace_back(polygons[i].poly);
+        for (const ExPolygon &part : parts)
+            source_bounds[i].merge(part.contour.bounding_box());
+    }
+    std::vector<size_t> order(polygons.size());
+    std::iota(order.begin(), order.end(), size_t(0));
+    std::stable_sort(order.begin(), order.end(), [&](size_t lhs, size_t rhs) {
+        const Vec2crd a = source_bounds[lhs].size(), b = source_bounds[rhs].size();
+        return double(a.x()) * a.y() > double(b.x()) * b.y();
+    });
+
+    std::vector<FreeRect> free_rects{{{bed_bounds.min.x(), bed_bounds.min.y(),
+                                        bed_bounds.max.x(), bed_bounds.max.y()}}};
+    std::vector<Placement> placements(polygons.size());
+    const auto intersects = [](const Rect &a, const Rect &b) {
+        return a.min_x < b.max_x && a.max_x > b.min_x &&
+               a.min_y < b.max_y && a.max_y > b.min_y;
+    };
+
+    for (size_t item_idx : order) {
+        ExPolygons source = polygons[item_idx].physical_parts;
+        if (source.empty() && !polygons[item_idx].poly.contour.empty())
+            source.emplace_back(polygons[item_idx].poly);
+        if (source.empty())
+            return false;
+
+        bool found = false;
+        double best_short_side = std::numeric_limits<double>::infinity();
+        double best_area_waste = std::numeric_limits<double>::infinity();
+        Placement best_placement;
+        Rect best_rect{};
+        const std::array<double, 2> rotations{{0.0, std::acos(-1.0) / 2.0}};
+        for (double rotation : rotations) {
+            ExPolygons oriented = source;
+            for (ExPolygon &part : oriented) part.rotate(rotation);
+            ExPolygons clearance = inflation > 0
+                ? offset_ex(oriented, float(inflation), ClipperLib::jtSquare)
+                : std::move(oriented);
+            BoundingBox bounds;
+            for (const ExPolygon &part : clearance)
+                bounds.merge(part.contour.bounding_box());
+            if (!bounds.defined) continue;
+            const coord_t width = bounds.size().x(), height = bounds.size().y();
+
+            for (const FreeRect &free : free_rects) {
+                const coord_t free_width = free.rect.max_x - free.rect.min_x;
+                const coord_t free_height = free.rect.max_y - free.rect.min_y;
+                if (width > free_width || height > free_height) continue;
+                Rect proposed{free.rect.min_x, free.rect.min_y,
+                              free.rect.min_x + width, free.rect.min_y + height};
+                ExPolygons translated = clearance;
+                const Vec2crd delta{proposed.min_x - bounds.min.x(),
+                                    proposed.min_y - bounds.min.y()};
+                bool inside = true;
+                for (ExPolygon &part : translated) {
+                    part.translate(delta.x(), delta.y());
+                    for (const Point &point : part.contour.points) {
+                        if (!bed_polygon.contains(point)) { inside = false; break; }
+                    }
+                    if (!inside) break;
+                }
+                if (!inside) continue;
+                const double leftover_x = double(free_width - width);
+                const double leftover_y = double(free_height - height);
+                const double short_side = std::min(leftover_x, leftover_y);
+                const double area_waste = double(free_width) * free_height - double(width) * height;
+                if (!found || short_side < best_short_side ||
+                    (short_side == best_short_side && area_waste < best_area_waste)) {
+                    found = true;
+                    best_short_side = short_side;
+                    best_area_waste = area_waste;
+                    best_rect = proposed;
+                    best_placement = {delta, rotation};
+                }
+            }
+        }
+        if (!found) return false;
+
+        std::vector<FreeRect> split;
+        split.reserve(free_rects.size() * 2 + 4);
+        for (const FreeRect &free : free_rects) {
+            const Rect &r = free.rect;
+            if (!intersects(r, best_rect)) {
+                split.push_back(free);
+                continue;
+            }
+            if (best_rect.min_x > r.min_x && best_rect.min_x < r.max_x)
+                split.push_back({{r.min_x, r.min_y, best_rect.min_x, r.max_y}});
+            if (best_rect.max_x < r.max_x && best_rect.max_x > r.min_x)
+                split.push_back({{best_rect.max_x, r.min_y, r.max_x, r.max_y}});
+            if (best_rect.min_y > r.min_y && best_rect.min_y < r.max_y)
+                split.push_back({{r.min_x, r.min_y, r.max_x, best_rect.min_y}});
+            if (best_rect.max_y < r.max_y && best_rect.max_y > r.min_y)
+                split.push_back({{r.min_x, best_rect.max_y, r.max_x, r.max_y}});
+        }
+        for (size_t i = 0; i < split.size();) {
+            bool contained = false;
+            for (size_t j = 0; j < split.size(); ++j) {
+                if (i == j) continue;
+                const Rect &a = split[i].rect, &b = split[j].rect;
+                if (b.min_x <= a.min_x && b.min_y <= a.min_y &&
+                    b.max_x >= a.max_x && b.max_y >= a.max_y) {
+                    contained = true;
+                    break;
+                }
+            }
+            if (contained) split.erase(split.begin() + i);
+            else ++i;
+        }
+        free_rects = std::move(split);
+        placements[item_idx] = best_placement;
+    }
+
+    ArrangePolygons arranged = polygons;
+    for (size_t i = 0; i < arranged.size(); ++i) {
+        arranged[i].translation = placements[i].translation;
+        arranged[i].rotation = placements[i].rotation;
+        arranged[i].bed_idx = 0;
+    }
+    if (!validate_arrange_placements(arranged, bed)) return false;
+    polygons = std::move(arranged);
+    return true;
+}
+
 bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Points &bed,
                                            const ArrangeParams &params)
 {
@@ -267,13 +412,18 @@ bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Poin
     if (!bed_bounds.defined || bed_area <= 0.0)
         return false;
 
+    if (arrange_with_rectangular_bed_maxrects(polygons, bed, params))
+        return true;
+
     struct PlacedGeometry { ExPolygons clearance; BoundingBox bounds; };
     struct Placement { Vec2crd translation{0, 0}; double rotation = 0.0; };
     const double half_pi = std::acos(-1.0) / 2.0;
     const std::array<double, 4> rotations{{0.0, half_pi, 2.0 * half_pi, 3.0 * half_pi}};
     const coord_t inflation = std::max<coord_t>(0, params.min_obj_distance / 2);
     size_t total_candidate_checks = 0;
-    constexpr size_t MAX_TOTAL_CANDIDATE_CHECKS = 50000;
+    // A fixed global budget makes the fallback stop after only a handful of objects when a
+    // plate contains many small parts: each object can require several thousand anchor pairs.
+    constexpr size_t candidate_check_budget = 50000;
 
     // Try hull-heavy objects first, then use true projected area as a second deterministic
     // ordering. Every attempt is built separately; a failed attempt never mutates the caller.
@@ -364,7 +514,7 @@ bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Poin
                 for (coord_t target_y : ys) {
                     for (coord_t target_x : xs) {
                         if (++checked > 12000 ||
-                            ++total_candidate_checks > MAX_TOTAL_CANDIDATE_CHECKS)
+                            ++total_candidate_checks > candidate_check_budget)
                             break;
                         const Vec2crd delta{target_x - local_bounds.min.x(),
                                            target_y - local_bounds.min.y()};
@@ -414,14 +564,14 @@ bool arrange_with_exact_footprint_fallback(ArrangePolygons &polygons, const Poin
                         }
                     }
                     if (found_orientation || checked > 12000 ||
-                        total_candidate_checks > MAX_TOTAL_CANDIDATE_CHECKS)
+                        total_candidate_checks > candidate_check_budget)
                         break;
                 }
-                if (total_candidate_checks > MAX_TOTAL_CANDIDATE_CHECKS)
+                if (total_candidate_checks > candidate_check_budget)
                     break;
             }
 
-            if (total_candidate_checks > MAX_TOTAL_CANDIDATE_CHECKS) {
+            if (total_candidate_checks > candidate_check_budget) {
                 failed = true;
                 break;
             }

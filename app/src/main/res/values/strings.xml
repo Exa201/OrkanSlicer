@@ -292,6 +292,8 @@
     <string name="ModelMenuPlaceGroupOnBed">Place selected object group on the bed</string>
     <string name="ModelMenuPlaceGroupOnBedShort">Drop to bed</string>
     <string name="ModelMenuPlaceGroupOnBedDone">Selected objects placed on the bed</string>
+    <string name="ModelMenuPlaceGroupOnBedFailed">Could not place the selected objects on the bed.</string>
+    <string name="ModelContextDuplicateFailed">Could not duplicate the selected model.</string>
     <string name="ModelMenuAlignSelected">Align selected objects</string>
     <string name="ModelMenuAlignMinX">Align minimum X edges</string>
     <string name="ModelMenuAlignCenterX">Align X centers</string>
@@ -683,7 +685,7 @@
     <string name="BedContextMenuTitle">Bed actions</string>
     <string name="ModelContextMenuTitle">Model actions</string>
     <string name="ModelContextFillBed">Fill bed with this model</string>
-    <string name="ModelContextFillBedNoRoom">No more copies fit on the bed.</string>
+    <string name="ModelContextFillBedNoRoom">No additional copy of the selected model fits on the bed.</string>
     <string name="ModelMenuArrangeFailed">Could not arrange all models safely on this bed. Check the model sizes and available space.</string>
     <string name="ModelContextDuplicate">Duplicate</string>
     <string name="ModelContextDuplicated">Model duplicated.</string>
