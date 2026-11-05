@@ -3616,6 +3616,109 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun arrangeCompactsSeveralManuallyMovedModelsInOneAction() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 15_000) {
+            glView.isAttachedToWindow && glView.width > 0 && glView.height > 0 &&
+                glView.renderer.bed != null
+        }
+        val modelFiles = (0 until 4).map { index ->
+            File(activity.cacheDir, "multi-arrange-moved-$index-${System.nanoTime()}.stl")
+        }
+        try {
+            modelFiles.forEach { file ->
+                writeScaledCubeStl(activity, file, 0.5f)
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(file, preserveProjectLayout = false, plateCount = 1,
+                    callback = object : BedFragment.ModelLoadCallback {
+                        override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                            completed.countDown()
+                        }
+
+                        override fun onFailed(error: Exception) {
+                            failure.set(error)
+                            completed.countDown()
+                        }
+                    }, autoOrientImportedModels = true)
+                assertTrue("all four test models must import", completed.await(30, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("model import failed", it) }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            val model = requireNotNull(bed.currentModel)
+            assertEquals("fixture must contain four separate models", 4, model.objectsCount)
+            val beforeMove = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+            val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            val targetCenters = listOf(
+                bedMin.x + 18.0 to bedMin.y + 18.0,
+                bedMax.x - 18.0 to bedMin.y + 18.0,
+                bedMin.x + 18.0 to bedMax.y - 18.0,
+                bedMax.x - 18.0 to bedMax.y - 18.0,
+            )
+            val moveCompleted = CountDownLatch(1)
+            glView.queueEvent {
+                beforeMove.forEachIndexed { index, bounds ->
+                    val currentCenterX = (bounds[0] + bounds[3]) / 2.0
+                    val currentCenterY = (bounds[1] + bounds[4]) / 2.0
+                    val target = targetCenters[index]
+                    model.translate(index, target.first - currentCenterX, target.second - currentCenterY, 0.0)
+                }
+                model.resetBoundingBox()
+                glView.requestRender()
+                moveCompleted.countDown()
+            }
+            assertTrue("manual moves must finish on the GL thread", moveCompleted.await(10, TimeUnit.SECONDS))
+            val movedBounds = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+            assertTrue("the fixture must reproduce multiple manually displaced objects",
+                movedBounds.zip(beforeMove).all { (moved, before) -> !moved.contentEquals(before) })
+            val movedWidth = movedBounds.maxOf { it[3] } - movedBounds.minOf { it[0] }
+            val movedDepth = movedBounds.maxOf { it[4] } - movedBounds.minOf { it[1] }
+            assertTrue("models must start spread to the plate corners", movedWidth > (bedMax.x - bedMin.x) * 0.75 &&
+                movedDepth > (bedMax.y - bedMin.y) * 0.75)
+
+            compose.runOnUiThread { bed.updateModel() }
+            openModelMenu(activity)
+            selectAllObjectsScope()
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuArrangeShort))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+
+            compose.waitUntil(timeoutMillis = 20_000) {
+                val current = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+                val packedWidth = current.maxOf { it[3] } - current.minOf { it[0] }
+                val packedDepth = current.maxOf { it[4] } - current.minOf { it[1] }
+                packedWidth < movedWidth * 0.75 && packedDepth < movedDepth * 0.75
+            }
+            val arranged = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+            assertEquals("Arrange must preserve all four models", 4, readObjectCountOnGl(glView))
+            val packedWidth = arranged.maxOf { it[3] } - arranged.minOf { it[0] }
+            val packedDepth = arranged.maxOf { it[4] } - arranged.minOf { it[1] }
+            assertTrue("Arrange must compact the manually spread models instead of leaving them where moved",
+                packedWidth < movedWidth * 0.75 && packedDepth < movedDepth * 0.75)
+            arranged.forEachIndexed { index, bounds ->
+                assertTrue("arranged model $index must be inside the active plate",
+                    bounds[0] >= bedMin.x - 0.1 && bounds[1] >= bedMin.y - 0.1 &&
+                        bounds[3] <= bedMax.x + 0.1 && bounds[4] <= bedMax.y + 0.1)
+            }
+            for (first in arranged.indices) for (second in first + 1 until arranged.size) {
+                val overlaps = arranged[first][0] < arranged[second][3] &&
+                    arranged[first][3] > arranged[second][0] &&
+                    arranged[first][1] < arranged[second][4] &&
+                    arranged[first][4] > arranged[second][1]
+                assertFalse("Arrange must separate models $first and $second", overlaps)
+            }
+        } finally {
+            modelFiles.forEach(File::delete)
+        }
+    }
+
+    @Test
     fun multiFileImportCreatesPlatesAndPreservesExistingModelsWhenBedFills() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
