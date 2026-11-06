@@ -8063,6 +8063,77 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun unlinkedXAxisAndZAxisManualScaleChangeOnlyTheirOwnAxes() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "scale-unlinked-x-z-axis-test.stl")
+        val previousLinked = Prefs.isScaleLinked()
+        val previousMillimeters = Prefs.isScaleInputInMM()
+        Prefs.setScaleLinked(false)
+        Prefs.setScaleInputInMM(false)
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            val original = readScaleOnGl(glView, 0)
+
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.MenuTransformScale)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformScale))
+                .performScrollTo().assertIsDisplayed().performClick()
+
+            compose.onNodeWithContentDescription("X, X =", substring = true).performScrollTo().performClick()
+            var scaleField = compose.onNodeWithText(activity.getString(R.string.ScaleManualPercent))
+            scaleField.performTextClearance()
+            scaleField.performTextInput("125")
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).x - original.x * 1.25) < 0.002
+            }
+            val afterX = readScaleOnGl(glView, 0)
+            assertEquals("X edit must preserve native Y", original.y, afterX.y, 0.002)
+            assertEquals("X edit must preserve native Z", original.z, afterX.z, 0.002)
+
+            compose.onNodeWithContentDescription("Z, Z =", substring = true).performScrollTo().performClick()
+            scaleField = compose.onNodeWithText(activity.getString(R.string.ScaleManualPercent))
+            scaleField.performTextClearance()
+            scaleField.performTextInput("75")
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).z - original.z * 0.75) < 0.002
+            }
+            val afterZ = readScaleOnGl(glView, 0)
+            assertEquals("following Z edit must retain the earlier X change", original.x * 1.25, afterZ.x, 0.002)
+            assertEquals("Z edit must preserve native Y", original.y, afterZ.y, 0.002)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).z - original.z) < 0.002
+            }
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).x - original.x) < 0.002
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                val redone = readScaleOnGl(glView, 0)
+                kotlin.math.abs(redone.x - original.x * 1.25) < 0.002 &&
+                    kotlin.math.abs(redone.y - original.y) < 0.002 &&
+                    kotlin.math.abs(redone.z - original.z * 0.75) < 0.002
+            }
+        } finally {
+            Prefs.setScaleLinked(previousLinked)
+            Prefs.setScaleInputInMM(previousMillimeters)
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun mirrorPanelReflectsSelectedObjectOnEachAxisAndRecordsUndoRedo() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
