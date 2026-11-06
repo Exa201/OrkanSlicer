@@ -1,3 +1,10 @@
+## Nightly 2.5 Arrange feedback fix — 2026-11-06 — 0.8.442
+
+- Published [v0.8.442-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.442-nightly.1) from source commit `865d22406570aa3ae20f64a4e3ff06706e8a2641`; app 0.8.442/code 477, package `com.exa201.orkanslicer.nightly25`.
+- Corrected the failure message for “Alle anordnen”: it no longer claims that additional copies cannot fit. The action was already routed to plate-wide arrangement; “Kopien füllen” remains its separate action.
+- API 36 instrumentation: six different real mesh assets were moved outside the bed, then arranged through the Compose “Alle anordnen” button; compact placement, single active plate and preview revision passed (1/1).
+- `:app:assembleDebug` succeeded. APK `OrkanSlicerNightly25_865d224065.apk`, 240,592,768 bytes; SHA-256 `06d8d092b917689b91ea9817fde87cb86f6084b9dfc309492a5b910481e49e33`; sidecar uploaded. Physical Xiaomi test was unavailable (`adb` not on PATH).
+- Retained the newest five Nightly prereleases: 0.8.442 through 0.8.438; removed 0.8.437 and its tag.
 # Build Status
 
 ## Nightly 2.5 Arrange-fix prerelease — 2026-11-06 — 0.8.441
@@ -668,4 +675,5 @@ Die hier damals fehlenden `arm64-v8a`-Abhängigkeiten wurden später für den vo
 scripts/check-native-prebuilts.py arm64-v8a
 scripts/build-debug.sh
 ```
+
 

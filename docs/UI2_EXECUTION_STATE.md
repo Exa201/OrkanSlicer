@@ -1,3 +1,11 @@
+# Nightly Arrange Regression — 2026-11-06
+
+- Branch: `codex/nightly-batch11-next`; fix commit `865d22406570aa3ae20f64a4e3ff06706e8a2641` is pushed to `nightly25`.
+- Root cause clarified: “Alle anordnen” was correctly connected to plate-wide `arrange`; on failure both arrange entry points showed the unrelated “no more copies fit” message. Fixed with a dedicated arrange failure string in German, English and Russian.
+- Verification: API-36 instrumented UI test `InitialProjectMenuDeviceTest#arrangeCompactsSixDifferentRealMeshesMovedOutsideBed` passed 1/1. It loads six distinct real meshes, moves them beyond the bed edge, invokes the Compose button, and verifies compact placement, active plate count and preview revision. Debug APK build succeeded.
+- Released Nightly 0.8.442/code 477 as [v0.8.442-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.442-nightly.1). APK SHA-256: `06d8d092b917689b91ea9817fde87cb86f6084b9dfc309492a5b910481e49e33`. No physical Xiaomi validation: `adb` is unavailable in this environment.
+- Release retention: the five newest prereleases, 0.8.442–0.8.438, remain.
+- Next concrete step: continue the already active Orca feature batch 13 at point 4; avoid counting this arrange regression as an Orca port.
 # OrkanSlicer Nightly — Fortsetzung 2026-11-05
 
 - Branch: `codex/nightly-batch11-next`; Ausgangs-HEAD vor diesem Arbeitsschritt: `1fcfb143f011f351e599e97bb5a74dc9618bbb3f`.
@@ -4371,3 +4379,4 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - APK auf API-36-Emulator installiert und gestartet; App-Prozess-Logcat ohne FATAL EXCEPTION, ANR, fatal signal oder OOM.
 - Als Nightly-Prerelease `v0.8.441-nightly.1` veröffentlicht: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.441-nightly.1. Release-Assets: APK und `.sha256`-Sidecar. Die fünf neuesten Releases v0.8.441 bis v0.8.437 bleiben erhalten; v0.8.436 samt Tag entfernt.
 - GitHub-Branch enthält Quell- und Versionscommits; dieser Dokumentationsupdate folgt nach dem Release-Tag und ändert dessen Inhalt nicht. Keine Xiaomi-/Druckerprüfung erfolgt.
+
