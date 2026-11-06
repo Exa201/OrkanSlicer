@@ -1,6 +1,8 @@
-# Aktueller Stand — Nightly Batch 13, 6/10 — 2026-11-06
+# Aktueller Stand — Nightly Batch 13, 9/10 — 2026-11-06
 
 Batch 12 ist vollständig mit 10/10 Punkten verifiziert und als `v0.8.435-nightly.1` veröffentlicht. Batch 13: Punkt 1 portiert Orcas natives `Spiral Inset`-Füllmuster; Punkt 2 portiert Orcas Kopierreihenfolge für `By layer` + `As object list`; Punkt 3 portiert Orcas Warnung für Objekt-/Höhenbereichs-Overrides, die Spiral-Vase kontinuierliche Extrusion verhindern; Punkt 4 schützt leere Compose-Menüflächen davor, Gesten an den 3D-Renderer durchzureichen; Punkt 5 optimiert die Tree-Support-Suche nach unteren Kontaktflächen; Punkt 6 gruppiert Tree-Support-Polygone vor der Clipper-Union. API-36-Tests für jeden Punkt sind in den Abschnitten unten vermerkt. Das APK-/Release-Gate bleibt bei 10/10 Punkten plus gebündelter Regression.
+
+Punkt 7/8/9 sind in `docs/UI2_EXECUTION_STATE.md` nachgewiesen. Punkt 9 portiert Orcas By-Object-Kopierreihenfolge für gedrehte Instanzen: Androids sequenzielle Kollisionsprüfung sortiert nun nach der sichtbaren Objekt- und Instanzposition statt nach der transformabhängigen `PrintObject`-Gruppierung. Android 16/API 36: `NativeSliceDeviceTest#byObjectPrintingKeepsRotatedCopiesInTheirListOrder` 1/1 bestanden; vier wechselnd gedrehte Kopien ergeben die Produktionsreihenfolge `[0, 1, 2, 3]`. Ein Batch-APK wird erst nach Punkt 10 und gebündelter Regression erstellt.
 
 ### Batch 13, Punkt 5/10 — Tree-Support-Kontaktflächen einmal sammeln und begrenzen
 

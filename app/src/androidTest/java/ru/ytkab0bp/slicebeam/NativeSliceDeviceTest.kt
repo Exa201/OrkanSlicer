@@ -8302,6 +8302,30 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test(timeout = 120_000)
+    fun byObjectPrintingKeepsRotatedCopiesInTheirListOrder() = withKobraProfile {
+        val model = Model()
+        val configFile = SliceBeam.getCurrentConfigFile()
+        try {
+            assertEquals(0, model.createPrimitive(0, 5.0, 5.0, 0.2, "By-object copies", 10.0, 10.0))
+            for (copy in 1 until 4) {
+                assertEquals("copy $copy must remain linked to the same model object", copy,
+                    model.duplicateInstance(0, 0, Vec3d(copy * 15.0, 0.0, 0.0)))
+            }
+            SliceBeam.genCurrentConfig(model)
+            val order = Native.by_object_copy_order_regression(model.pointer, configFile.absolutePath)
+            assertEquals("all four by-object copies must be included", 4, order[0])
+            assertArrayEquals(
+                "By-object safety validation and G-code order must follow the model's instance list for alternating rotations",
+                IntArray(4) { it },
+                order.copyOfRange(1, order.size),
+            )
+        } finally {
+            model.release()
+            configFile.delete()
+        }
+    }
+
     private fun sliceToGcode(context: Context, model: Model, name: String): String {
         val gcodeFile = File(context.cacheDir, name)
         var generatedConfig: File? = null

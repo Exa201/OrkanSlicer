@@ -62,6 +62,9 @@ class Native {
     /** Verifies by-layer/as-object-list ordering preserves rotated copies' model-list order. */
     @JvmStatic
     external fun by_layer_copy_order_regression(model: Long, configPath: String): IntArray
+    /** Verifies by-object clearance ordering preserves rotated copies' model-list order. */
+    @JvmStatic
+    external fun by_object_copy_order_regression(model: Long, configPath: String): IntArray
     /** Reads layer-height limits for first and third logical filaments through production slicing parameters. */
     @JvmStatic
     external fun object_nozzle_layer_limits_regression(): DoubleArray

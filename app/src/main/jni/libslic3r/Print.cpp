@@ -625,7 +625,9 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         const PrintInstance *print_instance;
         BoundingBox    bounding_box;
         Polygon        hull_polygon;
-        int                  object_index;
+        // Copies with different transforms can be grouped into different PrintObjects, so
+        // print.objects() order alone cannot reproduce the visible object/instance list.
+        std::pair<int, int>  model_position;
         double               height;
         bool                 has_above_rod = false;
         coord_t              rod_min_y     = 0;
@@ -674,13 +676,21 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         }
         return any;
     };
-    auto find_object_index = [](const Model& model, const ModelObject* obj) {
-        for (int index = 0; index < model.objects.size(); index++)
-        {
-            if (model.objects[index] == obj)
-                return index;
-        }
-        return -1;
+    auto model_position_of = [](const Model &model, const ModelInstance *instance) {
+        const ModelObject *object = instance->get_object();
+        int object_index = -1;
+        for (int index = 0; index < int(model.objects.size()); ++index)
+            if (model.objects[index] == object) {
+                object_index = index;
+                break;
+            }
+        int instance_index = -1;
+        for (int index = 0; index < int(object->instances.size()); ++index)
+            if (object->instances[index] == instance) {
+                instance_index = index;
+                break;
+            }
+        return std::make_pair(object_index, instance_index);
     };
 
     auto [object_skirt_offset, _] = print.object_skirt_offset();
@@ -761,7 +771,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 }
                 struct print_instance_info print_info {&instance, convex_hull.bounding_box(), convex_hull};
                 print_info.height = instance.print_object->height();
-                print_info.object_index = find_object_index(print.model(), print_object->model_object());
+                print_info.model_position = model_position_of(print.model(), instance.model_instance);
                 print_info.has_above_rod = above_rod_y_range(instance, print_info.rod_min_y, print_info.rod_max_y);
                 const BoundingBox footprint = print_info.bounding_box.inflated(
                     -scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset));
@@ -797,18 +807,16 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
     // every Y-overlapping object that must be printed before it. If those constraints conflict,
     // leave the original order intact so the validation below reports the real collision.
     const size_t instance_count = print_instance_with_bounding_box.size();
-    const auto by_object_index = [&](size_t lhs, size_t rhs) {
-        const int lhs_object = print_instance_with_bounding_box[lhs].object_index;
-        const int rhs_object = print_instance_with_bounding_box[rhs].object_index;
-        return lhs_object == rhs_object ? lhs < rhs : lhs_object < rhs_object;
+    const auto by_model_position = [&](size_t lhs, size_t rhs) {
+        return print_instance_with_bounding_box[lhs].model_position <
+               print_instance_with_bounding_box[rhs].model_position;
     };
     std::vector<size_t> fallback_order(instance_count);
     for (size_t i = 0; i < instance_count; ++i)
         fallback_order[i] = i;
-    std::stable_sort(fallback_order.begin(), fallback_order.end(), by_object_index);
+    std::sort(fallback_order.begin(), fallback_order.end(), by_model_position);
 
-    // Multiple copies of one object share object_index. Use their position in the
-    // original instance list to keep ties deterministic in the topological sort.
+    // The object and instance indices form a unique key and preserve visible model-list order.
     std::vector<size_t> list_position(instance_count);
     for (size_t position = 0; position < instance_count; ++position)
         list_position[fallback_order[position]] = position;
