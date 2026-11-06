@@ -79,6 +79,18 @@ class SliceMenu : ListBedMenu() {
                     }
                     return@synchronize
                 }
+                if (bed.hasMmuInventoryChangedSinceSlice(printer.title.orEmpty())) {
+                    bed.dismissPrinterUploadProgress(progress)
+                    bed.discardSliceAfterMmuInventoryChange()
+                    bed.getContext()?.let { activeContext ->
+                        bed.showWorkspaceMessageDialog(
+                            title = activeContext.getString(R.string.UploadAceChecking),
+                            message = activeContext.getString(R.string.UploadAceInventoryChangedAfterSlice),
+                            confirmLabel = activeContext.getString(android.R.string.ok),
+                        )
+                    }
+                    return@synchronize
+                }
                 scanToolCountAndPrepare(type, host, apiKey, printer, print, slicingWarning, progress)
             }
         } else {

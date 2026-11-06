@@ -38,6 +38,10 @@ internal object SlicePreparationTools {
     fun materialMatchesSlicedFile(sliced: String?, loaded: String?): Boolean =
         !sliced.isNullOrBlank() && !loaded.isNullOrBlank() && sliced.trim().equals(loaded.trim(), true)
 
+    /** Unknown snapshots cannot prove a change; known changed inventories invalidate the slice. */
+    fun didMmuInventoryChange(sliced: String?, current: String?): Boolean =
+        !sliced.isNullOrBlank() && !current.isNullOrBlank() && sliced != current
+
     enum class PrinterActivationResult { UNCHANGED, ACTIVATED, FAILED }
 
     /** A changed target must be active and saved before the job is re-sliced for it. */

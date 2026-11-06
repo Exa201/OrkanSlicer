@@ -202,6 +202,16 @@ class SlicePreparationToolsTest {
     }
 
     @Test
+    fun onlyKnownChangedMmuInventoryInvalidatesASlice() {
+        assertFalse(SlicePreparationTools.didMmuInventoryChange(null, "known-inventory"))
+        assertFalse(SlicePreparationTools.didMmuInventoryChange("known-inventory", null))
+        assertFalse(SlicePreparationTools.didMmuInventoryChange("same", "same"))
+        assertTrue(SlicePreparationTools.didMmuInventoryChange("blue-pla", "black-pla"))
+        assertTrue(SlicePreparationTools.didMmuInventoryChange("blue-pla", "blue-petg"))
+        assertTrue(SlicePreparationTools.didMmuInventoryChange("tool-0-gate-2", "tool-0-gate-3"))
+    }
+
+    @Test
     fun reportsExecutablePressureAdvanceSeparatelyFromMetadataAndStartCode() {
         val file = File.createTempFile("slice-pressure-advance", ".gcode")
         try {

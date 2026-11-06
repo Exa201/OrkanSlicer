@@ -280,6 +280,25 @@ class MmuFilamentSync private constructor() {
             }
         }
 
+        /** Stable projection of the printer-side material inventory used by slice grouping. */
+        @JvmStatic
+        fun inventorySignature(printerTitle: String): String? {
+            if (getSnapshot(printerTitle) == null) return null
+            val gates = physicalGates(printerTitle)
+            if (gates.isEmpty()) return null
+            return gates.joinToString("|") { gate ->
+                val slot = gate.filament
+                listOf(
+                    gate.index.toString(),
+                    gate.printerTool.toString(),
+                    if (gate.occupied) "1" else "0",
+                    slot?.type.orEmpty().trim().uppercase(java.util.Locale.ROOT),
+                    slot?.color?.toUInt()?.toString(16)?.uppercase(java.util.Locale.ROOT).orEmpty(),
+                    if (slot?.unknownLoadedSpool == true) "unknown" else "known",
+                ).joinToString(":")
+            }
+        }
+
         @JvmStatic
         fun defaultGateForTool(printerTitle: String, tool: Int): Int {
             val mapping = getSnapshot(printerTitle)?.optJSONArray("ttg_map") ?: return -1

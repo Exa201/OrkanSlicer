@@ -55,6 +55,7 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.OptionsMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.SliceMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.SlicePreparationTools
 import ru.ytkab0bp.slicebeam.components.bed_menu.TransformMenu
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.AdaptivePAModelValidator
@@ -168,6 +169,8 @@ var currentPlateIndex: Int
 get() = workspaceController.activePlateIndex
 set(value) { workspaceController.setActivePlate(value) }
 private var gCodeResult: GCodeProcessorResult? = null
+private var slicedMmuPrinterTitle: String? = null
+private var slicedMmuInventorySignature: String? = null
 private var totalPlates = 1 // used for importing
 private var currentProjectFile: File? = null
 private var sourceProjectPlateCount:Int = 0
@@ -284,6 +287,34 @@ return if (index >= 0 && index < projectPlateIds.size) projectPlateIds.get(index
 }
 fun hasSliceResult():Boolean {
 return gCodeResult != null
+}
+/** Whether the live physical ACE inventory differs from the one present when this G-code was sliced. */
+fun hasMmuInventoryChangedSinceSlice(printerTitle: String): Boolean {
+    if (slicedMmuPrinterTitle != printerTitle) return false
+    return SlicePreparationTools.didMmuInventoryChange(
+        slicedMmuInventorySignature,
+        MmuFilamentSync.inventorySignature(printerTitle),
+    )
+}
+
+/** Discard stale grouped G-code so its preview cannot be mistaken for the current filament setup. */
+fun discardSliceAfterMmuInventoryChange() {
+    val previous = gCodeResult ?: return
+    gCodeResult = null
+    slicedMmuPrinterTitle = null
+    slicedMmuInventorySignature = null
+    tempFileName = null
+    tempExportingFile = null
+    val viewport = glView
+    if (viewport != null) {
+        viewport.queueEvent {
+            replaceGCodeResult(previous, null) { viewport.renderer.setGCodeViewer(null) }
+            viewport.requestRender()
+        }
+    } else previous.release()
+    val ctx = getContext()
+    if (ctx != null) (menuMap.get(WorkspaceDestination.SLICE.ordinal) as? SliceMenu)
+        ?.refreshItems(usesCompactPortraitLayout(ctx))
 }
 private var preparedFilamentModel: Model? = null
 private var preparedFilamentObjectCount = -1
@@ -494,6 +525,11 @@ tempExportingFile = null
 val cfg = SliceBeam.getCurrentConfigFile()
 val gcode = tempGCodePath
 val settingsRevision = TemporaryProjectSettings.sliceRevision
+val sliceConfig = SliceBeam.CONFIG
+val slicePrinter = sliceConfig?.presets?.get("printer")?.let(sliceConfig::findPrinter)
+val mmuPrinterTitle = slicePrinter?.title.orEmpty()
+val mmuInventoryAtSlice = if (SlicePreparationTools.isAnycubicKobra3Model(slicePrinter?.get("printer_model")))
+    MmuFilamentSync.inventorySignature(mmuPrinterTitle) else null
 if (!DEBUG_VIEWER) showSliceProgress(ctx)
 Thread({ try
 {
@@ -526,6 +562,8 @@ if (destroyed || viewport == null || model !== currentModel || settingsRevision 
 }
 val previousResult = gCodeResult
 gCodeResult = produced
+slicedMmuPrinterTitle = mmuPrinterTitle.takeIf { mmuInventoryAtSlice != null }
+slicedMmuInventorySignature = mmuInventoryAtSlice
 viewport.queueEvent({ replaceGCodeResult(previousResult, produced) {
     viewport.renderer.setGCodeViewer(produced)
 }
@@ -1572,6 +1610,8 @@ fun loadGCode(f:File) {
 val loaded = GCodeProcessorResult(f)
 val previous = gCodeResult
 gCodeResult = loaded
+slicedMmuPrinterTitle = null
+slicedMmuInventorySignature = null
 ViewUtils.postOnMainThread({ glView!!.queueEvent({ replaceGCodeResult(previous, loaded) {
     glView!!.renderer.setGCodeViewer(loaded)
 }

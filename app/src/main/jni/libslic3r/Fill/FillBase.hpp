@@ -239,6 +239,8 @@ public:
    void multiline_fill(Polylines& polylines, const FillParams& params, float spacing);
    // Joins nearby sparse-infill polyline ends without closing loops or crossing existing lines.
    void join_close_ends(Polylines& polylines, double max_gap, bool can_reverse);
+   // Clipping can cut a closed multiline-infill outline anywhere along its path. Restore those joins only for multiline fills.
+   void join_cut_outlines(Polylines& polylines, const FillParams& params);
 } // namespace Slic3r
 
 #endif // slic3r_FillBase_hpp_

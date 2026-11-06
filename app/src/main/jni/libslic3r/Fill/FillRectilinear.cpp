@@ -3032,6 +3032,9 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     if ((params.pattern == ipLateralLattice || params.pattern == ipLateralHoneycomb) && params.multiline > 1)
         remove_overlapped(fill_lines, line_width);
 
+    // Run after remove_overlapped(), which does not recognize a line joined to its duplicate.
+    join_cut_outlines(fill_lines, params);
+
     if (!fill_lines.empty()) {
         if (params.dont_connect()) {
             if (fill_lines.size() > 1)
@@ -3352,6 +3355,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
 
     // Intersect polylines with offset expolygon
     polylines = intersection_pl(std::move(polylines), intersection_surface);
+    join_cut_outlines(polylines, params);
 
     // Remove very short segments that may cause connection issues
     const double minlength = scale_(0.8 * this->spacing);

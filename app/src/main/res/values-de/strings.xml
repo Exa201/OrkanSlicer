@@ -774,6 +774,7 @@
     <string name="UploadAceChecking">ACE-Fächer werden vor dem Versand erneut geprüft …</string>
     <string name="UploadAceCheckFailed">Die aktuelle ACE-Belegung konnte nicht geprüft werden. Die Datei wurde nicht gesendet. Prüfe die Druckerverbindung und versuche es erneut.</string>
     <string name="UploadAceAssignmentChanged">Ein verwendetes ACE-Fach, dessen Material, Farbe oder Werkzeugzuordnung hat sich seit der Druckprüfung geändert. Die Datei wurde nicht gesendet. Öffne „Senden“ erneut und prüfe die Zuordnung.</string>
+    <string name="UploadAceInventoryChangedAfterSlice">Material, Farbe, Belegung oder Werkzeugzuordnung des ACE hat sich seit dem Slicen geändert. Der alte G-Code wurde verworfen und nicht gesendet. Slice das Modell erneut, damit Farben und Werkzeugzuordnungen aktualisiert werden.</string>
     <string name="UploadSliceMissing">Das Slice-Ergebnis ist nicht mehr verfügbar. Slice das Modell vor dem Senden erneut.</string>
     <string name="UploadProgressPercent">Wird zum Drucker übertragen: %1$d%%</string>
     <string name="UploadPrinterProcessing">Übertragung fertig. Der Drucker verarbeitet die Datei …</string>

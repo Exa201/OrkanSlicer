@@ -29,6 +29,7 @@ import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rRuntimeError
 import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.slic3r.Slic3rUtils
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
 import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
 import ru.ytkab0bp.slicebeam.slic3r.ObjectGroupDistribution
@@ -46,6 +47,22 @@ import java.util.zip.CRC32
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test
+    fun flashforge032ProcessIsLimitedToNozzlesThatFitItsLineWidth() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val profile = context.assets.open("orca_profiles/Flashforge.ini").use {
+            Slic3rConfigWrapper(it).findPrint("0.32mm Standard")
+        }
+        assertNotNull("The bundled Flashforge 0.32 mm process must remain available", profile)
+        val settings = requireNotNull(profile)
+        assertEquals("0.32", settings.get("layer_height"))
+        assertEquals("0.82", settings.get("line_width"))
+        assertFalse("0.82 mm line width must not be offered for a 0.6 mm nozzle",
+            Slic3rUtils.lineWidthFitsNozzle(settings.get("line_width"), "0.6"))
+        assertTrue("0.82 mm line width must remain available for a 0.8 mm nozzle",
+            Slic3rUtils.lineWidthFitsNozzle(settings.get("line_width"), "0.8"))
+    }
+
     @Test(timeout = 120_000)
     fun malformedOtherLayerPrintSequenceIsIgnoredAndStillSlices() = withKobraProfile {
         assertArrayEquals(
@@ -314,6 +331,17 @@ class NativeSliceDeviceTest {
         val result = Native.tpms_ring_endpoints_probe()
         assertEquals("all pattern, multiline, and phase cases must execute", 54, result[0])
         assertEquals("closed rings must not begin on a clipped wall; open paths must end on the wall", 0, result[1])
+    }
+
+    @Test
+    fun multilineInfillClippedRingEndpointsStayOnTheBoundary() {
+        val result = Native.multiline_infill_ring_endpoints_probe()
+        assertEquals("all multiline pattern, hole, and phase cases must execute: ${result.contentToString()}", 90, result[0])
+        assertTrue("pattern failures by order (Gyroid, TPMS-D/FK, Honeycomb, Quarter Cubic, Lateral Lattice/Honeycomb, " +
+            "Rectilinear/Aligned, Grid, Triangles, Stars, Cubic, Cross-Hatch, Hilbert): ${result.contentToString()}",
+            result.sliceArray(1..15).all { it == 0 })
+        assertArrayEquals("Grid failure categories (empty fill, short closed path, boundary-cut ring)",
+            intArrayOf(0, 0, 0), result.sliceArray(16..18))
     }
 
     @Test

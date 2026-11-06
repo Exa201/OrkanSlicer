@@ -1,5 +1,24 @@
 # Nightly execution state — 2026-11-06
 
+## Orca Batch 14 — 10/10 abgeschlossen; Release-Gate läuft
+
+- Punkt 10 portiert Orca `9612260bb5`: abgeschnittene geschlossene Multiline-Infill-Ringe werden nach dem Polygon-Clipping nur für `multiline > 1` wieder zusammengefügt. Geändert sind Adaptive-Cubic, Cross-Hatch, Honeycomb, Lightning, Plane-Path und Rectilinear; zusätzlich wird die Android-spezifische Trapezfüllung nach dem Clipping repariert.
+- Verifikation auf Android 16/API 36: `multilineInfillClippedRingEndpointsStayOnTheBoundary` prüft 15 Muster × Innenloch an/aus × drei Z-Phasen = 90 Fälle; 90 ausgeführt, 0 Pfadfehler. `gyroidAndTpmsClippedRingsKeepTheirEndpointsOnTheBoundary` zusätzlich 1/1 bestanden. ARM64 Slice-/Instrumentation-Build erfolgreich.
+- Batch 14 ist mit 10/10 fokussiert verifizierten Punkten abgeschlossen. Debug-/Slice-Unit-Gesamtsuiten, APK-Build, Installation/Start und Log-Prüfung sind noch offen; danach Nightly-Prerelease erstellen und die Fünf-Release-Aufbewahrung prüfen.
+- Nächster konkreter Schritt: Debug- und Slice-Unit-Suiten parallel ausführen, Fehler beheben, danach Debug-APK bauen und auf dem API-36-Emulator installieren/starten.
+
+## Orca Batch 14 — Punkt 9/10: Flashforge-0,32-mm-Prozess nach Düsenbreite filtern
+
+- Orca `e5eb684a99`: Das Creator-5-Profil für 0,32 mm deklariert nun `line_width = 0.82`; die vorhandene Profilfilterung schließt damit 0,6-mm-Düsen aus und bietet den Prozess bei 0,8 mm an.
+- Verifikation: `NativeSliceDeviceTest#flashforge032ProcessIsLimitedToNozzlesThatFitItsLineWidth` lädt das gebündelte `Flashforge.ini` auf Android 16/API 36 und prüft die echte Profil-Linienbreite sowie 0,6-/0,8-mm-Kompatibilität: 1/1 bestanden. Instrumentierungs-Kotlin- und ARM64-Native-Build erfolgreich.
+- Nach diesem Schritt stand Batch 14 bei 9/10. Der damalige nächste Schritt war Punkt 10; dieser wurde inzwischen abgeschlossen und ist oben dokumentiert.
+
+## Orca Batch 14 — Punkt 8/10: ACE-Inventaränderung entwertet Slice
+
+- Portiert Orcas AMS-Inventaränderungsschutz (`6839c9d344`) an den tatsächlichen Android-Ablauf: stabile physische ACE-Inventarsignatur wird bei erfolgreichem Slice gespeichert und nach der Live-ACE-Synchronisierung vor Upload verglichen. Geänderte Farbe, Material, Fachbelegung oder T→Fach-Zuordnung verwirft Vorschau und G-Code, damit der alte Slice nicht gesendet wird; volatile Statusdaten und unbekannte Momentaufnahmen werden nicht als Änderung fehlinterpretiert.
+- Tests: SliceTest-JVM `SlicePreparationToolsTest#onlyKnownChangedMmuInventoryInvalidatesASlice` 1/1; Android 16/API 36 `MmuFilamentSyncDeviceTest#sliceInventorySignatureTracksColorMaterialOccupancyAndToolMappingOnly` 1/1. Debug- und Slice-Unit-Gesamtsuiten sowie Release-Build stehen noch aus.
+- Historischer Status nach Punkt 8: Batch 14 stand bei 8/10; Punkte 9 und 10 sowie das vollständige Release-Gate sind weiter oben dokumentiert.
+
 ## Skalierungskorrektur — 2026-11-06
 
 - Ursache: `TransformScaleMenu` rotierte den gespeicherten lokalen Skalierungsvektor beim Anzeigen und Übernehmen ein zweites Mal. Bei gedrehten Modellen konnte eine freie Y-Änderung daher X oder Z ändern.

@@ -454,6 +454,94 @@ extern "C" {
         return result;
     }
 
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_multiline_1infill_1ring_1endpoints_1probe(
+            JNIEnv *env, jclass) {
+        using namespace Slic3r;
+        constexpr double spacing = 0.45;
+        constexpr std::array<InfillPattern, 15> patterns{
+            ipGyroid, ipTpmsD, ipTpmsFK, ipHoneycomb, ipQuarterCubic,
+            ipLateralLattice, ipLateralHoneycomb, ipRectilinear, ipAlignedRectilinear,
+            ipGrid, ipTriangles, ipStars, ipCubic, ipCrossHatch, ipHilbertCurve,
+        };
+        constexpr std::array<double, 3> z_values{12.3, 28.7, 47.9};
+        std::array<jint, 19> results{};
+        jint pattern_index = 1;
+        for (const InfillPattern pattern : patterns) {
+            jint pattern_failures = 0;
+            for (const bool with_hole : {false, true}) {
+                ExPolygon region(Points{
+                    Point::new_scale(0., 0.), Point::new_scale(60., 0.),
+                    Point::new_scale(60., 60.), Point::new_scale(0., 60.),
+                });
+                if (with_hole) {
+                    Polygon hole = make_circle_num_segments(scale_(10.), 60);
+                    hole.translate(Point::new_scale(30., 30.));
+                    hole.reverse();
+                    region.holes.emplace_back(std::move(hole));
+                }
+                const AABBTreeLines::LinesDistancer<Line> walls(
+                    to_lines(offset_ex(ExPolygons{region}, -float(scale_(0.5 * spacing)))));
+                const auto on_wall = [&walls](const Point &point) {
+                    return walls.distance_from_lines<false>(point) < scale_(0.01);
+                };
+                const auto runs_between_walls = [&on_wall](const Polyline &path) {
+                    for (size_t i = 1; i < path.size(); ++i)
+                        if (path.points[i - 1].distance_to(path.points[i]) > scale_(0.1) &&
+                            on_wall(path.points[i - 1]) && on_wall(path.points[i]))
+                            return true;
+                    return false;
+                };
+                for (const double z : z_values) {
+                    std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+                    if (!filler) {
+                        ++pattern_failures;
+                        continue;
+                    }
+                    filler->spacing = spacing;
+                    filler->angle = float(M_PI / 4.);
+                    filler->z = z;
+                    filler->layer_id = size_t(std::lround(z / 0.2));
+                    filler->set_bounding_box(get_extents(region.contour));
+                    FillParams params;
+                    params.pattern = pattern;
+                    params.density = 0.3f;
+                    params.multiline = 2;
+                    params.gyroid_optimized = false;
+                    params.layer_height = 0.2;
+                    params.dont_adjust = true;
+                    Surface surface(stInternal, region);
+                    const Polylines paths = filler->fill_surface(&surface, params);
+                    ++results[0];
+                    if (paths.empty()) {
+                        ++pattern_failures;
+                        if (pattern == ipGrid)
+                            ++results[16];
+                        continue;
+                    }
+                    for (const Polyline &path : paths) {
+                        if (path.first_point() == path.last_point()) {
+                            if (path.size() <= 3) {
+                                ++pattern_failures;
+                                if (pattern == ipGrid) ++results[17];
+                            } else if (!on_wall(path.first_point()) && runs_between_walls(path)) {
+                                ++pattern_failures;
+                                if (pattern == ipGrid) ++results[18];
+                            }
+                        } else if (!on_wall(path.first_point()) || !on_wall(path.last_point())) {
+                            ++pattern_failures;
+                            if (pattern == ipGrid) ++results[18];
+                        }
+                    }
+                }
+            }
+            results[pattern_index++] = pattern_failures;
+        }
+        jintArray result = env->NewIntArray(static_cast<jsize>(results.size()));
+        if (result != nullptr)
+            env->SetIntArrayRegion(result, 0, static_cast<jsize>(results.size()), results.data());
+        return result;
+    }
+
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_mesh_1boolean_1isolated_1vertices_1probe(
             JNIEnv *env, jclass) {
         using namespace Slic3r;

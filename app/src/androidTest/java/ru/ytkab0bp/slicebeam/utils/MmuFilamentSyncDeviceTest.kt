@@ -292,6 +292,43 @@ class MmuFilamentSyncDeviceTest {
         assertNotEquals(before, MmuFilamentSync.assignedGates(title, intArrayOf(0)))
     }
 
+    @Test fun sliceInventorySignatureTracksColorMaterialOccupancyAndToolMappingOnly() {
+        val initial = response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 1, 1, 1))
+        assertNull(sync(initial, full = false).second)
+        val original = requireNotNull(MmuFilamentSync.inventorySignature(title))
+
+        val metadataOnly = response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 1, 1, 1))
+        metadataOnly.getJSONObject("result").getJSONObject("status").getJSONObject("mmu")
+            .put("busy", true).put("last_operation", "unload")
+        assertNull(sync(metadataOnly, full = false).second)
+        assertEquals("volatile MMU status does not invalidate a slice", original,
+            MmuFilamentSync.inventorySignature(title))
+
+        val recolored = response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 1, 1, 1))
+        recolored.getJSONObject("result").getJSONObject("status").getJSONObject("mmu")
+            .getJSONArray("gate_color").put(0, "0000FF")
+        assertNull(sync(recolored, full = false).second)
+        val afterColor = requireNotNull(MmuFilamentSync.inventorySignature(title))
+        assertNotEquals("a physical color change must invalidate the old slice", original, afterColor)
+
+        val rematerialized = response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 1, 1, 1))
+        rematerialized.getJSONObject("result").getJSONObject("status").getJSONObject("mmu")
+            .getJSONArray("gate_material").put(0, "PETG")
+        assertNull(sync(rematerialized, full = false).second)
+        val afterMaterial = requireNotNull(MmuFilamentSync.inventorySignature(title))
+        assertNotEquals("a physical material change must invalidate the old slice", afterColor, afterMaterial)
+
+        val remapped = response(intArrayOf(1, 0, 2, 3), intArrayOf(1, 1, 1, 1))
+        assertNull(sync(remapped, full = false).second)
+        val afterMapping = requireNotNull(MmuFilamentSync.inventorySignature(title))
+        assertNotEquals("a T-to-gate mapping change must invalidate the old slice", afterMaterial, afterMapping)
+
+        val unloaded = response(intArrayOf(1, 0, 2, 3), intArrayOf(0, 1, 1, 1))
+        assertNull(sync(unloaded, full = false).second)
+        assertNotEquals("a slot becoming empty must invalidate the old slice",
+            afterMapping, MmuFilamentSync.inventorySignature(title))
+    }
+
     @Test fun automaticRefreshKeepsTheUsersSingleFilamentCount() {
         requireNotNull(Prefs.getPrefs()).edit().remove("mmu_choice_gates").commit()
         Prefs.setFilamentSlots(listOf(FilamentSlot(0, "ABS")))

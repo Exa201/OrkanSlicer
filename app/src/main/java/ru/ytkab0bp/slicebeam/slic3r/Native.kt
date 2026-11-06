@@ -110,6 +110,8 @@ class Native {
     external fun lightning_distance_field_bounds_probe(): IntArray
     @JvmStatic
     external fun tpms_ring_endpoints_probe(): IntArray
+    @JvmStatic
+    external fun multiline_infill_ring_endpoints_probe(): IntArray
     /** Regression probe for CGAL conversion of meshes with isolated vertex indices. */
     @JvmStatic
     external fun mesh_boolean_isolated_vertices_probe(): DoubleArray
