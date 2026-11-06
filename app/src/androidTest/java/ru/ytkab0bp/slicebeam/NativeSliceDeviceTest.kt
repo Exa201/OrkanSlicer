@@ -2254,6 +2254,54 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test(timeout = 180_000)
+    fun treeSupportBottomContactCachePreservesInterfaceToolpaths() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        process.put("enable_support", "1")
+        process.put("support_type", "tree(auto)")
+        process.put("support_style", "tree_slim")
+        process.put("support_on_build_plate_only", "0")
+        process.put("support_interface_top_layers", "2")
+        process.put("support_interface_bottom_layers", "2")
+        process.put("support_bottom_z_distance", "0.2")
+        process.put("layer_height", "0.2")
+
+        val modelFile = createTwoTierTreeSupportFixture("orca25-tree-bottom-contact-cache.stl")
+        val output = File(context.cacheDir, "orca25-tree-bottom-contact-cache.gcode")
+        val model = Model(modelFile)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.ensureOnBed(0)
+            val interfacePathCounts = (1..2).map { run ->
+                SliceBeam.genCurrentConfig(model)
+                val nativeConfig = SliceBeam.getCurrentConfigFile().readText()
+                assertTrue("two bottom interface layers must reach native slicing", nativeConfig.contains("support_interface_bottom_layers = 2"))
+                assertTrue("the 0.2 mm object/support gap must reach native slicing", nativeConfig.contains("support_bottom_z_distance = 0.2"))
+                result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+                val gcode = output.readText()
+                assertHasExtrusion(gcode)
+                val interfaceSegments = supportExtrusionSegments(gcode).filter { it.type.contains("support interface") }
+                val bottomContactZs = interfaceSegments.map { it.z }.filter { it > 3.0 && it < 4.5 }
+                    .map { kotlin.math.round(it * 1000.0).toLong() }.distinct().sorted()
+                assertEquals("tree support must retain exactly the configured two bottom-contact interface layers (run $run)",
+                    2, bottomContactZs.size)
+                result?.release()
+                result = null
+                output.delete()
+                SliceBeam.getCurrentConfigFile().delete()
+                bottomContactZs.size
+            }
+            Log.i("NativeSliceDeviceTest", "PASS tree bottom-contact slices retained interface paths: $interfacePathCounts")
+        } finally {
+            result?.release()
+            model.release()
+            modelFile.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
     @Test
     fun brimCanFollowElephantFootCompensatedFirstLayerOutline() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -7416,7 +7464,7 @@ class NativeSliceDeviceTest {
         }
     }
 
-    private data class GCodePathSegment(val x0: Double, val y0: Double, val x1: Double, val y1: Double, val z: Double)
+    private data class GCodePathSegment(val x0: Double, val y0: Double, val x1: Double, val y1: Double, val z: Double, val type: String)
 
     private fun supportExtrusionSegments(gcode: String): List<GCodePathSegment> {
         val axisRegex = Regex("(?:^|\\s)([XYZE])(-?(?:\\d+(?:\\.\\d*)?|\\.\\d+))(?=\\s|$)")
@@ -7457,7 +7505,7 @@ class NativeSliceDeviceTest {
                 if (relativeExtrusion) value > 0.0 else value > previous
             } == true
             if (depositing && x != null && y != null && nextX != null && nextY != null) {
-                val segment = GCodePathSegment(x!!, y!!, nextX, nextY, z)
+                val segment = GCodePathSegment(x!!, y!!, nextX, nextY, z, type)
                 if (type.contains("support")) supports += segment
             }
             x = nextX
@@ -7533,10 +7581,10 @@ class NativeSliceDeviceTest {
         maxX: Double,
         maxY: Double,
     ): Double = minOf(
-        pathSegmentDistance(path, GCodePathSegment(minX, minY, maxX, minY, path.z)),
-        pathSegmentDistance(path, GCodePathSegment(maxX, minY, maxX, maxY, path.z)),
-        pathSegmentDistance(path, GCodePathSegment(maxX, maxY, minX, maxY, path.z)),
-        pathSegmentDistance(path, GCodePathSegment(minX, maxY, minX, minY, path.z)),
+        pathSegmentDistance(path, GCodePathSegment(minX, minY, maxX, minY, path.z, path.type)),
+        pathSegmentDistance(path, GCodePathSegment(maxX, minY, maxX, maxY, path.z, path.type)),
+        pathSegmentDistance(path, GCodePathSegment(maxX, maxY, minX, maxY, path.z, path.type)),
+        pathSegmentDistance(path, GCodePathSegment(minX, maxY, minX, minY, path.z, path.type)),
     )
 
     private inline fun withKobraProfile(block: () -> Unit) {
@@ -7847,6 +7895,36 @@ class NativeSliceDeviceTest {
         quad(bottom[0], bottom[3], bottom[2], bottom[1])
         quad(capTop[0], capTop[1], capTop[2], capTop[3])
         stl.append("endsolid stepped_lightning_overhang\n")
+        target.writeText(stl.toString())
+        return target
+    }
+
+    /** A lower shelf, narrow connecting column and upper shelf exercise tree contacts on the model. */
+    private fun createTwoTierTreeSupportFixture(name: String): File {
+        val target = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name)
+        data class P(val x: Double, val y: Double, val z: Double)
+        val stl = StringBuilder("solid tree_bottom_contact_tiers\n")
+        fun triangle(a: P, b: P, c: P) {
+            stl.append("facet normal 0 0 0\nouter loop\n")
+            listOf(a, b, c).forEach { stl.append("vertex ${it.x} ${it.y} ${it.z}\n") }
+            stl.append("endloop\nendfacet\n")
+        }
+        fun box(x0: Double, y0: Double, z0: Double, x1: Double, y1: Double, z1: Double) {
+            val p = listOf(
+                P(x0, y0, z0), P(x1, y0, z0), P(x1, y1, z0), P(x0, y1, z0),
+                P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1),
+            )
+            val faces = arrayOf(
+                intArrayOf(0, 2, 1), intArrayOf(0, 3, 2), intArrayOf(4, 5, 6), intArrayOf(4, 6, 7),
+                intArrayOf(0, 1, 5), intArrayOf(0, 5, 4), intArrayOf(1, 2, 6), intArrayOf(1, 6, 5),
+                intArrayOf(2, 3, 7), intArrayOf(2, 7, 6), intArrayOf(3, 0, 4), intArrayOf(3, 4, 7),
+            )
+            faces.forEach { face -> triangle(p[face[0]], p[face[1]], p[face[2]]) }
+        }
+        box(-15.0, -15.0, 0.0, 15.0, 15.0, 3.0)
+        box(-4.0, -4.0, 2.0, 4.0, 4.0, 17.0)
+        box(-25.0, -25.0, 16.0, 25.0, 25.0, 19.0)
+        stl.append("endsolid tree_bottom_contact_tiers\n")
         target.writeText(stl.toString())
         return target
     }

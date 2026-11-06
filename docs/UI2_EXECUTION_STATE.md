@@ -1,3 +1,11 @@
+# Nightly Orca Batch 13, Punkt 5/10 — 2026-11-06
+
+- Branch `codex/nightly-batch11-next`; Orca-Port-Punkt 5 adaptiert `96ec6164c6` in `TreeSupport::draw_circles()`: Kontaktflächen werden je Objektlayer gecacht, Bounding-Box-gefiltert und nur bis unter Gap-/Interface-Reichweite durchsucht.
+- `NativeSliceDeviceTest#treeSupportBottomContactCachePreservesInterfaceToolpaths` besteht auf Android 16/API 36 (1/1). Ein synthetisches zweistufiges Modell slicet zweimal; beide G-Codes enthalten genau zwei untere Kontakt-Interface-Z-Höhen mit G-Code-Bewegungen. `:app:assembleSliceTest :app:assembleSliceTestAndroidTest :app:compileSliceTestAndroidTestKotlin` war erfolgreich.
+- Ein erster Testvergleich erwartete byte-/reihenfolgegleiche Supportpfade und scheiterte wegen paralleler, nicht deterministisch sortierter Tree-Support-Pfade. Er wurde durch die gezielte fachliche Kontaktlayer-Prüfung ersetzt. Kein Produktfehler daraus abgeleitet.
+- Batch 13: **5/10**, noch kein Batch-APK/Release; gebündelte Regression und Veröffentlichung bleiben bei 10/10 Punkten offen.
+- Nächster konkreter Schritt: Orca-Upstream auf Punkt 6 nach einem noch nicht adaptierten Android-Slice-/UI-Pfad prüfen und einen eigenständigen Regressionstest ergänzen.
+
 # Nightly Arrange Regression — 2026-11-06
 
 - Branch: `codex/nightly-batch11-next`; fix commit `865d22406570aa3ae20f64a4e3ff06706e8a2641` is pushed to `nightly25`.

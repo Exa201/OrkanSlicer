@@ -1,6 +1,14 @@
-# Aktueller Stand — Nightly Batch 13, 4/10 — 2026-11-06
+# Aktueller Stand — Nightly Batch 13, 5/10 — 2026-11-06
 
-Batch 12 ist vollständig mit 10/10 Punkten verifiziert und als `v0.8.435-nightly.1` veröffentlicht. Batch 13: Punkt 1 portiert Orcas natives `Spiral Inset`-Füllmuster; Punkt 2 portiert Orcas Kopierreihenfolge für `By layer` + `As object list`; Punkt 3 portiert Orcas Warnung für Objekt-/Höhenbereichs-Overrides, die Spiral-Vase kontinuierliche Extrusion verhindern. Die nicht blockierende Native-Warnung bleibt am Slice-Ergebnis und erscheint vor dem Senden; nach Bestätigung lässt sich der Sendevorgang fortsetzen. API-36-Native-Slice und Compose-Warndialog jeweils 1/1 bestanden; ARM64-Slice-/Instrumentierungsbuild und Kotlin-Kompilierung erfolgreich. Nächster Schritt: Punkt 4 auswählen und unabhängig testen. Das APK-/Release-Gate bleibt bei 10/10 Punkten plus gebündelter Regression.
+Batch 12 ist vollständig mit 10/10 Punkten verifiziert und als `v0.8.435-nightly.1` veröffentlicht. Batch 13: Punkt 1 portiert Orcas natives `Spiral Inset`-Füllmuster; Punkt 2 portiert Orcas Kopierreihenfolge für `By layer` + `As object list`; Punkt 3 portiert Orcas Warnung für Objekt-/Höhenbereichs-Overrides, die Spiral-Vase kontinuierliche Extrusion verhindern; Punkt 4 schützt leere Compose-Menüflächen davor, Gesten an den 3D-Renderer durchzureichen; Punkt 5 optimiert die Tree-Support-Suche nach unteren Kontaktflächen. API-36-Tests für jeden Punkt sind in den Abschnitten unten vermerkt. Das APK-/Release-Gate bleibt bei 10/10 Punkten plus gebündelter Regression.
+
+### Batch 13, Punkt 5/10 — Tree-Support-Kontaktflächen einmal sammeln und begrenzen
+
+Port von Orca `96ec6164c6`: Tree-Support sammelt die oberen und unteren Objektflächen einmal je Slice statt sie für jede Supportfläche erneut je darunterliegender Objektschicht zu konstruieren. Die Suche verwirft Schichten außerhalb der Kontakt-Bounding-Box und beendet den Abstieg, sobald eine noch tiefere Kontaktfläche außerhalb des Bottom-Gap- und Interface-Bereichs liegt. Dadurch bleibt die Android-Slice-Logik fachlich auf echte Modellkontakte begrenzt und spart wiederholte Polygonarbeit.
+
+`NativeSliceDeviceTest#treeSupportBottomContactCachePreservesInterfaceToolpaths` slicet ein zweistufiges STL zweimal mit Tree-Support, 0,2-mm-Bottom-Gap und zwei unteren Interface-Schichten. Der Test bestätigt, dass die Konfiguration in den Native-Slice gelangt und dass beide Slices genau zwei untere Kontakt-Interface-Z-Höhen mit ausführbaren G-Code-Bewegungen erzeugen. Android 16/API 36: 1/1 bestanden. Die ursprüngliche Idee eines byte-/reihenfolgegleichen G-Code-Vergleichs wurde verworfen, weil Tree-Supports parallel angeordnete Pfade nicht deterministisch sortieren; die fachliche Kontaktlayer-Prüfung ist der verwendete Nachweis. Noch kein APK/Release; Batch-Gate bleibt 10/10 plus gebündelte Regression.
+
+Nächster Schritt: Orca-Upstream-Punkt 6 auf noch nicht adaptierte und Android-erreichbare Slice-/UI-Funktion prüfen.
 
 ### Batch 13, Punkt 3/10 — Warnung bei Spiral-Vase-Overrides
 
