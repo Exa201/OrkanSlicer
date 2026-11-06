@@ -1606,7 +1606,7 @@ class NativeSliceDeviceTest {
         assertEquals("PrintaLot", library.vendor?.get("name"))
         assertEquals("1", library.vendor?.get("filament_library"))
         assertTrue("A material library must not add a placeholder printer", library.printerModels.isEmpty())
-        assertEquals(1, library.filamentConfigs.size)
+        assertEquals("The PrintaLot material library must retain both PLA and PETG", 2, library.filamentConfigs.size)
         assertTrue("PrintaLot's profile must parse without unsupported settings: ${library.loadWarnings}", library.loadWarnings.isEmpty())
         config.filamentConfigs.addAll(library.filamentConfigs)
 
@@ -1644,6 +1644,55 @@ class NativeSliceDeviceTest {
             }
         } finally {
             model?.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun orcaPrintaLotPetgLibraryLoadsIndependentlyAndSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val library = context.assets.open("orca_profiles/PrintaLot.ini").use { Slic3rConfigWrapper(it) }
+        assertEquals("PrintaLot", library.vendor?.get("name"))
+        assertEquals("02.04.00.25", library.vendor?.get("version"))
+        assertTrue("The material library must not create a printer", library.printerModels.isEmpty())
+        assertEquals(2, library.filamentConfigs.size)
+        assertTrue("PrintaLot profiles must load without unknown options: ${library.loadWarnings}", library.loadWarnings.isEmpty())
+        config.filamentConfigs.addAll(library.filamentConfigs)
+
+        val filament = requireNotNull(config.findFilament("PrintaLot PETG"))
+        assertEquals("PrintaLot", filament["filament_vendor"])
+        assertEquals("PETG", filament["filament_type"])
+        assertEquals("0.95", filament["filament_flow_ratio"])
+        assertEquals("17", filament["filament_max_volumetric_speed"])
+        assertEquals("255", filament["first_layer_temperature"])
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", process.title)
+            put("filament", filament.title)
+        }
+
+        val source = copyCube(context, "printalot-petg-library-cube.stl")
+        val output = File(context.cacheDir, "printalot-petg-library-cube.gcode")
+        val model = Model(source)
+        try {
+            model.ensureOnBed(0)
+            SliceBeam.genCurrentConfig(model)
+            val result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            try {
+                val gcode = output.readText()
+                assertHasExtrusion(gcode)
+                assertTrue("PrintaLot PETG's 255 C first-layer temperature must reach the printer start macro",
+                    Regex("G9111 .*extruderTemp=255(?:\\.0+)?(?:\\s|$)").containsMatchIn(gcode))
+            } finally {
+                result.release()
+            }
+        } finally {
+            model.release()
             source.delete()
             output.delete()
             SliceBeam.getCurrentConfigFile().delete()
