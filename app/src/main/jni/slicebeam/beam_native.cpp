@@ -10,6 +10,7 @@
 #include <atomic>
 #include <optional>
 #include <stdexcept>
+#include <cmath>
 
 #include <thread>
 
@@ -27,6 +28,7 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/ParameterUtils.hpp"
 #include "libslic3r/CurledExtrusionUtils.hpp"
+#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/PaintedSegmentationPolicy.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
@@ -6106,6 +6108,46 @@ extern "C" {
         jintArray result = env->NewIntArray(5);
         if (result != nullptr)
             env->SetIntArrayRegion(result, 0, 5, checks);
+        return result;
+    }
+
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_tree_1support_1grouped_1union_1regression(JNIEnv* env, jclass) {
+        using namespace Slic3r;
+        ExPolygons polygons;
+        const auto append_circle = [&polygons](double x, double y, double radius) {
+            Polygon circle;
+            for (int k = 0; k < 32; ++k) {
+                const double angle = 2. * PI * double(k) / 32.;
+                circle.points.emplace_back(Point::new_scale(x + radius * std::cos(angle), y + radius * std::sin(angle)));
+            }
+            polygons.emplace_back(std::move(circle));
+        };
+        // Dense overlapping clusters approximate branch circles from a busy tree-support layer.
+        for (int y = 0; y < 16; ++y)
+            for (int x = 0; x < 32; ++x)
+                append_circle(double(x) * 0.8, double(y) * 0.8, 0.55);
+        for (int y = 0; y < 8; ++y)
+            for (int x = 0; x < 8; ++x)
+                append_circle(60. + double(x) * 0.8, double(y) * 0.8, 0.55);
+
+        const ExPolygons single_union = union_ex(polygons);
+        const ExPolygons grouped_union = union_overlapping_ex(polygons);
+        const double symmetric_difference = area(diff_ex(single_union, grouped_union)) + area(diff_ex(grouped_union, single_union));
+        const bool topology_matches = single_union.size() == grouped_union.size();
+        const bool rounding_is_sub_micron = symmetric_difference < sqr(scaled<double>(0.001));
+
+        ExPolygons small(polygons.begin(), polygons.begin() + 16);
+        const bool small_input_keeps_exact_path = union_overlapping_ex(small) == union_ex(small);
+        const bool empty_input_is_safe = union_overlapping_ex({}).empty();
+        const jint checks[] = {
+            topology_matches ? 1 : 0,
+            rounding_is_sub_micron ? 1 : 0,
+            small_input_keeps_exact_path ? 1 : 0,
+            empty_input_is_safe ? 1 : 0,
+        };
+        jintArray result = env->NewIntArray(4);
+        if (result != nullptr)
+            env->SetIntArrayRegion(result, 0, 4, checks);
         return result;
     }
 

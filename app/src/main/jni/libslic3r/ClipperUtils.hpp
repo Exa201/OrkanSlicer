@@ -553,6 +553,9 @@ Slic3r::ExPolygons union_ex(const Slic3r::Polygons &subject, ClipperLib::PolyFil
 Slic3r::ExPolygons union_ex(const Slic3r::ExPolygons &subject);
 Slic3r::ExPolygons union_ex(const Slic3r::ExPolygons &subject, const Slic3r::Polygons &subject2);
 Slic3r::ExPolygons union_ex(const Slic3r::Surfaces &subject);
+// Faster for large collections of overlapping regions (for example, dense tree-support branches).
+// Grouping can differ from one union by sub-micron rounding.
+Slic3r::ExPolygons union_overlapping_ex(Slic3r::ExPolygons polygons);
 
 Slic3r::ExPolygons union_ex(const Slic3r::ExPolygons& poly1, const Slic3r::ExPolygons& poly2, bool safety_offset_ = false);
 

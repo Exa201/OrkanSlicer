@@ -841,6 +841,46 @@ Slic3r::ExPolygons union_ex(const Slic3r::ExPolygons &subject, const Slic3r::Pol
     { return PolyTreeToExPolygons(clipper_do_polytree(ClipperLib::ctUnion, ClipperUtils::ExPolygonsProvider(subject), ClipperUtils::PolygonsProvider(subject2), ClipperLib::pftNonZero)); }
 Slic3r::ExPolygons union_ex(const Slic3r::Surfaces &subject)
     { return PolyTreeToExPolygons(clipper_do_polytree(ClipperLib::ctUnion, ClipperUtils::SurfacesProvider(subject), ClipperUtils::EmptyPathsProvider(), ClipperLib::pftNonZero)); }
+
+Slic3r::ExPolygons union_overlapping_ex(Slic3r::ExPolygons polygons)
+{
+    constexpr size_t group_size = 16;
+    if (polygons.size() <= group_size)
+        return union_ex(polygons);
+
+    // Clipper's cost grows with edge crossings. In dense branch clusters most edges end up
+    // inside the result, so reduce the input by uniting neighbouring groups first.
+    std::vector<std::pair<coord_t, size_t>> order;
+    order.reserve(polygons.size());
+    for (size_t i = 0; i < polygons.size(); ++i)
+        order.emplace_back(get_extents(polygons[i].contour).min.x(), i);
+    std::sort(order.begin(), order.end());
+
+    std::vector<ExPolygons> groups;
+    groups.reserve((order.size() + group_size - 1) / group_size);
+    for (size_t begin = 0; begin < order.size(); begin += group_size) {
+        ExPolygons group;
+        const size_t end = std::min(order.size(), begin + group_size);
+        group.reserve(end - begin);
+        for (size_t i = begin; i < end; ++i)
+            group.emplace_back(std::move(polygons[order[i].second]));
+        groups.emplace_back(union_ex(group));
+    }
+
+    while (groups.size() > 1) {
+        std::vector<ExPolygons> merged;
+        merged.reserve((groups.size() + 1) / 2);
+        for (size_t i = 0; i + 1 < groups.size(); i += 2) {
+            append(groups[i], std::move(groups[i + 1]));
+            merged.emplace_back(union_ex(groups[i]));
+        }
+        if (groups.size() % 2 == 1)
+            merged.emplace_back(std::move(groups.back()));
+        groups = std::move(merged);
+    }
+    return std::move(groups.front());
+}
+
 // BBS
 Slic3r::ExPolygons union_ex(const Slic3r::ExPolygons& poly1, const Slic3r::ExPolygons& poly2, bool safety_offset_)
     {

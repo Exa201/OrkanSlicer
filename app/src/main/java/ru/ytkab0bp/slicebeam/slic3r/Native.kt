@@ -90,6 +90,9 @@ class Native {
     /** Exercises sparse-infill line joining, loop avoidance, and crossing rejection. */
     @JvmStatic
     external fun joined_infill_regression(): IntArray
+    /** Compares grouped dense-polygon union with a single Clipper union within sub-micron tolerance. */
+    @JvmStatic
+    external fun tree_support_grouped_union_regression(): IntArray
     /** Exercises malformed and valid custom layer-sequence parsing through the production helper. */
     @JvmStatic
     external fun other_layers_print_sequence_regression_probe(): IntArray

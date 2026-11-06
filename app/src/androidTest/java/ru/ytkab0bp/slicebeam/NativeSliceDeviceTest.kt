@@ -86,6 +86,15 @@ class NativeSliceDeviceTest {
         )
     }
 
+    @Test
+    fun treeSupportGroupedUnionPreservesDensePolygonRegions() {
+        assertArrayEquals(
+            "Grouped tree-support unions must preserve topology and stay within sub-micron rounding",
+            intArrayOf(1, 1, 1, 1),
+            Native.tree_support_grouped_union_regression(),
+        )
+    }
+
     @Test(timeout = 120_000)
     fun wipeInwardChangesOnlyTheGeneratedWipePathAndKeepsGcodeValid() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

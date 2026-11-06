@@ -1,3 +1,10 @@
+# Nightly Orca Batch 13, Punkt 6/10 — 2026-11-06
+
+- Branch `codex/nightly-batch11-next`; Orca-Port-Punkt 6 adaptiert `09f8ee54df`: `union_overlapping_ex()` gruppiert große Sammlungen von Tree-Support-Ast-Polygonen vor Clipper-Union. Integration liegt in `TreeSupport::draw_circles()`.
+- Nativer API-36-Probe `NativeSliceDeviceTest#treeSupportGroupedUnionPreservesDensePolygonRegions` bestand 1/1: 576 synthetische Kreise, Topologie, symmetrische Flächendifferenz < 1 µm², sowie exakter <=16-Polygon-Pfad und leere Eingabe. Nach Integration bestanden auch `#treeSupportBottomContactCachePreservesInterfaceToolpaths` 1/1 und `#organicTreeSupportPathsAreStableAcrossRepeatedSlices` 1/1.
+- ARM64-Slice-/Instrumentation-Build und Android-Instrumentierungskompilierung erfolgreich. Kein Timing-Benchmark; der PR beschreibt die Clipper-Aufwandsreduktion, nicht einen gemessenen Laufzeitfaktor. Batch 13: **6/10**, keine Zwischen-APK/Release.
+- Nächster konkreter Schritt: Orca-Änderungen nach Punkt 6 sichten, bereits im Renderer oder Slice-Kern vorhandenes Verhalten ausschließen und Punkt 7 mit Regression umsetzen.
+
 # Nightly Orca Batch 13, Punkt 5/10 — 2026-11-06
 
 - Branch `codex/nightly-batch11-next`; Orca-Port-Punkt 5 adaptiert `96ec6164c6` in `TreeSupport::draw_circles()`: Kontaktflächen werden je Objektlayer gecacht, Bounding-Box-gefiltert und nur bis unter Gap-/Interface-Reichweite durchsucht.
