@@ -1,5 +1,6 @@
 # Nightly execution state — 2026-11-06
 
+- Neue Regression ergänzt und auf Android 16/API 36 bestanden: `InitialProjectMenuDeviceTest#modelMenuArrangeRepacksSeveralMovedObjectsInsteadOfFillingWithCopies`. Vier bestehende Objekte wurden außerhalb der Platte platziert; die sichtbare Compose-Aktion „Platte neu packen“ hat sie zurück angeordnet, die Objektzahl blieb vier. Der Handler ist getrennt von „Mit Kopien füllen“; letztere Aktion allein verwendet weiterhin die Meldung „kein Platz für weitere Kopien“. Diese Bestätigung ist für den aktuellen Nightly-Code; physisches Xiaomi/HONOR ist momentan nicht per ADB verbunden. Der aktuelle Code enthielt den Handler-Fix bereits; der Test ergänzt den Mehrmodellfall.
 - Aktuelle Phase: Nightly-Arrange-Regressionsprüfung abgeschlossen; Orca-Port-Batch 13 bei Punkt 8/10.
 - Abgeschlossene Änderung: Arrange bleibt eine separate plattengroße Aktion; Button heißt „Platte neu packen“. Fill-Bed und Gruppenplatzierung haben getrennte Meldungen. Native Arrange-Fußabdruck wird vereinfacht und konservativ erweitert, exakte Mesh-Überschneidungsprüfung bleibt erhalten. Optionales Hohlraum-Nesting ist auf 512 Kandidatenpositionen pro Modell begrenzt.
 - Code-Commit: `e2ed9672519a815b4d3c7be031516fe0c26b4ad3`, auf `nightly25/codex/nightly-batch11-next` gepusht.

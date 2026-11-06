@@ -6970,6 +6970,67 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun modelMenuArrangeRepacksSeveralMovedObjectsInsteadOfFillingWithCopies() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "menu-arrange-several-off-bed-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                repeat(3) {
+                    val part = Model()
+                    try {
+                        part.addObject(model, 0)
+                        model.addObject(part, 0)
+                    } finally {
+                        part.release()
+                    }
+                }
+                for (index in 0 until model.objectsCount) {
+                    model.translate(index, 2_000.0 + index * 30.0, 2_000.0 + index * 25.0, 0.0)
+                    glView.renderer.invalidateGlModel(index)
+                }
+                glView.renderer.setSelectedObject(0)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("four off-bed objects should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            assertEquals("fixture must contain four separate objects", 4, readObjectCountOnGl(glView))
+            assertTrue("all objects should begin outside the bed", (0..3).all { index ->
+                val position = readTranslationOnGl(glView, index)
+                position.x > 1_000.0 && position.y > 1_000.0
+            })
+
+            openModelMenu(activity)
+            selectAllObjectsScope()
+            val arrangeLabel = activity.getString(R.string.ModelMenuArrangeShort)
+            compose.onNodeWithText(arrangeLabel).performScrollTo().assertIsDisplayed().assertIsEnabled()
+                .performClick()
+            compose.waitUntil(timeoutMillis = 20_000) {
+                (0..3).all { index ->
+                    val position = readTranslationOnGl(glView, index)
+                    position.x < 1_000.0 && position.y < 1_000.0
+                }
+            }
+            assertEquals("Arrange must reposition the four existing objects, not duplicate any", 4,
+                readObjectCountOnGl(glView))
+            assertTrue("every object must be moved back into the bed area", (0..3).all { index ->
+                val position = readTranslationOnGl(glView, index)
+                position.x < 1_000.0 && position.y < 1_000.0
+            })
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun byObjectArrangeUsesActiveClearanceAndKeepsObjectsApart() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
