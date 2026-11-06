@@ -4416,3 +4416,13 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - APK auf API-36-Emulator installiert und gestartet; App-Prozess-Logcat ohne FATAL EXCEPTION, ANR, fatal signal oder OOM.
 - Als Nightly-Prerelease `v0.8.441-nightly.1` veröffentlicht: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.441-nightly.1. Release-Assets: APK und `.sha256`-Sidecar. Die fünf neuesten Releases v0.8.441 bis v0.8.437 bleiben erhalten; v0.8.436 samt Tag entfernt.
 - GitHub-Branch enthält Quell- und Versionscommits; dieser Dokumentationsupdate folgt nach dem Release-Tag und ändert dessen Inhalt nicht. Keine Xiaomi-/Druckerprüfung erfolgt.
+
+## Nightly — Anordnen/Kopien-Aktion geprüft — 2026-11-06
+
+- Screenshot-Befund geprüft: In HEAD `eaf3c1ce33d43928048321d6e3c507c3fcc9d511` ruft „Alle Modelle anordnen“ `GLView.arrange()` → `GLRenderer.arrangeObjects()` → native Plattenanordnung auf. Die Meldung „kein Platz für weitere Kopien“ kommt ausschließlich von „Mit Kopien füllen“ bzw. Duplizieren; es gibt keinen aktiven `MenuArrangeAllObjects`-Handler.
+- German/English Kurzbeschriftung von „Platte neu anordnen“ / „Rearrange plate“ auf „Alle Modelle anordnen“ / „Arrange all models“ präzisiert. Scope-Regression sichert: Arrange betrifft die ganze Platte, Fill Bed bleibt eine auswahlbezogene Kopieraktion.
+- API-36-Gerätetest `arrangeCompactsSixDifferentRealMeshesMovedOutsideBed`: 1/1 bestanden. Sechs verschiedene Meshes wurden vollständig außerhalb der Platte bewegt; die Compose-Plattenaktion packte sie auf die aktive Platte zurück. Frühere Vier-Mesh-Prüfung samt Plattenvorschau bestand ebenfalls 1/1.
+- Debug-Unit: 755/755; Slice-Unit: 755/755; gezielter Gerätetest: 1/1. `:app:assembleDebug` erfolgreich. Emulatorinstallation und Start auf Android 16 erfolgreich; im erfassten Logcat kein FATAL EXCEPTION, ANR oder OOM. Kein Xiaomi-Gerät für einen Hardwarelauf verfügbar.
+- APK Version 0.8.444 / versionCode 479: `OrkanSlicerNightly25_eaf3c1ce33.apk`, 240,610,479 Byte, SHA-256 `1d921e9d7239c877ae5b3f5d22d326e07bcdef8d35d16fd07513d05f1833b39b`.
+- Nightly-Prerelease veröffentlicht: [v0.8.444-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.444-nightly.1). APK und SHA-256-Sidecar sind hochgeladen. Branch `codex/nightly-batch11-next` enthält Commit `eaf3c1ce33`; dieser Ausführungsstatus folgt als Dokumentationscommit.
+- Falls die Kopienmeldung nach Installation von 0.8.444 beim neuen Button „Alle Modelle anordnen“ erscheint, ist das ein neuer, reproduzierbarer Widerspruch zu diesem Gerätetest; Xiaomi-Hardware ist für diesen Fall die noch offene Bestätigung.
