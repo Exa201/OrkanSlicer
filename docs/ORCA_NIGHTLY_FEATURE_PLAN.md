@@ -1,4 +1,6 @@
-# Aktueller Stand — Nightly Batch 13, 9/10 — 2026-11-06
+# Aktueller Stand — Nightly Batch 14, 1/10 — 2026-11-06
+
+Batch 13 wurde mit 10/10 Punkten verifiziert und als `v0.8.450-nightly.1` veröffentlicht. Batch 14 Punkt 1 portiert sechs Recycling-Filamentprofile und ist mit echtem Kobra-3-Slice auf Android 16/API 36 geprüft. Als nächster Orca-2.5-Kandidat ist `b5c4ccd9c5` identifiziert: Beim Laden eines Projekts mit weniger Filamentfarben als Druckwerkzeugen werden die parallelen Farb-/Mapping-Arrays auf die Werkzeugzahl erweitert. Der Port und ein 3MF-/Sync-/Slice-Regressionstest stehen noch aus. Ein separater Skalierungsfehler bei gedrehten Modellen wurde behoben und mit JVM- und Compose/GL-Gerätetests geprüft; er zählt nicht als Orca-Batch-Punkt.
 
 Batch 12 ist vollständig mit 10/10 Punkten verifiziert und als `v0.8.435-nightly.1` veröffentlicht. Batch 13: Punkt 1 portiert Orcas natives `Spiral Inset`-Füllmuster; Punkt 2 portiert Orcas Kopierreihenfolge für `By layer` + `As object list`; Punkt 3 portiert Orcas Warnung für Objekt-/Höhenbereichs-Overrides, die Spiral-Vase kontinuierliche Extrusion verhindern; Punkt 4 schützt leere Compose-Menüflächen davor, Gesten an den 3D-Renderer durchzureichen; Punkt 5 optimiert die Tree-Support-Suche nach unteren Kontaktflächen; Punkt 6 gruppiert Tree-Support-Polygone vor der Clipper-Union. API-36-Tests für jeden Punkt sind in den Abschnitten unten vermerkt. Das APK-/Release-Gate bleibt bei 10/10 Punkten plus gebündelter Regression.
 

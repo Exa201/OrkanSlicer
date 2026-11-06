@@ -7945,6 +7945,124 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun scaleLinkSwitchOffKeepsYAxisIndependentForManualEntry() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "scale-unlinked-y-axis-test.stl")
+        val previousLinked = Prefs.isScaleLinked()
+        val previousMillimeters = Prefs.isScaleInputInMM()
+        Prefs.setScaleLinked(true)
+        Prefs.setScaleInputInMM(false)
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            val original = readScaleOnGl(glView, 0)
+
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.MenuTransformScale)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformScale))
+                .performScrollTo().assertIsDisplayed().performClick()
+            val linkSwitch = compose.onNodeWithTag("scale-linked-switch").performScrollTo().assertIsDisplayed()
+            assertTrue("fixture must start with linked scaling enabled", Prefs.isScaleLinked())
+            linkSwitch.performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !Prefs.isScaleLinked() }
+
+            compose.onNodeWithContentDescription("Y, Y =", substring = true).performClick()
+            val scaleField = compose.onNodeWithText(activity.getString(R.string.ScaleManualPercent))
+            scaleField.performTextClearance()
+            scaleField.performTextInput("150")
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).y - original.y * 1.5) < 0.002
+            }
+
+            val afterY = readScaleOnGl(glView, 0)
+            assertEquals("Y=150% should scale only native Y", original.y * 1.5, afterY.y, 0.002)
+            assertEquals("switching Keep proportions off must preserve native X", original.x, afterY.x, 0.002)
+            assertEquals("switching Keep proportions off must preserve native Z", original.z, afterY.z, 0.002)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).y - original.y) < 0.002
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).y - original.y * 1.5) < 0.002
+            }
+            val afterRedo = readScaleOnGl(glView, 0)
+            assertEquals("redo preserves the independent X factor", original.x, afterRedo.x, 0.002)
+            assertEquals("redo preserves the independent Z factor", original.z, afterRedo.z, 0.002)
+        } finally {
+            Prefs.setScaleLinked(previousLinked)
+            Prefs.setScaleInputInMM(previousMillimeters)
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun unlinkedYAxisScaleStaysIndependentAfterObjectRotation() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "scale-rotated-y-axis-test.stl")
+        val previousLinked = Prefs.isScaleLinked()
+        val previousMillimeters = Prefs.isScaleInputInMM()
+        Prefs.setScaleLinked(false)
+        Prefs.setScaleInputInMM(false)
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+
+            val rotated = CountDownLatch(1)
+            val rotationFailure = AtomicReference<Throwable?>()
+            glView.queueEvent {
+                try {
+                    check(glView.renderer.rotateSelectedObjects(0.0, 0.0, Math.toRadians(90.0)))
+                } catch (error: Throwable) {
+                    rotationFailure.set(error)
+                } finally {
+                    rotated.countDown()
+                }
+            }
+            assertTrue("GL thread did not rotate the test model", rotated.await(10, TimeUnit.SECONDS))
+            rotationFailure.get()?.let { throw AssertionError("Could not rotate the test model", it) }
+            instrumentationWaitForGlIdle()
+            val original = readScaleOnGl(glView, 0)
+
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.MenuTransformScale)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformScale))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription("Y, Y =", substring = true).performScrollTo().performClick()
+            val scaleField = compose.onNodeWithText(activity.getString(R.string.ScaleManualPercent))
+            scaleField.performTextClearance()
+            scaleField.performTextInput("150")
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).y - original.y * 1.5) < 0.002
+            }
+
+            val scaled = readScaleOnGl(glView, 0)
+            assertEquals("after 90-degree object rotation, Y=150% must still change only native Y",
+                original.y * 1.5, scaled.y, 0.002)
+            assertEquals("rotated Y scaling must leave native X unchanged", original.x, scaled.x, 0.002)
+            assertEquals("rotated Y scaling must leave native Z unchanged", original.z, scaled.z, 0.002)
+        } finally {
+            Prefs.setScaleLinked(previousLinked)
+            Prefs.setScaleInputInMM(previousMillimeters)
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun mirrorPanelReflectsSelectedObjectOnEachAxisAndRecordsUndoRedo() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

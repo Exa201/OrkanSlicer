@@ -166,27 +166,16 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
             runCatching {
             val model = snapshot.model
             val current = Vec3d()
-            val rotation = Vec3d()
             model.getScale(index, current)
             val scaleX = current.x
             val scaleY = current.y
             val scaleZ = current.z
 
-            model.getRotation(index, rotation)
-            val matrix = DoubleArray(16)
-            DoubleMatrix.setIdentityM(matrix, 0)
-            DoubleMatrix.rotateM(matrix, 0, Math.toDegrees(rotation.x), 1.0, 0.0, 0.0)
-            DoubleMatrix.rotateM(matrix, 0, Math.toDegrees(rotation.y), 0.0, 1.0, 0.0)
-            DoubleMatrix.rotateM(matrix, 0, Math.toDegrees(rotation.z), 0.0, 0.0, 1.0)
-
-            val projectedScale = doubleArrayOf(scaleX, scaleY, scaleZ, 1.0)
-            DoubleMatrix.multiplyMV(projectedScale, 0, matrix, 0, projectedScale, 0)
-            val sx = abs(projectedScale[0] / projectedScale[3])
-            val sy = abs(projectedScale[1] / projectedScale[3])
-            val sz = abs(projectedScale[2] / projectedScale[3])
-            val dx = 1.0 / sx * target.x
-            val dy = 1.0 / sy * target.y
-            val dz = 1.0 / sz * target.z
+            // Native model scale is stored per object-local axis. Rotating the scale
+            // vector here made a Y edit affect X/Z whenever the object was rotated.
+            val dx = target.x / abs(scaleX).coerceAtLeast(1e-12)
+            val dy = target.y / abs(scaleY).coerceAtLeast(1e-12)
+            val dz = target.z / abs(scaleZ).coerceAtLeast(1e-12)
             if (listOf(dx, dy, dz).all { it.isFinite() && it > 0.0 }) {
                 renderer.prepareSelectionTransformPreview()
                 renderer.setSelectionScale(dx, dy, dz)
@@ -212,22 +201,7 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
             if (!activeRenderer.isSelectionBindingCurrent(snapshot)) return@queueEvent
             val model = activeRenderer.model ?: return@queueEvent
             runCatching {
-                val rotation = Vec3d()
-                val mirror = Vec3d()
-                model.getRotation(index, rotation)
-                val matrix = DoubleArray(16)
-                DoubleMatrix.setIdentityM(matrix, 0)
-                DoubleMatrix.rotateM(matrix, 0, Math.toDegrees(rotation.x), 1.0, 0.0, 0.0)
-                DoubleMatrix.rotateM(matrix, 0, Math.toDegrees(rotation.y), 0.0, 1.0, 0.0)
-                DoubleMatrix.rotateM(matrix, 0, Math.toDegrees(rotation.z), 0.0, 0.0, 1.0)
-                val values = doubleArrayOf(target.x, target.y, target.z, 1.0)
-                DoubleMatrix.multiplyMV(values, 0, matrix, 0, values, 0)
-                var dx = abs(values[0] / values[3])
-                var dy = abs(values[1] / values[3])
-                var dz = abs(values[2] / values[3])
-                model.getMirror(index, mirror)
-                dx *= mirror.x; dy *= mirror.y; dz *= mirror.z
-                if (activeRenderer.scaleSelectedObjects(dx, dy, dz)) {
+                if (activeRenderer.scaleSelectedObjects(target.x, target.y, target.z)) {
                     glView.requestRender()
                     ViewUtils.postOnMainThread { bed.updateModel() }
                 }
@@ -686,7 +660,12 @@ private fun ScaleLinkedControl(
             style = MaterialTheme.typography.labelLarge,
             maxLines = 2,
         )
-        Switch(checked = linked, enabled = enabled, onCheckedChange = onLinkedChanged)
+        Switch(
+            checked = linked,
+            enabled = enabled,
+            onCheckedChange = onLinkedChanged,
+            modifier = Modifier.testTag("scale-linked-switch"),
+        )
     }
 }
 

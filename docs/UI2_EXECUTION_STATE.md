@@ -1,5 +1,12 @@
 # Nightly execution state — 2026-11-06
 
+## Skalierungskorrektur — 2026-11-06
+
+- Ursache: `TransformScaleMenu` rotierte den gespeicherten lokalen Skalierungsvektor beim Anzeigen und Übernehmen ein zweites Mal. Bei gedrehten Modellen konnte eine freie Y-Änderung daher X oder Z ändern.
+- Korrektur: Vorschau und Commit verwenden direkt die nativen objektlokalen Skalierungsachsen. Die sichtbare Einstellung „Proportionen beibehalten“ wurde im Gerätetest betätigt; freie Y-Skalierung auf 150 % ließ X/Z unverändert. Ein zweiter API-36-Test wiederholt die Y-Änderung nach 90° Objektrotation. Undo/Redo wurde mitgeprüft.
+- Verifikation: Debug-Unit 763/763, Slice-Unit 763/763, gezielte Compose/GL-Instrumentierung 2/2; `git diff --check` sauber. Emulator API 36, kein physisches Telefon. Keine APK/Release erstellt; letzter veröffentlichter Nightly bleibt 0.8.451. Diese Bugkorrektur zählt nicht als Orca-Port-Batchpunkt.
+- Nächster Arbeitsschritt: Orca 2.5 `b5c4ccd9c5` auf den aktiven Android-Projektladepfad anwenden und mit kurzem Filamentarray in einem Mehrwerkzeug-3MF einschließlich Sync und Slice reproduzierbar testen. Batch 14 steht bei 1/10.
+
 ## Aktueller Stand — Nightly 0.8.451 — 2026-11-06
 
 - Nutzerfehler „Alle anordnen“ zeigt weiterhin „kein Platz für weitere Kopien“: Arrange war korrekt mit dem plattenweiten Arrange-Handler verdrahtet; zusätzlich konnten aber verspätete asynchrone Fill-Bed-Ergebnisse Kapazitätsmeldungen nach einer Arrange-Aktion ausgeben. Arrange erhöht jetzt ein thread-sicheres Plattenoperations-Token. Fill-Bed-Snapshots werden vor dem nativen Packen und vor Übernahme verworfen, sobald dieses Token wechselt.

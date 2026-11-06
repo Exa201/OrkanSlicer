@@ -23,6 +23,14 @@ class TransformScalePolicyTest {
             TransformScaleRulerValues(1, 80, 125),
             TransformScalePolicy.moveRuler(base, TransformScaleAxis.X, 0, false, TransformScalePolicy.linkOffsets(base)),
         )
+        assertEquals(
+            TransformScaleRulerValues(100, 150, 125),
+            TransformScalePolicy.moveRuler(base, TransformScaleAxis.Y, 150, false, TransformScalePolicy.linkOffsets(base)),
+        )
+        assertEquals(
+            TransformScaleRulerValues(100, 80, 50),
+            TransformScalePolicy.moveRuler(base, TransformScaleAxis.Z, 50, false, TransformScalePolicy.linkOffsets(base)),
+        )
     }
 
     @Test
