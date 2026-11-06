@@ -1,11 +1,16 @@
 # Nightly execution state — 2026-11-06
 
+## Orca Batch 15 — Kandidatenauswahl beginnt; Batch 14 Code-Gate abgeschlossen
+
+- Batch 14 Code-Commit `e1d1af639ae1c3cd94f059d7e0fc07f1e8754cbb` ist auf `codex/nightly-batch11-next` gepusht. Version 0.8.452 / versionCode 487: Debug- und Slice-Unit-Suiten je 764/764 bestanden; API-36-Installation und Start erfolgreich, Logcat ohne Fatal/ANR/OOM. APK SHA-256 `A6D9A8582CF71EE89AED1A60017B48544FDD59D199E87598CD64A7D6CD1D9601`.
+- Release-Versuch `v0.8.452-nightly.1` bleibt Draft, weil GitHub über die aktuelle Verbindung den 240-MB-APK-Asset nicht registriert. Die `.sha256`-Sidecar ist im Draft. `gh release create`, gezielter `gh release upload` und Asset-API-Upload wurden versucht; die großen Dateiübertragungen hingen bzw. endeten mit 404. Draft nicht veröffentlicht und bestehende fünf Releases nicht gelöscht. Erneuter Upload mit stabiler Verbindung ist offen.
+- Nächster Schritt: den nächsten Orca-2.5-Kandidaten anhand des aktuellen Nightly-Aufrufpfads auswählen und für Batch 15 Punkt 1/10 portieren und regressionsprüfen. Parallel bleibt der erneute Upload von APK 0.8.452 zu `v0.8.452-nightly.1` offen.
+
 ## Orca Batch 14 — 10/10 abgeschlossen; Release-Gate läuft
 
 - Punkt 10 portiert Orca `9612260bb5`: abgeschnittene geschlossene Multiline-Infill-Ringe werden nach dem Polygon-Clipping nur für `multiline > 1` wieder zusammengefügt. Geändert sind Adaptive-Cubic, Cross-Hatch, Honeycomb, Lightning, Plane-Path und Rectilinear; zusätzlich wird die Android-spezifische Trapezfüllung nach dem Clipping repariert.
 - Verifikation auf Android 16/API 36: `multilineInfillClippedRingEndpointsStayOnTheBoundary` prüft 15 Muster × Innenloch an/aus × drei Z-Phasen = 90 Fälle; 90 ausgeführt, 0 Pfadfehler. `gyroidAndTpmsClippedRingsKeepTheirEndpointsOnTheBoundary` zusätzlich 1/1 bestanden. ARM64 Slice-/Instrumentation-Build erfolgreich.
-- Batch 14 ist mit 10/10 fokussiert verifizierten Punkten abgeschlossen. Debug-/Slice-Unit-Gesamtsuiten, APK-Build, Installation/Start und Log-Prüfung sind noch offen; danach Nightly-Prerelease erstellen und die Fünf-Release-Aufbewahrung prüfen.
-- Nächster konkreter Schritt: Debug- und Slice-Unit-Suiten parallel ausführen, Fehler beheben, danach Debug-APK bauen und auf dem API-36-Emulator installieren/starten.
+- Historischer Release-Gate-Status vor Abschluss: JVM-Suiten, APK-Build, Installation/Start und Log-Prüfung wurden erledigt; der GitHub-Upload ist im aktuellen Status oben beschrieben.
 
 ## Orca Batch 14 — Punkt 9/10: Flashforge-0,32-mm-Prozess nach Düsenbreite filtern
 
