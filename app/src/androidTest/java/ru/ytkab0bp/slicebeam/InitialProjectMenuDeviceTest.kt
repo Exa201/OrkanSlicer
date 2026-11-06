@@ -3689,7 +3689,7 @@ class InitialProjectMenuDeviceTest {
             compose.runOnUiThread { bed.updateModel() }
             openModelMenu(activity)
             selectAllObjectsScope()
-            compose.onNodeWithText(activity.getString(R.string.ModelMenuArrangeShort))
+            compose.onNodeWithTag("workspace-menu-action-${R.string.ModelMenuArrange}")
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
 
             compose.waitUntil(timeoutMillis = 20_000) {

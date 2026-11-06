@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.447 — Nightly plate arrangement action verification — 2026-11-06
+
+- Verify the plate-wide Arrange action by its stable action ID in the real Compose menu. The regression test loads four models, moves all of them fully outside the plate, invokes Arrange, and checks that all four return inside the active plate without copies being added.
+- Keep Arrange distinct from Fill Bed and selected-group placement, each with its own success or failure feedback.
+
 ## 0.8.440 — Nightly VK navigation icon consistency — 2026-11-05
 
 - Replace the six global navigation icons and additional file, edit, and slice action icons with semantically matched VK Icons vectors.
