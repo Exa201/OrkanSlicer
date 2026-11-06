@@ -1072,6 +1072,7 @@ val handlers = listOf<() -> Unit>(
 Toast.makeText(ctx, R.string.ModelContextDeleted, Toast.LENGTH_SHORT).show() })
     },
     { glView?.fillBedWithSelectedModel({ addedCopies->
+if (addedCopies < 0) return@fillBedWithSelectedModel
 if (addedCopies > 0) updateModel()
 Toast.makeText(ctx,
 if (addedCopies > 0)

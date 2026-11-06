@@ -110,3 +110,11 @@ internal object FillBedModelOperation {
         }
     }
 }
+
+/** Separates an actual capacity failure from a stale asynchronous result. */
+internal object FillBedCallbackResultPolicy {
+    const val STALE = -1
+
+    fun forModelState(stillCurrent: Boolean, addedCopies: Int): Int =
+        if (stillCurrent) addedCopies else STALE
+}

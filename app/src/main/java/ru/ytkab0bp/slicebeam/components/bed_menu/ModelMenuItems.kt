@@ -159,6 +159,9 @@ internal class ModelMenuItems(
             }, enabled = selectedCount >= 2),
             BedComposeMenuAction(R.string.ModelMenuFillBed, R.drawable.picture_stack_outline_28, { anchor ->
                 fragment.glView!!.fillBedWithSelectedModel { addedCopies ->
+                    // A concurrent Arrange invalidates an in-flight copy trial. Its old
+                    // callback is not a capacity result and must not show the no-room toast.
+                    if (addedCopies < 0) return@fillBedWithSelectedModel
                     if (addedCopies > 0) fragment.updateModel()
                     Toast.makeText(
                         anchor.context,
