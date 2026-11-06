@@ -3,10 +3,10 @@
 - Aktuelle Phase: Nightly-Fehlerkorrektur für Plattenanordnung abgeschlossen; der übergeordnete Orca-Port-Batch 13 läuft weiter.
 - Abgeschlossene Änderung: Arrange bleibt eine separate plattengroße Aktion; Button heißt „Platte neu packen“. Fill-Bed und Gruppenplatzierung haben getrennte Meldungen. Native Arrange-Fußabdruck wird vereinfacht und konservativ erweitert, exakte Mesh-Überschneidungsprüfung bleibt erhalten. Optionales Hohlraum-Nesting ist auf 512 Kandidatenpositionen pro Modell begrenzt.
 - Code-Commit: `c2448cb66a84e47dcbc79120b346eeb956134b89`, auf `nightly25/codex/nightly-batch11-next` gepusht.
-- Prüfung: Debug-Unit 756/756; Slice-Unit 756/756. Vier manuell verschobene Modelle wurden zuvor per Compose-Arrange-Button erfolgreich neu angeordnet (API 36, 1/1). Letzter Wiederholungslauf war wegen Emulator-ABI-Mischung x86_64/ARM64 nicht ausführbar; der Sechs-Mesh-Test lud im Wiederholungslauf nur vier Meshes und erreichte Arrange nicht.
+- Prüfung: Debug-Unit 756/756; Slice-Unit 756/756. Erneuter Android-16/API-36-Test: vier Modelle vollständig außerhalb der Druckplatte platziert; tatsächlicher Compose-Button „Platte neu packen“ ordnete alle vier zurück auf die Platte (1/1). ARM64 wurde auf dem x86_64-Emulator per Übersetzung ausgeführt. Physischer Xiaomi/HONOR-Test bleibt offen.
 - APK 0.8.446/code 481 veröffentlicht: [Nightly prerelease](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.446-nightly.1). SHA-256 `c3d80d13a15cf4907597b29bc5a7d4c106bbc829735332496898318a58c1e32c`. Auf API 36 installiert und gestartet, kein Crash/ANR/OOM im geprüften Log.
-- Blocker: physisches Xiaomi/HONOR war nicht per ADB verfügbar; emulatorische Instrumentierung ist wegen ARM64-App auf x86_64-AVD aktuell unzuverlässig.
-- Nächster konkreter Schritt: Test mit den vom Nutzer verwendeten Ringmodellen auf einem ARM64-Gerät wiederholen; danach Orca-Batch 13 bei Punkt 8/10 fortsetzen.
+- Blocker: physisches Xiaomi/HONOR und die vom Nutzer verwendeten Ringmodelle stehen hier nicht für einen direkten Gerätetest bereit.
+- Nächster konkreter Schritt: Arrange-Fix in v0.8.446 auf dem Telefon gegenprüfen lassen; danach Orca-Batch 13 bei Punkt 8/10 fortsetzen.
 # Nightly — Arrange-Retry für manuell verschobene Modelle — 2026-11-06
 
 - Aktueller Fix-Commit: `02b89b9f3834b627639f2545a506d2850255aec3`, Branch `codex/nightly-batch11-next`.

@@ -3657,10 +3657,10 @@ class InitialProjectMenuDeviceTest {
             val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
             val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
             val targetCenters = listOf(
-                bedMin.x + 18.0 to bedMin.y + 18.0,
-                bedMax.x - 18.0 to bedMin.y + 18.0,
-                bedMin.x + 18.0 to bedMax.y - 18.0,
-                bedMax.x - 18.0 to bedMax.y - 18.0,
+                bedMin.x - 25.0 to bedMin.y - 25.0,
+                bedMax.x + 25.0 to bedMin.y - 25.0,
+                bedMin.x - 25.0 to bedMax.y + 25.0,
+                bedMax.x + 25.0 to bedMax.y + 25.0,
             )
             val moveCompleted = CountDownLatch(1)
             glView.queueEvent {
@@ -3678,6 +3678,9 @@ class InitialProjectMenuDeviceTest {
             val movedBounds = readExactBoundsOnGl(glView, 0, 1, 2, 3)
             assertTrue("the fixture must reproduce multiple manually displaced objects",
                 movedBounds.zip(beforeMove).all { (moved, before) -> !moved.contentEquals(before) })
+            assertTrue("all four models must be outside the plate before Arrange",
+                movedBounds.all { bounds -> bounds[0] < bedMin.x || bounds[1] < bedMin.y ||
+                    bounds[3] > bedMax.x || bounds[4] > bedMax.y })
             val movedWidth = movedBounds.maxOf { it[3] } - movedBounds.minOf { it[0] }
             val movedDepth = movedBounds.maxOf { it[4] } - movedBounds.minOf { it[1] }
             assertTrue("models must start spread to the plate corners", movedWidth > (bedMax.x - bedMin.x) * 0.75 &&
