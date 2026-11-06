@@ -29,6 +29,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicLong
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.events.LongClickTranslationEvent
@@ -64,6 +65,10 @@ private var lastX:Float = 0.toFloat()
 private var lastY:Float = 0.toFloat()
 private var lastLength:Float = 0.toFloat()
 private var touchSlop:Int = 0
+// Invalidates asynchronous Fill-Bed snapshots whenever an explicit plate-wide
+// placement action starts. Model geometry revisions remain the primary guard;
+// this token also covers actions that preserve the current transforms.
+private val plateLayoutOperationRevision = AtomicLong(0L)
 private var fromTwoPointers:Boolean = false
 private var onePointerGesture:Boolean = false
 private var twoPointerGesture:Boolean = false
@@ -276,6 +281,7 @@ setWillNotDraw(false)
 }
 fun arrange(onComplete: ((Boolean) -> Unit)? = null) {
     if (renderer.model == null) return
+    plateLayoutOperationRevision.incrementAndGet()
     queueEvent {
         val arranged = renderer.arrangeObjects()
         requestRender()
@@ -302,6 +308,7 @@ queueEvent {
     val modelRevision = activeModel.geometryRevision
     val modelStateRevision = activeModel.stateRevision
     val bedRevision = activeBed.configurationRevision
+    val layoutOperationRevision = plateLayoutOperationRevision.get()
     val estimatedBedCapacity = renderer.estimateBedCapacity(activeModel, activeBed, selectedObject)
     val selectedFilaments = (0 until activeModel.objectsCount).map { activeModel.getUsedFilaments(it) }
     val selectedPaintState = (0 until activeModel.objectsCount).map {
@@ -320,7 +327,9 @@ queueEvent {
     fillBedExecutor.execute {
         val addedCopies = try {
             renderer.fillBedModel(workingModel, selectedObject, viewerEnabled, estimatedBedCapacity) { candidate ->
-                arrangeFillBedCandidateOnGlThread(activeModel, activeBed, bedRevision, candidate)
+                arrangeFillBedCandidateOnGlThread(
+                    activeModel, activeBed, bedRevision, layoutOperationRevision, candidate,
+                )
             }
         } catch (error: Throwable) {
             android.util.Log.e("GLView", "Failed to arrange model copies", error)
@@ -330,6 +339,7 @@ queueEvent {
             val currentModel = renderer.model
             val stillCurrent = currentModel === activeModel && renderer.bed === activeBed &&
                 activeBed.configurationRevision == bedRevision &&
+                plateLayoutOperationRevision.get() == layoutOperationRevision &&
                 renderer.isViewerEnabled == viewerEnabled &&
                 renderer.selectedObject == selectedObject &&
                 activeModel.geometryRevision == modelRevision &&
@@ -355,7 +365,12 @@ queueEvent {
                 ViewUtils.postOnMainThread {
                     isFillBedInProgress = false
                     callback.onFillBedComplete(
-                        FillBedCallbackResultPolicy.forModelState(stillCurrent, committedCopies),
+                        FillBedCallbackResultPolicy.forModelState(
+                            stillCurrent = stillCurrent,
+                            addedCopies = committedCopies,
+                            expectedLayoutOperationRevision = layoutOperationRevision,
+                            currentLayoutOperationRevision = plateLayoutOperationRevision.get(),
+                        ),
                     )
                 }
             }
@@ -369,6 +384,7 @@ private fun arrangeFillBedCandidateOnGlThread(
     expectedModel: Model,
     expectedBed: Bed3D,
     expectedBedRevision: Long,
+    expectedLayoutOperationRevision: Long,
     candidateModel: Model,
 ): Boolean {
     val gate = Any()
@@ -378,7 +394,9 @@ private fun arrangeFillBedCandidateOnGlThread(
         synchronized(gate) {
             if (cancelled) return@queueEvent
             if (renderer.model !== expectedModel || renderer.bed !== expectedBed ||
-                expectedBed.configurationRevision != expectedBedRevision || !expectedBed.isValid()) {
+                expectedBed.configurationRevision != expectedBedRevision ||
+                plateLayoutOperationRevision.get() != expectedLayoutOperationRevision ||
+                !expectedBed.isValid()) {
                 result.complete(false)
                 return@queueEvent
             }

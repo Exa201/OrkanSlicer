@@ -115,6 +115,14 @@ internal object FillBedModelOperation {
 internal object FillBedCallbackResultPolicy {
     const val STALE = -1
 
-    fun forModelState(stillCurrent: Boolean, addedCopies: Int): Int =
-        if (stillCurrent) addedCopies else STALE
+    fun forModelState(
+        stillCurrent: Boolean,
+        addedCopies: Int,
+        expectedLayoutOperationRevision: Long = 0L,
+        currentLayoutOperationRevision: Long = 0L,
+    ): Int = if (stillCurrent && expectedLayoutOperationRevision == currentLayoutOperationRevision) {
+        addedCopies
+    } else {
+        STALE
+    }
 }

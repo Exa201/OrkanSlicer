@@ -1,5 +1,11 @@
 # Nightly execution state — 2026-11-06
 
+## Aktueller Stand — Nightly 0.8.451 — 2026-11-06
+
+- Nutzerfehler „Alle anordnen“ zeigt weiterhin „kein Platz für weitere Kopien“: Arrange war korrekt mit dem plattenweiten Arrange-Handler verdrahtet; zusätzlich konnten aber verspätete asynchrone Fill-Bed-Ergebnisse Kapazitätsmeldungen nach einer Arrange-Aktion ausgeben. Arrange erhöht jetzt ein thread-sicheres Plattenoperations-Token. Fill-Bed-Snapshots werden vor dem nativen Packen und vor Übernahme verworfen, sobald dieses Token wechselt.
+- Android 16/API 36: `InitialProjectMenuDeviceTest#modelMenuArrangeRepacksSeveralMovedObjectsInsteadOfFillingWithCopies` bestanden. Vier gleich große separate STL-Objekte wurden vollständig außerhalb des Betts verschoben und mit dem echten Compose-Menübutton zurück angeordnet; alle vier bleiben erhalten. Debug und Slice JVM jeweils 761/761; Instrumentierung 1/1. Kein Xiaomi/HONOR verbunden.
+- Code wird auf `codex/nightly-batch11-next` als `0.8.451` / code `486` veröffentlicht. APK-Build und Nightly-Prerelease folgen nach Commit und Paketverifikation.
+
 ## Aktueller Stand — Nightly 0.8.450 — 2026-11-06
 
 - Gemeldeter Arrange-Fehler im aktuellen Nightly geprüft: „Platte neu packen“ ist eine eigene plattenweite Aktion; „Mit Kopien füllen“ ist getrennt. Eine verspätete asynchrone Fill-Bed-Antwort konnte nach einer Arrange-Änderung noch den irreführenden Fehler „kein Platz für weitere Kopien“ anzeigen. Solche veralteten Antworten werden jetzt verworfen; echte Kapazitätsfehler nennen ausdrücklich „Mit Kopien füllen“.

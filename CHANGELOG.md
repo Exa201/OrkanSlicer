@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.451 — Nightly plate arrangement feedback race — 2026-11-06
+
+- Invalidate any in-flight Fill Bed result as soon as plate-wide Arrange starts. A stale copy-capacity failure can no longer appear over a successful Arrange or restore its earlier layout.
+- Keep the visible Arrange action and Fill Bed action separate; current capacity errors remain specific to Fill Bed.
+- API-36 Compose instrumentation: four same-size objects moved outside the plate were returned to the active plate by the actual Arrange button; object count stayed four. Debug and Slice unit suites each passed 761/761.
+
 ## 0.8.447 — Nightly plate arrangement action verification — 2026-11-06
 
 - Verify the plate-wide Arrange action by its stable action ID in the real Compose menu. The regression test loads four models, moves all of them fully outside the plate, invokes Arrange, and checks that all four return inside the active plate without copies being added.
