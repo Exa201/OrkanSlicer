@@ -28,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
@@ -324,7 +326,11 @@ private fun WorkspaceMenuHost(
 ) {
     AnimatedContent(
         targetState = slot,
-        modifier = modifier,
+        // The portrait menu floats above the GL viewport. Claim otherwise-unhandled
+        // gestures in its empty padding/gaps so they cannot fall through and rotate,
+        // pick, or paint the model underneath. Clickable/scrollable menu children
+        // consume their own events before this host sees them and keep working normally.
+        modifier = modifier.consumeUnclaimedPointerEvents(),
         transitionSpec = {
             val direction = if (targetState > initialState) 1 else -1
             (slideInHorizontally(tween(220)) { direction * it / 3 } + fadeIn(tween(180))) togetherWith
@@ -334,6 +340,21 @@ private fun WorkspaceMenuHost(
     ) { targetSlot ->
         key(targetSlot) {
             composeContentForSlot(targetSlot)
+        }
+    }
+}
+
+/** Stops pointer events in transparent menu padding from reaching the renderer below. */
+internal fun Modifier.consumeUnclaimedPointerEvents(): Modifier = pointerInput(Unit) {
+    awaitPointerEventScope {
+        while (true) {
+            // Main dispatches from the deepest child back to this host. That lets
+            // a clicked button or scroll container consume first; only empty gaps
+            // remain unconsumed when this parent shields the event.
+            val event = awaitPointerEvent(PointerEventPass.Main)
+            event.changes.forEach { change ->
+                if (!change.isConsumed) change.consume()
+            }
         }
     }
 }

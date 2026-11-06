@@ -6,6 +6,13 @@
 - Released Nightly 0.8.442/code 477 as [v0.8.442-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.442-nightly.1). APK SHA-256: `06d8d092b917689b91ea9817fde87cb86f6084b9dfc309492a5b910481e49e33`. No physical Xiaomi validation: `adb` is unavailable in this environment.
 - Release retention: the five newest prereleases, 0.8.442–0.8.438, remain.
 - Next concrete step: continue the already active Orca feature batch 13 at point 4; avoid counting this arrange regression as an Orca port.
+
+# Nightly Orca Feature Batch 13 — 4/10 — 2026-11-06
+
+- Branch `codex/nightly-batch11-next`; batch points 1–3 remain as documented below. Point 4 adapts Orca `b2978d1c73`: empty areas in the Compose workspace menu overlay now consume otherwise unclaimed pointer input before it can reach the renderer underneath.
+- Device regression `WorkspaceMenuTouchShieldDeviceTest#unclaimedMenuGestureDoesNotReachRendererAndMenuButtonsStillWork`: API 36 passed 1/1. Verified blank-area touch/move isolation and continued button clicks. A custom scroll gesture check failed without the shield too, so it was removed and is not counted as evidence; no scroll claim is made for point 4.
+- Targeted `InitialProjectMenuDeviceTest#modelMenuSelectionActionsFollowGlOwnedModelAndSelectionState` also passed 1/1; it scrolls to a menu action and verifies availability. No batch APK/release yet; release gate remains 10/10 plus batch regression.
+- Next concrete step: inspect current Orca 2.5 upstream commits for point 5, exclude behavior already represented by Android policy/renderer code, and test the selected Android path.
 # OrkanSlicer Nightly — Fortsetzung 2026-11-05
 
 - Branch: `codex/nightly-batch11-next`; Ausgangs-HEAD vor diesem Arbeitsschritt: `1fcfb143f011f351e599e97bb5a74dc9618bbb3f`.

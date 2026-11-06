@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly Batch 13, 3/10 — 2026-11-05
+# Aktueller Stand — Nightly Batch 13, 4/10 — 2026-11-06
 
 Batch 12 ist vollständig mit 10/10 Punkten verifiziert und als `v0.8.435-nightly.1` veröffentlicht. Batch 13: Punkt 1 portiert Orcas natives `Spiral Inset`-Füllmuster; Punkt 2 portiert Orcas Kopierreihenfolge für `By layer` + `As object list`; Punkt 3 portiert Orcas Warnung für Objekt-/Höhenbereichs-Overrides, die Spiral-Vase kontinuierliche Extrusion verhindern. Die nicht blockierende Native-Warnung bleibt am Slice-Ergebnis und erscheint vor dem Senden; nach Bestätigung lässt sich der Sendevorgang fortsetzen. API-36-Native-Slice und Compose-Warndialog jeweils 1/1 bestanden; ARM64-Slice-/Instrumentierungsbuild und Kotlin-Kompilierung erfolgreich. Nächster Schritt: Punkt 4 auswählen und unabhängig testen. Das APK-/Release-Gate bleibt bei 10/10 Punkten plus gebündelter Regression.
 
@@ -9,6 +9,12 @@ Batch 12 ist vollständig mit 10/10 Punkten verifiziert und als `v0.8.435-nightl
 - Die Druckvorbereitung zeigt die Warnung vor dem Upload/Print. Bestätigen merkt die Warnung für den aktuellen Dialoglauf als gelesen; beim nächsten Klick auf „Senden“ wird die Warnung nicht erneut blockierend wiederholt.
 - Der Regressionstest erzeugt einen gültigen Höhenbereich mit eigener Layerhöhe und 25 % Füllung. Die explizite Layerhöhe ist notwendig, damit Orcas Validierung die Layerhöhenkurve sicher berechnen kann.
 - Verifikation auf API 36 (Android 16): `NativeSliceDeviceTest#spiralVaseReportsObjectRangeOverridesBeforePrinterSend` 1/1 bestanden; `SlicePrintPreparationComposeDeviceTest#spiralVaseOverrideWarningIsShownAndRequiresAcknowledgement` 1/1 bestanden; Slice-/Instrumentierungsbuild und Kotlin-Kompilierung erfolgreich.
+
+### Batch 13, Punkt 4/10 — Leere Workspace-Menüflächen fangen keine 3D-Gesten ab
+
+Port von Orca `b2978d1c73`: Touches auf leerem Werkzeugleisten-/Menübereich dürfen nicht als Szenenauswahl, Kamerageste oder Malaktion beim 3D-Viewport ankommen. Der Android-Workspace versieht den über der Druckplatte liegenden Compose-Menühost mit einem Pointer-Handler im Main-Pass. Interaktive Kinder bearbeiten Klicks und Scrolls zuerst; der Host konsumiert nur danach weiterhin unbeanspruchte Eingaben.
+
+API-36-Gerätetest `WorkspaceMenuTouchShieldDeviceTest#unclaimedMenuGestureDoesNotReachRendererAndMenuButtonsStillWork` bestanden (1/1): eine Touch-/Move-Geste auf freier Menüfläche erreicht die darunterliegende AndroidView/Renderer-Testfläche nicht; ein Menübutton bleibt klickbar. Ein zusätzlicher manueller Scrollassertion-Prototyp war selbst ohne Shield fehlerhaft und wird nicht als Scrollbeleg gezählt. Es wird kein Scrollverhalten durch diese Änderung behauptet.
 
 ### Batch 13, Punkt 2/10 — Kopienreihenfolge bei By-layer / As-object-list
 
