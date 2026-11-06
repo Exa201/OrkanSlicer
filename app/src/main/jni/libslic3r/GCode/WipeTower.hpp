@@ -20,6 +20,9 @@ class WipeTowerWriter;
 class PrintConfig;
 enum GCodeFlavor : unsigned char;
 
+// Synchronize queued motion using the command supported by the selected firmware.
+const char* flush_planner_queue_command(GCodeFlavor flavor);
+
 
 class WipeTower
 {

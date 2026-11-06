@@ -16,6 +16,11 @@
 
 namespace Slic3r
 {
+const char* flush_planner_queue_command(GCodeFlavor flavor)
+{
+	return flavor == gcfKlipper ? "M400\n" : "G4 S0\n";
+}
+
 constexpr float         flat_iron_speed                = 10.f * 60.f;
 static const double wipe_tower_wall_infill_overlap = 0.0;
 static constexpr double WIPE_TOWER_RESOLUTION = 0.1;
@@ -1036,7 +1041,9 @@ public:
 
 	WipeTowerWriter& flush_planner_queue()
 	{
-		m_gcode += "G4 S0\n";
+		// Temperature changes synchronize themselves; a toolchange-boundary M400 only stalls Klipper over the tower.
+		if (m_gcode_flavor != gcfKlipper)
+			m_gcode += flush_planner_queue_command(m_gcode_flavor);
 		return *this;
 	}
 

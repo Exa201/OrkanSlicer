@@ -2991,6 +2991,65 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test(timeout = 120_000)
+    fun klipperWipeTowerOmitsNonessentialPlannerStopsButKeepsToolchangeSync() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.20mm Standard"))
+        process.put("enable_prime_tower", "1")
+        process.put("change_filament_gcode", "; TOOLCHANGE_MARK\n")
+        val source = copyCube(context, "klipper-wipe-tower-sync-source.stl")
+        val model = Model(source)
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val output = File(context.cacheDir, "klipper-wipe-tower-sync.gcode")
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 35.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+
+            for (towerType in listOf("type1", "type2")) {
+                process.put("wipe_tower_type", towerType)
+                SliceBeam.genCurrentConfig(model)
+                val result = model.slice(configFile.absolutePath, output.absolutePath, null)
+                try {
+                    val gcode = output.readText()
+                    assertHasExtrusion(gcode)
+                    assertTrue("$towerType must emit a wipe-tower toolchange", gcode.contains("; CP TOOLCHANGE END"))
+                    assertTrue("$towerType must run the custom toolchange marker", gcode.contains("; TOOLCHANGE_MARK"))
+                    val towerStart = gcode.indexOf("WIPE_TOWER_START")
+                    val towerEnd = gcode.indexOf("WIPE_TOWER_END", towerStart)
+                    assertTrue("$towerType must emit a complete wipe-tower region", towerStart >= 0 && towerEnd > towerStart)
+                    val tower = gcode.substring(towerStart, towerEnd)
+                    assertFalse("$towerType must not retain non-Klipper G4 S0 planner syncs", tower.contains("G4 S0"))
+                    assertFalse("$towerType tower travel lines must remain separated for coordinate post-processing",
+                        Regex("(?m)^G1 Y").containsMatchIn(tower))
+                    assertFalse(
+                        "$towerType must not emit a redundant planner sync after the wipe-tower toolchange",
+                        Regex("(?:G4 S0|M400)\\s*G92 E0\\s*; CP TOOLCHANGE END").containsMatchIn(gcode),
+                    )
+                    if (towerType == "type2") {
+                        val towerStart = gcode.indexOf("WIPE_TOWER_START")
+                        assertTrue("type2 must emit the wipe tower", towerStart >= 0)
+                        val marker = gcode.indexOf("; TOOLCHANGE_MARK", towerStart)
+                        assertTrue("type2 tower must contain a custom toolchange marker", marker >= 0)
+                        val previousSync = gcode.lastIndexOf("M400", marker)
+                        assertTrue("type2 must synchronize the unload before custom toolchange G-code; previousSync=$previousSync marker=$marker nearby=" +
+                            gcode.substring((marker - 260).coerceAtLeast(0), marker.coerceAtLeast(0)),
+                            previousSync >= 0 && marker - previousSync < 600)
+                    }
+                } finally {
+                    result.release()
+                }
+            }
+        } finally {
+            model.release()
+            source.delete()
+            output.delete()
+            configFile.delete()
+        }
+    }
+
     @Test
     fun tooThinObjectWithRaftReturnsSlicingErrorInsteadOfCrashing() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
