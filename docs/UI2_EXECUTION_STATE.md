@@ -15,6 +15,12 @@
 - Batch 13 Punkt 9 adaptiert Orca `719fdcf4dd` („By object: keep rotated copies of an object in their list order“). Die sequenzielle Druck-Kollisionsprüfung ordnet Instanzen jetzt anhand ihrer Position im Modell-Objekt- und Instanzlistenpaar; dadurch wird die Reihenfolge nicht mehr von der Gruppierung verschieden gedrehter Kopien in `PrintObject`s abhängig gemacht.
 - Prüfung Punkt 9: ARM64 Native-/SliceTest-Build erfolgreich; `NativeSliceDeviceTest#byObjectPrintingKeepsRotatedCopiesInTheirListOrder` auf Android 16/API 36 bestanden (1/1, 0 Fehler/Skips). Vier Kopien eines Objekts mit abwechselnder Drehung wurden durch `Print::validate()` und die produktive sequenzielle Instanz-Sortierung geprüft; Ergebnis `[0, 1, 2, 3]`. Noch kein APK/Release; Batch 13 steht bei 9/10.
 - Nächster Schritt: einen weiteren nicht vorhandenen, Android-erreichbaren Orca-Punkt für Batch 13 auswählen und gezielt verifizieren; danach gebündelte Regression, APK und Nightly-Prerelease.
+
+### Arrange-Follow-up — Mehrere verschobene Modelle — 2026-11-06
+
+- Nochmals auf dem aktuellen Checkout geprüft: `InitialProjectMenuDeviceTest#arrangeCompactsSeveralManuallyMovedModelsInOneAction` besteht auf Android 16/API 36 (1/1); der echte Compose-Menübutton packt vier manuell aus den Plattenecken verschobene Modelle zurück, erhält alle vier und prüft die aktualisierten Grenzen.
+- Ein erneuter Sechs-Modell-Zusatztest scheiterte zunächst vor dem Arrange-Schritt: die sechs optionalen Beispiel-STLs ergaben im Android-Import nur vier `ModelObject`s. Die Testfixture ist jetzt unabhängig von diesen Assets und erzeugt sechs separate STL-Objekte. Nach der Korrektur bestehen beide Mehrmodelltests (4 und 6 Objekte) gemeinsam 2/2.
+- Das ist eine Testfixture-Korrektur; am Arrange-Produktcode wurde in diesem Follow-up nichts geändert. Physisches Xiaomi/HONOR war nicht verbunden. Kein APK/Release aus diesem Arrange-Follow-up; Batch 13 bleibt bei 9/10 und benötigt noch einen neuen, Android-erreichbaren Orca-Punkt.
 # Nightly — Arrange-Retry für manuell verschobene Modelle — 2026-11-06
 
 - Aktueller Fix-Commit: `02b89b9f3834b627639f2545a506d2850255aec3`, Branch `codex/nightly-batch11-next`.

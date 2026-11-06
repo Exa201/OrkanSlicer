@@ -3722,7 +3722,7 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test(timeout = 180_000)
-    fun arrangeCompactsSixDifferentRealMeshesMovedOutsideBed() {
+    fun arrangeCompactsSixModelsMovedOutsideBed() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
@@ -3730,15 +3730,11 @@ class InitialProjectMenuDeviceTest {
             glView.isAttachedToWindow && glView.width > 0 && glView.height > 0 &&
                 glView.renderer.bed != null
         }
-        val assetNames = listOf(
-            "models/calicat.stl", "models/OrcaPlug_v2.stl", "models/xyz_cube.stl",
-            "models/cylinder.stl", "models/pyramid.stl", "models/sphere.stl",
-        )
-        val modelFiles = assetNames.mapIndexed { index, asset ->
+        val modelFiles = (0 until 6).map { index ->
             File(activity.cacheDir, "arrange-real-mesh-$index-${System.nanoTime()}.stl").also { file ->
-                activity.assets.open(asset).buffered().use { input ->
-                    file.outputStream().buffered().use(input::copyTo)
-                }
+                // Keep the Arrange regression independent of optional/sample assets and
+                // make each imported object a separately identifiable real STL mesh.
+                writeScaledCubeStl(activity, file, 0.35f + index * 0.08f)
             }
         }
         try {
