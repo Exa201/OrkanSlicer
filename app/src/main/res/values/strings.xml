@@ -718,6 +718,7 @@
     <string name="ModelContextMenuTitle">Model actions</string>
     <string name="ModelContextFillBed">Fill bed with this model</string>
     <string name="ModelContextFillBedNoRoom">No more copies fit on the bed.</string>
+    <string name="ModelContextArrangeFailed">Could not arrange all models on the active plate. Check model sizes and available bed area.</string>
     <string name="ModelContextDuplicate">Duplicate</string>
     <string name="ModelContextDuplicated">Model duplicated.</string>
     <string name="ModelContextDelete">Delete</string>

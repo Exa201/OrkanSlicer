@@ -701,6 +701,7 @@
     <string name="ModelContextMenuTitle">Modellaktionen</string>
     <string name="ModelContextFillBed">Druckplatte mit diesem Modell füllen</string>
     <string name="ModelContextFillBedNoRoom">Auf der Druckplatte ist kein Platz für weitere Kopien.</string>
+    <string name="ModelContextArrangeFailed">Die Modelle konnten auf der aktiven Druckplatte nicht angeordnet werden. Prüfe Größe und verfügbaren Platz.</string>
     <string name="ModelContextDuplicate">Duplizieren</string>
     <string name="ModelContextDuplicated">Modell dupliziert.</string>
     <string name="ModelContextDelete">Löschen</string>

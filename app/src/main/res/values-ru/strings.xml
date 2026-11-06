@@ -100,6 +100,7 @@
     <string name="ObjectActionHide">Скрыть</string>
     <string name="ModelContextFillBed">Заполнить стол этой моделью</string>
     <string name="ModelContextFillBedNoRoom">Больше копий не помещается на стол.</string>
+    <string name="ModelContextArrangeFailed">Не удалось расположить все модели на активном столе. Проверьте размеры моделей и свободную область.</string>
     <string name="MenuFileAIGenerator">Модель\nпо фото</string>
     <string name="MenuFileAIGeneratorPleaseWaitSetup">Пожалуйста, подождите…</string>
     <string name="MenuFileAIGeneratorErrorNotLoadedUserAccount">Ошибка: данные о пользователе пока не загружены.</string>

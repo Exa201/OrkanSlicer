@@ -39,7 +39,7 @@ internal class OrientationMenuItems(
                             fragment.updateModel()
                             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationArrangeFinished))
                         } else {
-                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextFillBedNoRoom))
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextArrangeFailed))
                         }
                     }
                 },

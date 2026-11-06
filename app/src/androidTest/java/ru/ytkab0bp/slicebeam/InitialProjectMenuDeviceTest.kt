@@ -3719,7 +3719,7 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test(timeout = 180_000)
-    fun arrangeCompactsFourDifferentRealMeshesAfterManualMoves() {
+    fun arrangeCompactsSixDifferentRealMeshesMovedOutsideBed() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
@@ -3727,7 +3727,10 @@ class InitialProjectMenuDeviceTest {
             glView.isAttachedToWindow && glView.width > 0 && glView.height > 0 &&
                 glView.renderer.bed != null
         }
-        val assetNames = listOf("models/calicat.stl", "models/OrcaPlug_v2.stl", "models/xyz_cube.stl", "models/cylinder.stl")
+        val assetNames = listOf(
+            "models/calicat.stl", "models/OrcaPlug_v2.stl", "models/xyz_cube.stl",
+            "models/cylinder.stl", "models/pyramid.stl", "models/sphere.stl",
+        )
         val modelFiles = assetNames.mapIndexed { index, asset ->
             File(activity.cacheDir, "arrange-real-mesh-$index-${System.nanoTime()}.stl").also { file ->
                 activity.assets.open(asset).buffered().use { input ->
@@ -3758,18 +3761,21 @@ class InitialProjectMenuDeviceTest {
             }
 
             val model = requireNotNull(bed.currentModel)
-            assertEquals("fixture must contain four distinct real meshes", 4, model.objectsCount)
-            val before = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+            assertEquals("fixture must contain six distinct real meshes", 6, model.objectsCount)
+            val indices = (0 until 6).toList()
+            val before = readExactBoundsOnGl(glView, *indices.toIntArray())
             val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
             val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
             val targets = before.mapIndexed { index, bounds ->
                 val halfWidth = (bounds[3] - bounds[0]) / 2.0
                 val halfDepth = (bounds[4] - bounds[1]) / 2.0
                 when (index) {
-                    0 -> bedMin.x + halfWidth + 5.0 to bedMin.y + halfDepth + 5.0
-                    1 -> bedMax.x - halfWidth - 5.0 to bedMin.y + halfDepth + 5.0
-                    2 -> bedMin.x + halfWidth + 5.0 to bedMax.y - halfDepth - 5.0
-                    else -> bedMax.x - halfWidth - 5.0 to bedMax.y - halfDepth - 5.0
+                    0, 4 -> bedMin.x - halfWidth - 12.0 to
+                        (bedMin.y + bedMax.y) / 2.0 + if (index == 0) -24.0 else 24.0
+                    1, 3 -> bedMax.x + halfWidth + 12.0 to
+                        (bedMin.y + bedMax.y) / 2.0 + if (index == 1) -24.0 else 24.0
+                    2 -> (bedMin.x + bedMax.x) / 2.0 - 24.0 to bedMin.y - halfDepth - 12.0
+                    else -> (bedMin.x + bedMax.x) / 2.0 + 24.0 to bedMax.y + halfDepth + 12.0
                 }
             }
             val moved = CountDownLatch(1)
@@ -3784,9 +3790,10 @@ class InitialProjectMenuDeviceTest {
                 moved.countDown()
             }
             assertTrue("manual moves must complete", moved.await(10, TimeUnit.SECONDS))
-            val movedBounds = readExactBoundsOnGl(glView, 0, 1, 2, 3)
-            assertTrue("all four real meshes must be visibly displaced",
-                movedBounds.zip(before).all { (after, original) -> !after.contentEquals(original) })
+            val movedBounds = readExactBoundsOnGl(glView, *indices.toIntArray())
+            assertTrue("all six real meshes must start completely outside the build plate",
+                movedBounds.all { bounds -> bounds[0] < bedMin.x || bounds[3] > bedMax.x ||
+                    bounds[1] < bedMin.y || bounds[4] > bedMax.y })
 
             val previewRevisionField = BedFragment::class.java.getDeclaredField("platePreviewRevision")
                 .apply { isAccessible = true }
@@ -3796,14 +3803,14 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithText(activity.getString(R.string.ModelMenuArrangeShort))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
             compose.waitUntil(timeoutMillis = 10_000) {
-                val bounds = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+                val bounds = readExactBoundsOnGl(glView, *indices.toIntArray())
                 val width = bounds.maxOf { it[3] } - bounds.minOf { it[0] }
                 val depth = bounds.maxOf { it[4] } - bounds.minOf { it[1] }
                 width < (bedMax.x - bedMin.x) * 0.9 && depth < (bedMax.y - bedMin.y) * 0.9 &&
                     previewRevisionField.getInt(bed) > previewRevisionBefore
             }
-            assertEquals("Arrange must keep these four models on one plate", 1, bed.plateCount)
-            val after = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+            assertEquals("Arrange must keep these six models on one plate", 1, bed.plateCount)
+            val after = readExactBoundsOnGl(glView, *indices.toIntArray())
             after.forEachIndexed { index, bounds ->
                 assertTrue("real mesh $index must remain on the active build plate",
                     bounds[0] >= bedMin.x - 0.1 && bounds[1] >= bedMin.y - 0.1 &&
