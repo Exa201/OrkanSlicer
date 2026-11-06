@@ -1545,6 +1545,59 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun orcaPrusaXlNozzleProfilesUseValidDeretractionSpeedAndSlice() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+        val previousConfig = SliceBeam.CONFIG
+        val source = copyCube(context, "prusa-xl-deretraction-speed.stl")
+        val output = File(context.cacheDir, "prusa-xl-deretraction-speed.gcode")
+        var model: Model? = null
+        try {
+            val config = context.assets.open("orca_profiles/Prusa.ini").use { Slic3rConfigWrapper(it) }
+            SliceBeam.CONFIG = config
+            val expectedPrinters = listOf("0.25", "0.3", "0.4", "0.5", "0.6", "0.8")
+                .flatMap { nozzle -> listOf("Prusa XL $nozzle nozzle", "Prusa XL 5T $nozzle nozzle") }
+            assertEquals(12, expectedPrinters.size)
+            for (printerName in expectedPrinters) {
+                val printer = requireNotNull(config.findPrinter(printerName))
+                val expectedSpeed = if (printerName.contains("0.8 nozzle")) "15" else "25"
+                assertEquals("$printerName must use Orca's valid deretraction key value", expectedSpeed, printer["deretract_speed"])
+            }
+
+            val printer = requireNotNull(config.findPrinter("Prusa XL 0.25 nozzle"))
+            val process = requireNotNull(config.findPrint("0.16mm Standard"))
+            val filament = requireNotNull(config.findFilament("Prusa Generic PLA"))
+            // The current native validator requires the reset in layer_gcode; this test focuses on
+            // the machine-key migration and supplies that required reset without changing the preset.
+            printer.put("layer_gcode", "G92 E0")
+            config.presets = ConfigObject("presets").apply {
+                put("printer", printer.title)
+                put("print", process.title)
+                put("filament", filament.title)
+            }
+            model = Model(source).also { it.ensureOnBed(0) }
+            SliceBeam.genCurrentConfig(model!!)
+            val generatedConfig = SliceBeam.getCurrentConfigFile().readText()
+            assertTrue("The corrected machine value must reach the effective native slice config",
+                Regex("(?m)^deretraction_speed\\s*=\\s*25\\s*$").containsMatchIn(generatedConfig))
+            val slice = model!!.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            try {
+                assertHasExtrusion(output.readText())
+            } finally {
+                slice.release()
+            }
+        } finally {
+            SliceBeam.CONFIG = previousConfig
+            model?.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun orca3DFuelMaterialLibraryLoadsIndependentlyAndSlicesRepresentativeFilaments() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)
