@@ -1,3 +1,11 @@
+# Nightly — Arrange-Retry für manuell verschobene Modelle — 2026-11-06
+
+- Aktueller Fix-Commit: `02b89b9f3834b627639f2545a506d2850255aec3`, Branch `codex/nightly-batch11-next`.
+- „Alle Modelle anordnen“ bleibt eine separate Plattenaktion. Es versucht 6 mm, 2 mm und danach 0,5 mm Mindestabstand; vor jedem Retry werden mögliche Teilverschiebungen restauriert. Die native Footprint-Prüfung lehnt reale Überschneidungen weiterhin ab.
+- Tests: `PlateArrangeFallbackTest` 4/4; Android-16/API-36 `arrangeCompactsSeveralManuallyMovedModelsInOneAction` 1/1 sowie `arrangeCompactsSixDifferentRealMeshesMovedOutsideBed` 1/1. Der API-Test prüft erfolgreiche Neuplatzierung und Plattenvorschau. Physisches Xiaomi nicht über ADB verbunden.
+- APK 0.8.445/code 480: `OrkanSlicerNightly25_02b89b9f38.apk`, 240,610,477 Byte, SHA-256 `67e98b3584635c9a86787d176bef060e05fabf8c4fd9f3a4cdd9976cb59ecf04`. Auf API 36 installiert und gestartet; gefiltertes Crash-Log ohne Treffer.
+- Nightly-Prerelease: [v0.8.445-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.445-nightly.1), APK und SHA-256-Sidecar hochgeladen. Nächster konkreter Schritt: am Xiaomi mit den betroffenen Qidi-Modellen testen; die aktuelle Hardware-Regression ist noch nicht bestätigt.
+
 # Nightly-Plattenanordnung — Regression behoben — 2026-11-06
 
 - Auf `codex/nightly-batch11-next` bleibt „Platte neu anordnen“ von „Mit Kopien füllen“ getrennt. Der bestehende Arrange-Handler rief bereits die plattengroße native Anordnung auf; die Kopienmeldung kam aus anderen Aktionen. Die Kurzbeschriftung ist jetzt eindeutig, und auf den üblichen 6-mm-Packversuch folgt bei Platzmangel ein 2-mm-Retry wie beim Import.
