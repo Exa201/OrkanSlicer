@@ -6,11 +6,14 @@ internal object PlateArrangeFallback {
         arrangeWithNormalSpacing: () -> Boolean,
         restoreOriginalPositions: () -> Unit,
         arrangeCompactly: () -> Boolean,
+        arrangeWithMinimumGap: () -> Boolean,
     ): Boolean {
         if (arrangeWithNormalSpacing()) return true
         restoreOriginalPositions()
-        val compactSucceeded = arrangeCompactly()
-        if (!compactSucceeded) restoreOriginalPositions()
-        return compactSucceeded
+        if (arrangeCompactly()) return true
+        restoreOriginalPositions()
+        val minimumGapSucceeded = arrangeWithMinimumGap()
+        if (!minimumGapSucceeded) restoreOriginalPositions()
+        return minimumGapSucceeded
     }
 }

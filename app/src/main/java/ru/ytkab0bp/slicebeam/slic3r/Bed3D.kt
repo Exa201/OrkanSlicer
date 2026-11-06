@@ -76,6 +76,16 @@ open class Bed3D {
         ru.ytkab0bp.slicebeam.SliceBeam.buildCurrentConfigObjectOrNull()?.serialize().orEmpty(),
     )
 
+    /** Retries an interactive plate pack with an explicit, still-positive object gap. */
+    @Synchronized
+    open fun arrangeWithDistance(model: Model, minDistanceMm: Double): Boolean =
+        Native.bed_arrange_with_distance(
+            pointer,
+            model.pointer,
+            ru.ytkab0bp.slicebeam.SliceBeam.buildCurrentConfigObjectOrNull()?.serialize().orEmpty(),
+            minDistanceMm.coerceAtLeast(0.5),
+        )
+
     /** A tighter positive gap for import packing; interactive arrange keeps the 6 mm default. */
     @Synchronized
     open fun arrangeCompact(model: Model): Boolean = Native.bed_arrange_with_distance(

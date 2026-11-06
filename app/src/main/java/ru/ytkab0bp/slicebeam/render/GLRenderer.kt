@@ -2164,6 +2164,10 @@ fun arrangeObjects(): Boolean {
         arrangeWithNormalSpacing = { activeBed.arrange(activeModel) },
         restoreOriginalPositions = ::restoreOriginalPositions,
         arrangeCompactly = { activeBed.arrangeCompact(activeModel) },
+        // The bed packer also enforces exact projected-mesh non-overlap. If ordinary
+        // safety spacing rejects a plate layout, allow a narrow but positive 0.5 mm gap
+        // before reporting that otherwise usable bed space is unavailable.
+        arrangeWithMinimumGap = { activeBed.arrangeWithDistance(activeModel, 0.5) },
     )
     activeModel.resetBoundingBox()
     resetGlModels()
