@@ -1,12 +1,14 @@
 # Nightly execution state — 2026-11-06
 
-- Aktuelle Phase: Nightly-Fehlerkorrektur für Plattenanordnung abgeschlossen; der übergeordnete Orca-Port-Batch 13 läuft weiter.
+- Aktuelle Phase: Nightly-Arrange-Regressionsprüfung abgeschlossen; der übergeordnete Orca-Port-Batch 13 läuft weiter.
 - Abgeschlossene Änderung: Arrange bleibt eine separate plattengroße Aktion; Button heißt „Platte neu packen“. Fill-Bed und Gruppenplatzierung haben getrennte Meldungen. Native Arrange-Fußabdruck wird vereinfacht und konservativ erweitert, exakte Mesh-Überschneidungsprüfung bleibt erhalten. Optionales Hohlraum-Nesting ist auf 512 Kandidatenpositionen pro Modell begrenzt.
-- Code-Commit: `c2448cb66a84e47dcbc79120b346eeb956134b89`, auf `nightly25/codex/nightly-batch11-next` gepusht.
-- Prüfung: Debug-Unit 756/756; Slice-Unit 756/756. Erneuter Android-16/API-36-Test: vier Modelle vollständig außerhalb der Druckplatte platziert; tatsächlicher Compose-Button „Platte neu packen“ ordnete alle vier zurück auf die Platte (1/1). ARM64 wurde auf dem x86_64-Emulator per Übersetzung ausgeführt. Physischer Xiaomi/HONOR-Test bleibt offen.
-- APK 0.8.446/code 481 veröffentlicht: [Nightly prerelease](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.446-nightly.1). SHA-256 `c3d80d13a15cf4907597b29bc5a7d4c106bbc829735332496898318a58c1e32c`. Auf API 36 installiert und gestartet, kein Crash/ANR/OOM im geprüften Log.
-- Blocker: physisches Xiaomi/HONOR und die vom Nutzer verwendeten Ringmodelle stehen hier nicht für einen direkten Gerätetest bereit.
-- Nächster konkreter Schritt: Arrange-Fix in v0.8.446 auf dem Telefon gegenprüfen lassen; danach Orca-Batch 13 bei Punkt 8/10 fortsetzen.
+- Code-Commit: `e2ed9672519a815b4d3c7be031516fe0c26b4ad3`, auf `nightly25/codex/nightly-batch11-next` gepusht.
+- Root cause des falschen Toasts: Die aktuelle Arrange-Aktion ruft den plateweiten Arrange-Handler auf. Die Meldung „kein Platz für weitere Kopien“ gehörte zu Fill-Bed/Duplizieren und war in älteren Nightly-Ständen außerdem als generischer Fehlertext bei anderen Modellaktionen wiederverwendet. Die aktuelle UI zeigt „Platte neu packen“; der Screenshot mit „Alle anordnen“ entspricht damit nicht der aktuellen Oberfläche. Der Release 0.8.447 enthält die getrennten Handler/Fehlermeldungen und prüft den Arrange-Aufruf anhand seiner stabilen Action-ID.
+- Prüfung: `InitialProjectMenuDeviceTest#arrangeCompactsSeveralManuallyMovedModelsInOneAction` auf Android 16/API 36 bestanden, 1/1. Vier separate Modelle wurden aus vollständig außerhalb liegenden Positionen mit dem echten Compose-Aktionsbutton auf die Platte zurückgepackt; Objektzahl blieb vier, alle Modelle innerhalb der Platte und ohne Überlappung. Der x86_64-Emulator führte ARM64-Nativecode per Übersetzung aus. Physischer Xiaomi/HONOR-Test bleibt offen.
+- `:app:assembleRelease` erfolgreich. APK `OrkanSlicerNightly25_e2ed967251.apk`, 230,242,218 Byte, Version 0.8.447/code 482, Paket `com.exa201.orkanslicer.nightly25`, SHA-256 `5f6fea996938c3c52af12a204cb6b30e73c0775a64491460295a933c31039af2`. Signatur verifiziert. Installation und Start auf API 36 bestanden; keine Crash-/ANR-/Fatal-Signal-/OOM-Treffer in den geprüften 2.500 Logcat-Zeilen.
+- Nightly-Vorabversion [v0.8.447-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.447-nightly.1); GitHub-APK-Digest stimmt mit SHA-256 überein, Prüfsummen-Sidecar hochgeladen. Retention: nur die fünf neuesten Releases 0.8.443–0.8.447 behalten, 0.8.442 entfernt.
+- Blocker: Physisches Xiaomi/HONOR und die betroffenen Ringmodelle stehen hier nicht für einen direkten Hardwaretest bereit. Das frühere APK-Paketieren des Debug-Variants blockierte wegen einer anderweitig geöffneten alten APK; der getrennte Release-Variant wurde erfolgreich gebaut.
+- Nächster konkreter Schritt: Orca-Batch 13 an Punkt 8/10 fortsetzen und den noch offenen Klipper-Wipe-Tower-Temperaturzweig mit einem gültigen Interface-Feature-Fixture gezielt testen.
 # Nightly — Arrange-Retry für manuell verschobene Modelle — 2026-11-06
 
 - Aktueller Fix-Commit: `02b89b9f3834b627639f2545a506d2850255aec3`, Branch `codex/nightly-batch11-next`.

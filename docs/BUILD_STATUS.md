@@ -15,6 +15,14 @@
 - Retained the newest five Nightly prereleases: 0.8.442 through 0.8.438; removed 0.8.437 and its tag.
 # Build Status
 
+## Nightly 2.5 Arrange action verification — 2026-11-06 — 0.8.447
+
+- Release [`v0.8.447-nightly.1`](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.447-nightly.1), source commit `e2ed9672519a815b4d3c7be031516fe0c26b4ad3`; app 0.8.447/code 482, package `com.exa201.orkanslicer.nightly25`.
+- ARM64 APK `OrkanSlicerNightly25_e2ed967251.apk`, 230,242,218 bytes; SHA-256 `5f6fea996938c3c52af12a204cb6b30e73c0775a64491460295a933c31039af2`. APK signature verified; GitHub digest matches; `.sha256` sidecar uploaded.
+- API-36 Android instrumentation `InitialProjectMenuDeviceTest#arrangeCompactsSeveralManuallyMovedModelsInOneAction` passed 1/1 after switching the test to the stable Arrange action ID. Four models fully outside the plate were packed back inside from the actual Compose action; object count remained four and bounds did not overlap.
+- Installed and launched on the API-36 emulator; package version 0.8.447/code 482 verified. Sampled 2,500 Logcat lines had no crash, ANR, fatal signal, or OOM markers. No physical phone was connected.
+- The five latest Nightly prereleases retained: v0.8.447, v0.8.446, v0.8.445, v0.8.444, and v0.8.443. v0.8.442 and its tag were removed.
+
 ## Nightly 2.5 Arrange-Retry prerelease — 2026-11-06 — 0.8.445
 
 - Release [v0.8.445-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.445-nightly.1), source commit `02b89b9f3834b627639f2545a506d2850255aec3`; app 0.8.445/code 480, package `com.exa201.orkanslicer.nightly25`.
