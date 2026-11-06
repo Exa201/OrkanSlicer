@@ -1700,6 +1700,76 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun orcaRecycledFilamentLibrariesLoadAndReachRealSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val libraries = listOf(
+            "EverLoop.ini" to "EverLoop",
+            "Recycling Fabrik.ini" to "Recycling Fabrik",
+        )
+        for ((file, vendorName) in libraries) {
+            val library = context.assets.open("orca_profiles/$file").use { Slic3rConfigWrapper(it) }
+            assertEquals(vendorName, library.vendor?.get("name"))
+            assertEquals("02.04.00.25", library.vendor?.get("version"))
+            assertEquals("1", library.vendor?.get("filament_library"))
+            assertTrue("A material library must not add a printer", library.printerModels.isEmpty())
+            assertTrue("$vendorName profiles must parse without unsupported settings: ${library.loadWarnings}",
+                library.loadWarnings.isEmpty())
+            config.filamentConfigs.addAll(library.filamentConfigs)
+        }
+        assertEquals(
+            setOf("EverLoop rPETG Premium", "EverLoop rPLA Premium", "EverLoop rPLA Premium Matte",
+                "Recycling Fabrik rABS", "Recycling Fabrik rPETG", "Recycling Fabrik rPLA"),
+            listOf(
+                "EverLoop rPETG Premium", "EverLoop rPLA Premium", "EverLoop rPLA Premium Matte",
+                "Recycling Fabrik rABS", "Recycling Fabrik rPETG", "Recycling Fabrik rPLA",
+            ).filter { config.findFilament(it) != null }.toSet(),
+        )
+
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val source = copyCube(context, "recycled-filament-library-cube.stl")
+        val model = Model(source)
+        try {
+            model.ensureOnBed(0)
+            for ((profileName, expectedType, expectedTemperature) in listOf(
+                Triple("EverLoop rPETG Premium", "PETG", 245),
+                Triple("Recycling Fabrik rPLA", "PLA", 220),
+            )) {
+                val filament = requireNotNull(config.findFilament(profileName))
+                assertEquals(expectedType, filament["filament_type"])
+                assertEquals(expectedTemperature.toString(), filament["first_layer_temperature"])
+                config.presets = ConfigObject("presets").apply {
+                    put("printer", printer.title)
+                    put("print", process.title)
+                    put("filament", filament.title)
+                }
+                SliceBeam.genCurrentConfig(model)
+                val output = File(context.cacheDir, "${profileName.replace(' ', '-')}.gcode")
+                try {
+                    val result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+                    try {
+                        val gcode = output.readText()
+                        assertHasExtrusion(gcode)
+                        assertTrue("$profileName first-layer temperature must reach the printer start macro",
+                            Regex("G9111 .*extruderTemp=$expectedTemperature(?:\\.0+)?(?:\\s|$)")
+                                .containsMatchIn(gcode))
+                    } finally {
+                        result.release()
+                    }
+                } finally {
+                    output.delete()
+                    SliceBeam.getCurrentConfigFile().delete()
+                }
+            }
+        } finally {
+            model.release()
+            source.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun orcaBlocksRf50SixTenthNozzleKeepsPressureAdvanceAsExecutableGcode() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
