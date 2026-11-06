@@ -82,6 +82,9 @@ class Native {
     /** Verifies shared-nozzle multi-material presets stay at one after filament deletion. */
     @JvmStatic
     external fun shared_nozzle_filament_count_regression(): IntArray
+    /** Verifies AMS sync keeps an inherited user filament override while updating tray color. */
+    @JvmStatic
+    external fun ams_sync_preserves_inherited_filament_regression(): IntArray
     /** Loads a short-filament multi-tool project, checks paired arrays, then overwrites all tray slots. */
     @JvmStatic
     external fun short_project_filament_arrays_regression(): IntArray

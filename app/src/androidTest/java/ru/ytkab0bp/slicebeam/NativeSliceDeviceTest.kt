@@ -87,6 +87,15 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun amsSyncPreservesInheritedUserFilamentOverrides() {
+        assertArrayEquals(
+            "AMS sync must retain the inherited custom PLA preset and its speed override while updating tray color",
+            intArrayOf(1, 75, 1, 1),
+            Native.ams_sync_preserves_inherited_filament_regression(),
+        )
+    }
+
+    @Test
     fun projectWithFewerFilamentsThanToolsKeepsAllSlotArraysInSync() {
         assertArrayEquals(
             "Project load must extend parallel slot arrays, preserve imported colors, and complete a four-tray overwrite sync",

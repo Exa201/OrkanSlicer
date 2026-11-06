@@ -6121,6 +6121,83 @@ extern "C" {
         }
     }
 
+    // Confirms a tray sync updates the physical color while retaining an inherited
+    // compatible user preset and its custom extrusion-speed override.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_ams_1sync_1preserves_1inherited_1filament_1regression(
+        JNIEnv* env, jclass)
+    {
+        try {
+            PresetBundle bundle;
+            const std::string system_name = "Nightly System PLA";
+            const std::string custom_name = "Nightly Custom PLA";
+            const std::string filament_id = "NIGHTLY_AMS_SYNC_PLA";
+
+            DynamicPrintConfig system_config = DynamicPrintConfig::full_print_config();
+            system_config.set_num_extruders(1);
+            system_config.set_key_value("filament_type", new ConfigOptionStrings({"PLA"}));
+            system_config.set_key_value("filament_settings_id", new ConfigOptionStrings({system_name}));
+            system_config.set_key_value("filament_max_volumetric_speed", new ConfigOptionFloats({12.0}));
+            Preset& system = bundle.filaments.load_preset("nightly-system-pla", system_name, std::move(system_config), false);
+            system.is_system = true;
+            system.is_compatible = true;
+            system.filament_id = filament_id;
+
+            DynamicPrintConfig custom_config = system.config;
+            custom_config.set_key_value("inherits", new ConfigOptionString(system_name));
+            custom_config.set_key_value("filament_settings_id", new ConfigOptionStrings({custom_name}));
+            custom_config.set_key_value("filament_max_volumetric_speed", new ConfigOptionFloats({7.5}));
+            Preset& custom = bundle.filaments.load_preset("nightly-custom-pla", custom_name, std::move(custom_config), false);
+            custom.is_system = false;
+            custom.is_compatible = true;
+            custom.filament_id = filament_id;
+            bundle.filament_presets = {custom_name};
+
+            bundle.project_config = DynamicPrintConfig::full_print_config();
+            bundle.project_config.set_num_extruders(1);
+            bundle.project_config.set_key_value("filament_colour", new ConfigOptionStrings({"#111111"}));
+            bundle.project_config.set_key_value("filament_colour_type", new ConfigOptionStrings({"1"}));
+            bundle.project_config.set_key_value("filament_multi_colour", new ConfigOptionStrings({"#111111"}));
+            bundle.project_config.set_key_value("filament_map", new ConfigOptionInts({1}));
+            bundle.project_config.set_key_value("flush_multiplier", new ConfigOptionFloats({1.0}));
+            bundle.project_config.set_key_value("flush_volumes_matrix", new ConfigOptionFloats({0.0}));
+
+            DynamicPrintConfig tray;
+            tray.set_key_value("filament_id", new ConfigOptionStrings({filament_id}));
+            tray.set_key_value("filament_colour", new ConfigOptionStrings({"#123456"}));
+            tray.set_key_value("filament_colour_type", new ConfigOptionStrings({"1"}));
+            tray.set_key_value("filament_multi_colour", new ConfigOptionStrings({"#123456"}));
+            tray.set_key_value("filament_type", new ConfigOptionStrings({"PLA"}));
+            tray.set_key_value("ams_id", new ConfigOptionStrings({"0"}));
+            tray.set_key_value("slot_id", new ConfigOptionStrings({"0"}));
+            bundle.filament_ams_list.clear();
+            bundle.filament_ams_list.emplace(0, std::move(tray));
+            std::vector<std::pair<DynamicPrintConfig *, std::string>> unknowns;
+            std::map<int, AMSMapInfo> maps;
+            MergeFilamentInfo merge_info;
+            bundle.sync_ams_list(unknowns, false, maps, false, merge_info);
+
+            const std::string synced_name = bundle.filament_presets.empty() ? std::string{} : bundle.filament_presets.front();
+            const Preset* synced = synced_name.empty() ? nullptr : bundle.filaments.find_preset(synced_name, false);
+            const auto* speed = synced == nullptr ? nullptr : synced->config.option<ConfigOptionFloats>("filament_max_volumetric_speed");
+            const auto* inherits = synced == nullptr ? nullptr : synced->config.option<ConfigOptionString>("inherits");
+            const auto* color_option = bundle.project_config.option<ConfigOptionStrings>("filament_colour", false);
+            const auto& colors = color_option == nullptr ? std::vector<std::string>{} : color_option->values;
+            const jint values[] = {
+                synced_name == custom_name ? 1 : 0,
+                speed != nullptr && !speed->values.empty() ? static_cast<jint>(std::round(speed->values.front() * 10.0)) : -1,
+                !colors.empty() && colors.front() == "#123456" ? 1 : 0,
+                inherits != nullptr && inherits->value == system_name ? 1 : 0,
+            };
+            jintArray result = env->NewIntArray(4);
+            if (result != nullptr) env->SetIntArrayRegion(result, 0, 4, values);
+            return result;
+        } catch (const std::exception& error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
+    }
+
     // Loads a four-tool project that stores only two filament slots through the
     // same PresetBundle project-config path used by imported 3MF projects.
     JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_short_1project_1filament_1arrays_1regression(
