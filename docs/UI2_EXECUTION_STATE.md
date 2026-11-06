@@ -4464,3 +4464,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Nightly-Prerelease veröffentlicht: [v0.8.444-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.444-nightly.1). APK und SHA-256-Sidecar sind hochgeladen. Branch `codex/nightly-batch11-next` enthält Commit `eaf3c1ce33`; dieser Ausführungsstatus folgt als Dokumentationscommit.
 - Falls die Kopienmeldung nach Installation von 0.8.444 beim neuen Button „Alle Modelle anordnen“ erscheint, ist das ein neuer, reproduzierbarer Widerspruch zu diesem Gerätetest; Xiaomi-Hardware ist für diesen Fall die noch offene Bestätigung.
 
+## Nightly — Arrange-Meldungen eindeutig getrennt — 2026-11-06
+
+- Quellpfadprüfung in Nightly 0.8.448 bestätigt: „Alle anordnen“ ruft `GLView.arrange()` und `GLRenderer.arrangeObjects()` auf; nur „Bett mit diesem Modell füllen“ ruft `fillBedWithSelectedModel()` auf. Der 0.8.448-Platten-Arrange-Test für sechs außerhalb liegende Modelle bestand auf API 36, daher wurde kein Arrange-Handler durch den Fill-Bed-Handler ersetzt.
+- Die verwechselbare Meldung „kein Platz für weitere Kopien“ war zusätzlich bei Duplizieren verdrahtet. Duplizieren meldet nun ausdrücklich, dass zusätzliche Modelle nicht passen und vorhandene Modelle unverändert blieben. Die Meldung „kein Platz für eine weitere Kopie“ ist jetzt der Fill-Bed-Aktion vorbehalten. Die Kurzbeschriftung von Arrange ist wieder „Alle anordnen“.
+- Gezielter Test `InitialProjectMenuDeviceTest#arrangeCompactsSixModelsMovedOutsideBed`: API-36-Emulator, sechs verschiedene STL-Meshes vollständig außerhalb der Platte, Compose-Arrange-Aktion löst aus und platziert sie auf der aktiven Platte; 1/1 bestanden.
+- Noch offen: Xiaomi-Hardwareprüfung und der Batch-13-Punkt 10. Version 0.8.449 ist für die getrennten Rückmeldungen vorgesehen.
+

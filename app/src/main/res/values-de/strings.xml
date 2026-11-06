@@ -346,7 +346,7 @@
     <string name="ModelMenuMoveToPlateShort">Andere Platte</string>
     <string name="ModelMenuCenterOnBedShort">Zentrieren</string>
     <string name="ModelMenuFillBedShort">Mit Kopien füllen</string>
-    <string name="ModelMenuArrangeShort">Platte neu packen</string>
+    <string name="ModelMenuArrangeShort">Alle anordnen</string>
     <string name="ModelMenuOrientAllShort">Alle ausrichten</string>
     <string name="ModelMenuAutoOrientSelectedShort">Auswahl ausrichten</string>
     <string name="ModelMenuFlattenShort">Flach auflegen</string>
@@ -703,6 +703,7 @@
     <string name="ModelContextFillBed">Druckplatte mit diesem Modell füllen</string>
     <string name="ModelContextFillBedNoRoom">Für eine weitere Kopie ist kein Platz auf der Druckplatte.</string>
     <string name="ModelContextArrangeFailed">Die Modelle konnten auf der aktiven Druckplatte nicht angeordnet werden. Prüfe Größe und verfügbaren Platz.</string>
+    <string name="ModelContextDuplicateNoRoom">Die ausgewählten Modelle passen nicht zusätzlich auf die Druckplatte. Die vorhandenen Modelle wurden nicht verändert.</string>
     <string name="ModelContextDuplicate">Duplizieren</string>
     <string name="ModelContextDuplicated">Modell dupliziert.</string>
     <string name="ModelContextDelete">Löschen</string>

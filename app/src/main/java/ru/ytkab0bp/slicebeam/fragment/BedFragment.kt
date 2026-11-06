@@ -1062,7 +1062,7 @@ val handlers = listOf<() -> Unit>(
             updateModel()
             Toast.makeText(ctx, R.string.ModelContextDuplicated, Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(ctx, R.string.ModelContextFillBedNoRoom, Toast.LENGTH_SHORT).show()
+            Toast.makeText(ctx, R.string.ModelContextDuplicateNoRoom, Toast.LENGTH_SHORT).show()
         }
     }
     },

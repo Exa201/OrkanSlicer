@@ -357,7 +357,7 @@
     <string name="ModelMenuMoveToPlateShort">Other plate</string>
     <string name="ModelMenuCenterOnBedShort">Center</string>
     <string name="ModelMenuFillBedShort">Fill with copies</string>
-    <string name="ModelMenuArrangeShort">Repack plate</string>
+    <string name="ModelMenuArrangeShort">Arrange all</string>
     <string name="ModelMenuOrientAllShort">Orient all</string>
     <string name="ModelMenuAutoOrientSelectedShort">Orient selected</string>
     <string name="ModelMenuFlattenShort">Lay flat</string>
@@ -720,6 +720,7 @@
     <string name="ModelContextFillBed">Fill bed with this model</string>
     <string name="ModelContextFillBedNoRoom">There is no room on the bed for another copy.</string>
     <string name="ModelContextArrangeFailed">Could not arrange all models on the active plate. Check model sizes and available bed area.</string>
+    <string name="ModelContextDuplicateNoRoom">The selected models cannot be duplicated onto the bed. Existing models were not changed.</string>
     <string name="ModelContextDuplicate">Duplicate</string>
     <string name="ModelContextDuplicated">Model duplicated.</string>
     <string name="ModelContextDelete">Delete</string>

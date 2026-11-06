@@ -75,7 +75,7 @@
     <string name="ModelMenuMoveToPlateShort">Другая пластина</string>
     <string name="ModelMenuCenterOnBedShort">Центр</string>
     <string name="ModelMenuFillBedShort">Заполнить копиями</string>
-    <string name="ModelMenuArrangeShort">Переставить модели</string>
+    <string name="ModelMenuArrangeShort">Расставить всё</string>
     <string name="ModelMenuPlaceGroupOnBedFailed">Не удалось безопасно разместить выбранные объекты на столе.</string>
     <string name="ModelMenuOrientAllShort">Ориент. все</string>
     <string name="ModelMenuAutoOrientSelectedShort">Ориент. модель</string>
@@ -102,6 +102,7 @@
     <string name="ModelContextFillBed">Заполнить стол этой моделью</string>
     <string name="ModelContextFillBedNoRoom">Для ещё одной копии нет места на столе.</string>
     <string name="ModelContextArrangeFailed">Не удалось расположить все модели на активном столе. Проверьте размеры моделей и свободную область.</string>
+    <string name="ModelContextDuplicateNoRoom">Выбранные модели нельзя разместить на столе в виде копий. Существующие модели не изменены.</string>
     <string name="MenuFileAIGenerator">Модель\nпо фото</string>
     <string name="MenuFileAIGeneratorPleaseWaitSetup">Пожалуйста, подождите…</string>
     <string name="MenuFileAIGeneratorErrorNotLoadedUserAccount">Ошибка: данные о пользователе пока не загружены.</string>

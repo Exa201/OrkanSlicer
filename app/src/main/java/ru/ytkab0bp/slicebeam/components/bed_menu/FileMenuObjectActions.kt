@@ -416,7 +416,7 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                                     Toast.LENGTH_SHORT,
                                 ).show()
                             }
-                            else -> Toast.makeText(context, R.string.ModelContextFillBedNoRoom, Toast.LENGTH_SHORT).show()
+                            else -> Toast.makeText(context, R.string.ModelContextDuplicateNoRoom, Toast.LENGTH_SHORT).show()
                         }
                     }
                 },
