@@ -6065,6 +6065,95 @@ extern "C" {
         }
     }
 
+    // Loads a four-tool project that stores only two filament slots through the
+    // same PresetBundle project-config path used by imported 3MF projects.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_short_1project_1filament_1arrays_1regression(
+        JNIEnv* env, jclass)
+    {
+        try {
+            PresetBundle bundle;
+            Preset& printer = bundle.printers.get_edited_preset();
+            printer.printer_technology_ref() = ptFFF;
+            printer.config.set_num_extruders(4);
+            printer.config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+            printer.config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4, 0.4, 0.4}));
+
+            DynamicPrintConfig project = DynamicPrintConfig::full_print_config();
+            project.set_num_extruders(4);
+            project.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4, 0.4, 0.4}));
+            project.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+            project.set_key_value("filament_colour", new ConfigOptionStrings({"#FF0000", "#00FF00"}));
+            project.set_key_value("filament_multi_colour", new ConfigOptionStrings({"#FF0000", "#00FF00"}));
+            project.set_key_value("filament_colour_type", new ConfigOptionStrings({"1", "1"}));
+            project.set_key_value("filament_map", new ConfigOptionInts({1, 1}));
+            const std::string selected_filament = bundle.filaments.get_edited_preset().name;
+            project.set_key_value("filament_settings_id", new ConfigOptionStrings({selected_filament, selected_filament}));
+
+            bundle.load_config_model("short-filament-array-project.3mf", std::move(project));
+
+            const auto& colors = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+            const auto& color_types = bundle.project_config.option<ConfigOptionStrings>("filament_colour_type")->values;
+            const auto& multi_colors = bundle.project_config.option<ConfigOptionStrings>("filament_multi_colour")->values;
+            const auto& filament_map = bundle.project_config.option<ConfigOptionInts>("filament_map")->values;
+            const auto& flush_multiplier = bundle.project_config.option<ConfigOptionFloats>("flush_multiplier")->values;
+            const auto& flush_matrix = bundle.project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
+            const bool imported_colors_preserved = colors.size() >= 2 &&
+                colors[0] == "#FF0000" && colors[1] == "#00FF00";
+
+            Preset *active_filament = bundle.filaments.find_preset(bundle.filament_presets.front(), true);
+            if (active_filament == nullptr)
+                throw std::runtime_error("Imported filament preset is missing after short-array project load");
+            const std::string test_filament_id = "NIGHTLY_ARRAY_REGRESSION";
+            active_filament->filament_id = test_filament_id;
+            active_filament->is_compatible = true;
+
+            auto make_tray = [&test_filament_id](const std::string& color, const std::string& slot_id) {
+                DynamicPrintConfig tray;
+                tray.set_key_value("filament_id", new ConfigOptionStrings({test_filament_id}));
+                tray.set_key_value("filament_colour", new ConfigOptionStrings({color}));
+                tray.set_key_value("filament_colour_type", new ConfigOptionStrings({"1"}));
+                tray.set_key_value("filament_multi_colour", new ConfigOptionStrings({color}));
+                tray.set_key_value("filament_type", new ConfigOptionStrings({"PLA"}));
+                tray.set_key_value("ams_id", new ConfigOptionStrings({"0"}));
+                tray.set_key_value("slot_id", new ConfigOptionStrings({slot_id}));
+                return tray;
+            };
+            bundle.filament_ams_list.clear();
+            const std::vector<std::string> synchronized_colors = {"#123456", "#654321", "#00AABB", "#BB00AA"};
+            for (size_t slot = 0; slot < synchronized_colors.size(); ++slot)
+                bundle.filament_ams_list.emplace(static_cast<int>(slot), make_tray(synchronized_colors[slot], std::to_string(slot)));
+            std::vector<std::pair<DynamicPrintConfig *, std::string>> unknowns;
+            std::map<int, AMSMapInfo> maps;
+            MergeFilamentInfo merge_info;
+            const jint synced_count = static_cast<jint>(bundle.sync_ams_list(unknowns, false, maps, false, merge_info));
+
+            const auto& synced_final_colors = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+            const jint values[] = {
+                static_cast<jint>(bundle.filament_presets.size()),
+                static_cast<jint>(colors.size()),
+                static_cast<jint>(color_types.size()),
+                static_cast<jint>(multi_colors.size()),
+                static_cast<jint>(filament_map.size()),
+                static_cast<jint>(flush_multiplier.size()),
+                static_cast<jint>(flush_matrix.size()),
+                imported_colors_preserved ? 1 : 0,
+                synced_count,
+                static_cast<jint>(synced_final_colors.size()),
+                synced_final_colors.size() >= synchronized_colors.size() && synced_final_colors[0] == synchronized_colors[0] &&
+                    synced_final_colors[1] == synchronized_colors[1] && synced_final_colors[2] == synchronized_colors[2] &&
+                    synced_final_colors[3] == synchronized_colors[3] ? 1 : 0,
+                static_cast<jint>(colors.size() * colors.size() * flush_multiplier.size())
+            };
+            jintArray result = env->NewIntArray(12);
+            if (result != nullptr) env->SetIntArrayRegion(result, 0, 12, values);
+            return result;
+        } catch (const std::exception& error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
+    }
+
     // Exercises the production short-chain path optimizer against a fixture where
     // nearest-neighbor chaining is measurably longer than the exact solution.
     JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_shortest_1path_1exact_1chain_1regression(JNIEnv* env, jclass) {

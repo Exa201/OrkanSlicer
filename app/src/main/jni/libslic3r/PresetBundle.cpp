@@ -4582,6 +4582,13 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
 
 	this->update_compatible(PresetSelectCompatibleType::Never);
     this->update_multi_material_filament_presets();
+    // update_multi_material_filament_presets() may pad filament_presets to the
+    // printer's tool count. Keep every parallel project array in sync before a
+    // later AMS sync or slice consumes the imported project configuration.
+    const auto *project_filament_colors = this->project_config.option<ConfigOptionStrings>("filament_colour");
+    if (printer_technology == ptFFF && project_filament_colors != nullptr &&
+        this->filament_presets.size() > project_filament_colors->values.size())
+        this->set_num_filaments(static_cast<unsigned int>(this->filament_presets.size()));
 
     //BBS
     //const std::string &physical_printer = config.option<ConfigOptionString>("physical_printer_settings_id", true)->value;

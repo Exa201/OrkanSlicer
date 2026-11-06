@@ -82,6 +82,9 @@ class Native {
     /** Verifies shared-nozzle multi-material presets stay at one after filament deletion. */
     @JvmStatic
     external fun shared_nozzle_filament_count_regression(): IntArray
+    /** Loads a short-filament multi-tool project, checks paired arrays, then overwrites all tray slots. */
+    @JvmStatic
+    external fun short_project_filament_arrays_regression(): IntArray
     /** Exercises production short-path chaining against a four-segment optimality fixture. */
     @JvmStatic
     external fun shortest_path_exact_chain_regression(): IntArray

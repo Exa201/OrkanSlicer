@@ -87,6 +87,15 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun projectWithFewerFilamentsThanToolsKeepsAllSlotArraysInSync() {
+        assertArrayEquals(
+            "Project load must extend parallel slot arrays, preserve imported colors, and complete a four-tray overwrite sync",
+            intArrayOf(4, 4, 4, 4, 4, 4, 64, 1, 4, 4, 1, 64),
+            Native.short_project_filament_arrays_regression(),
+        )
+    }
+
+    @Test
     fun treeSupportGroupedUnionPreservesDensePolygonRegions() {
         assertArrayEquals(
             "Grouped tree-support unions must preserve topology and stay within sub-micron rounding",
