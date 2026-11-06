@@ -1920,6 +1920,46 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun flashforgeBundledNozzleDefaultsResolveAndCreator5ProChamberControlIsAvailable() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val previousConfig = SliceBeam.CONFIG
+        try {
+            context.assets.open("orca_profiles/Flashforge.ini").use {
+                SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+            }
+            val config = requireNotNull(SliceBeam.CONFIG)
+            val supportedNames = setOf(
+                "Flashforge AD5X 0.25 nozzle", "Flashforge AD5X 0.4 nozzle",
+                "Flashforge AD5X 0.6 nozzle", "Flashforge AD5X 0.8 nozzle",
+                "Flashforge Adventurer 3 Series 0.6 Nozzle",
+                "Flashforge Creator 5 0.4 nozzle", "Flashforge Creator 5 0.6 nozzle",
+                "Flashforge Creator 5 0.8 nozzle", "Flashforge Creator 5 Pro 0.4 nozzle",
+                "Flashforge Creator 5 Pro 0.6 nozzle", "Flashforge Creator 5 Pro 0.8 nozzle",
+                "Flashforge Guider4 0.25 nozzle", "Flashforge Guider4 0.4 HF nozzle",
+                "Flashforge Guider4 0.4 nozzle", "Flashforge Guider4 0.6 HF nozzle",
+                "Flashforge Guider4 0.6 nozzle", "Flashforge Guider4 0.8 HF nozzle",
+                "Flashforge Guider4 Pro 0.25 nozzle", "Flashforge Guider4 Pro 0.4 HF nozzle",
+                "Flashforge Guider4 Pro 0.4 nozzle", "Flashforge Guider4 Pro 0.6 HF nozzle",
+                "Flashforge Guider4 Pro 0.6 nozzle", "Flashforge Guider4 Pro 0.8 HF nozzle"
+            )
+            val printers = config.printerConfigs.filter { it.title in supportedNames }
+            assertEquals("All bundled printer variants must be present", supportedNames.size, printers.size)
+            for (printer in printers) {
+                val processName = requireNotNull(printer["default_print_profile"])
+                assertNotNull("${printer.title} default process '$processName' must resolve", config.findPrint(processName))
+            }
+
+            val creator5Pro = printers.filter { it.title.orEmpty().startsWith("Flashforge Creator 5 Pro ") }
+            assertEquals(3, creator5Pro.size)
+            assertTrue("Creator 5 Pro must leave chamber temperature available to generated start G-code",
+                creator5Pro.all { !it["start_gcode"].orEmpty().contains("M191 S0") })
+            assertEquals("1", creator5Pro.single { it["printer_variant"] == "0.8" }["support_chamber_temp_control"])
+        } finally {
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
     fun enumListDefaultsRetainNamedValuesInTheNativeOptionCatalog() = withKobraProfile {
         val enumListOptions = PrintConfigDef.getInstance().options.values.filter {
             it.type == ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef.ConfigOptionType.ENUMS
