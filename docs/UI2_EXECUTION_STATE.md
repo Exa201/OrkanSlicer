@@ -6,6 +6,12 @@
 - APK `OrkanSlicerNightly25_4f265dab04.apk` (240,609,965 Byte; SHA-256 `1b43f26cfdfa701c1e9aa89177f819eccdb0b11f890ab6c55db4c155277c9217`), Paket `com.exa201.orkanslicer.nightly25`, Version `0.8.443`/Code `478`, gebaut aus Code-Commit `4f265dab04ca9ef4d05842c9045c3f5fd4c92cd8`. Auf API 36 installiert und gestartet, `MainActivity` resumed, keine Crash-/ANR-/OOM-Treffer in 2.500 Logcat-Zeilen.
 - Hochgeladen als gezielter Hotfix-Prerelease [v0.8.443-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.443-nightly.1); GitHub-Asset-Digest stimmt mit obiger APK-SHA-256 überein. Älteste Release `v0.8.438-nightly.1` entfernt; damit bleiben die fünf letzten Nightly-Releases. Orca-Batch 13 bleibt bei **6/10** und wird ab Punkt 7 fortgesetzt.
 
+# Nightly Orca Batch 13, Punkt 7/10 — 2026-11-06
+
+- Orca-Commit `2b61baaab5` („Merge Each Tree Support Overhang Once per Layer“) in `TreeSupport::draw_circles()` portiert: identische Overhang-Polygone werden je Layer und Ziel-Liste nur einmal erweitert/vereinigt. Die vorhandenen lokalen Roof-Interface-mm-Grenzen bleiben bestehen.
+- ARM64 Slice-/Instrumentation-Build erfolgreich. Auf Android 16/API 36 bestanden: `NativeSliceDeviceTest#treeSupportBottomContactCachePreservesInterfaceToolpaths` und `#organicTreeSupportPathsAreStableAcrossRepeatedSlices`, 2/2, keine Fehler/Skips. Keine gemessene Laufzeitsteigerung behauptet.
+- Batch 13 steht bei **7/10**; noch keine Batch-APK. Nächster Schritt: Punkt 8 aus dem aktuellen Orca-2.5-Upstream auswählen, auf bereits vorhandenes Verhalten prüfen und gezielt testen.
+
 # Nightly Orca Batch 13, Punkt 6/10 — 2026-11-06
 
 - Branch `codex/nightly-batch11-next`; Orca-Port-Punkt 6 adaptiert `09f8ee54df`: `union_overlapping_ex()` gruppiert große Sammlungen von Tree-Support-Ast-Polygonen vor Clipper-Union. Integration liegt in `TreeSupport::draw_circles()`.
