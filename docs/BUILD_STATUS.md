@@ -675,5 +675,3 @@ Die hier damals fehlenden `arm64-v8a`-Abhängigkeiten wurden später für den vo
 scripts/check-native-prebuilts.py arm64-v8a
 scripts/build-debug.sh
 ```
-
-

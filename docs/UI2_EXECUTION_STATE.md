@@ -4379,4 +4379,3 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - APK auf API-36-Emulator installiert und gestartet; App-Prozess-Logcat ohne FATAL EXCEPTION, ANR, fatal signal oder OOM.
 - Als Nightly-Prerelease `v0.8.441-nightly.1` veröffentlicht: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.441-nightly.1. Release-Assets: APK und `.sha256`-Sidecar. Die fünf neuesten Releases v0.8.441 bis v0.8.437 bleiben erhalten; v0.8.436 samt Tag entfernt.
 - GitHub-Branch enthält Quell- und Versionscommits; dieser Dokumentationsupdate folgt nach dem Release-Tag und ändert dessen Inhalt nicht. Keine Xiaomi-/Druckerprüfung erfolgt.
-
