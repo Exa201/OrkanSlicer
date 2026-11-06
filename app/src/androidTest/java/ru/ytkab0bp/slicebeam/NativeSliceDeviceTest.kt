@@ -301,6 +301,13 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun gyroidAndTpmsClippedRingsKeepTheirEndpointsOnTheBoundary() {
+        val result = Native.tpms_ring_endpoints_probe()
+        assertEquals("all pattern, multiline, and phase cases must execute", 54, result[0])
+        assertEquals("closed rings must not begin on a clipped wall; open paths must end on the wall", 0, result[1])
+    }
+
+    @Test
     fun changingFilamentCountPreservesEveryNozzleVariantValue() {
         val result = Native.filament_variant_resize_regression_probe()
         assertArrayEquals(

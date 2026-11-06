@@ -1,6 +1,6 @@
-# Aktueller Stand — Nightly Batch 14, 5/10 — 2026-11-06
+# Aktueller Stand — Nightly Batch 14, 6/10 — 2026-11-06
 
-Batch 13 wurde mit 10/10 Punkten verifiziert und als `v0.8.450-nightly.1` veröffentlicht; der aktuelle Nightly ist 0.8.451. Batch 14 Punkt 1 portiert sechs Recycling-Filamentprofile und ist mit echtem Kobra-3-Slice auf Android 16/API 36 geprüft. Punkt 2 portiert `b5c4ccd9c5`: Nach dem Laden eines Mehrwerkzeug-Projekts werden Farb-, Farbart-, Mehrfarben- und Mapping-Arrays zusammen mit den Filamentprofilen auf die Werkzeugzahl erweitert. Punkt 3 gleicht 23 Flashforge-Druckervarianten mit Orka-Standardprozessen ab und aktiviert die Creator-5-Pro-Kammersteuerung. Punkt 4 korrigiert die SV08-Standardprozesse für 0,4- und 0,8-mm-Düsen. Punkt 5 ergänzt die 0,2- und 1,0-mm-Düsenvarianten für den SV08 MAX samt passenden Prozessen. Die gezielten API-36-Profiltests bestanden; für Punkt 5 wurden beide Düsenprofile tatsächlich gesliced. Batch 14 steht bei **5/10**; APK/Release folgen erst nach Punkt 10 und der gebündelten Regression. Ein separater Skalierungsfehler bei gedrehten Modellen wurde ebenfalls behoben, zählt aber nicht als Orca-Batch-Punkt.
+Batch 13 wurde mit 10/10 Punkten verifiziert und als `v0.8.450-nightly.1` veröffentlicht; der aktuelle Nightly ist 0.8.451. Batch 14 Punkt 1 portiert sechs Recycling-Filamentprofile und ist mit echtem Kobra-3-Slice auf Android 16/API 36 geprüft. Punkt 2 portiert `b5c4ccd9c5`: Nach dem Laden eines Mehrwerkzeug-Projekts werden Farb-, Farbart-, Mehrfarben- und Mapping-Arrays zusammen mit den Filamentprofilen auf die Werkzeugzahl erweitert. Punkt 3 gleicht 23 Flashforge-Druckervarianten mit Orca-Standardprozessen ab und aktiviert die Creator-5-Pro-Kammersteuerung. Punkt 4 korrigiert die SV08-Standardprozesse für 0,4- und 0,8-mm-Düsen. Punkt 5 ergänzt die 0,2- und 1,0-mm-Düsenvarianten für den SV08 MAX samt passenden Prozessen. Punkt 6 schließt abgeschnittene Gyroid-/TPMS-Ringe nach dem Polygon-Clipping; die Regression besteht im API-36-Emulator in allen 54 Pattern-/Linien-/Phasenfällen. Batch 14 steht bei **6/10**; APK/Release folgen erst nach Punkt 10 und der gebündelten Regression. Ein separater Skalierungsfehler bei gedrehten Modellen wurde ebenfalls behoben, zählt aber nicht als Orca-Batch-Punkt.
 
 ### Batch 14, Punkt 3/10 — Flashforge-Standardprozesse und Kammersteuerung
 
@@ -17,6 +17,12 @@ Port von Orca `ca9204927e`: Die 0.4-mm- und 0.8-mm-SV08-Varianten wählten fehle
 Port von Orca `1f7e195d88`: Der SV08 MAX unterstützt jetzt die 0.2-mm- und 1.0-mm-Düsenvarianten mit den passenden Minimal-/Maximallayerhöhen und Orca-Prozessen (`0.10mm Standard` bzw. `0.50mm Standard`). Der Druckermodell-Eintrag listet jetzt die Düsen 0.2, 0.4, 0.6, 0.8 und 1.0 mm. Die neuen Prozessprofile behalten Orcas passende Düsenbreiten, Layerhöhen und Druckereignung.
 
 `NativeSliceDeviceTest#sovolSv08MaxNewNozzleVariantsLoadAndProduceSlices` bestand auf Android 16/API 36 (1/1). Der Test prüft Modellvarianten, Drucker- und Prozessauflösung, Druckereignung der Prozessprofile und effektiven Düsendurchmesser. Anschließend erzeugt er mit beiden neuen Profilen jeweils einen echten Slice mit extrudierenden G-Code-Bewegungen.
+
+### Batch 14, Punkt 6/10 — Gyroid- und TPMS-Ringe nach Clipping schließen
+
+Port von Orca `4cfdccfe45`: `intersection_pl()` kann einen geschlossenen Gyroid-/TPMS-Ring an einem beliebigen Punkt aufschneiden. Gyroid, TPMS-D und TPMS-FK rufen nach dem Clipping jetzt `join_close_ends(..., SCALED_EPSILON, true)` auf, damit offene Pfade wieder an der Randwand enden und vollständige innere Ringe nicht fälschlich am Rand beginnen.
+
+`NativeSliceDeviceTest#gyroidAndTpmsClippedRingsKeepTheirEndpointsOnTheBoundary` prüft die Produktions-Fill-Generatoren mit drei Mustern, multiline 1/2 und neun Z-Phasen (54 Konfigurationen). Mit dem alten Code verletzten 247 erzeugte Pfade die Rand-/Ring-Invariante; mit dem Fix bestanden alle 54 Konfigurationen. API-36-Emulator, 1/1 Test bestanden. Der Android-Fill-Pfad enthält die klassische/optimierte Gyroid- und TPMS-Variante; Orcas zusätzliche adaptive-infill-Modusvarianten sind in dieser Android-Version nicht vorhanden und werden nicht als geprüft behauptet.
 
 ### Batch 14, Punkt 2/10 — Mehrwerkzeug-Projekte mit kurzen Filamentarrays
 

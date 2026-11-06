@@ -32,6 +32,7 @@
 #include "libslic3r/PaintedSegmentationPolicy.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/Surface.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PlaceholderParser.hpp"
@@ -392,6 +393,61 @@ extern "C" {
         const LightningDistanceFieldBoundsProbe field(
             scaled(1.2), Polygons{ current_outline }, original_bounds, Polygons{ opened_overhang });
         const std::array<jint, 3> values = field.inspect(original_bounds);
+        jintArray result = env->NewIntArray(static_cast<jsize>(values.size()));
+        if (result != nullptr)
+            env->SetIntArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
+        return result;
+    }
+
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_tpms_1ring_1endpoints_1probe(
+            JNIEnv *env, jclass) {
+        using namespace Slic3r;
+        constexpr double spacing = 0.45;
+        const ExPolygon box(Points{
+            Point::new_scale(0., 0.), Point::new_scale(60., 0.),
+            Point::new_scale(60., 60.), Point::new_scale(0., 60.),
+        });
+        const AABBTreeLines::LinesDistancer<Line> walls(
+            to_lines(offset_ex(ExPolygons{box}, -float(scale_(0.5 * spacing)))));
+        const auto on_wall = [&walls](const Point &point) {
+            return walls.distance_from_lines<false>(point) < scale_(0.01);
+        };
+        constexpr std::array<InfillPattern, 3> patterns{ipGyroid, ipTpmsD, ipTpmsFK};
+        constexpr std::array<double, 9> z_values{5.1, 12.3, 20.1, 25.3, 28.7, 34.7, 40.1, 47.9, 54.9};
+        jint checked = 0;
+        jint failures = 0;
+        for (const InfillPattern pattern : patterns) {
+            for (const int multiline : {1, 2}) {
+                for (const double z : z_values) {
+                    std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+                    filler->spacing = spacing;
+                    filler->angle = float(M_PI / 4.);
+                    filler->z = z;
+                    FillParams params;
+                    params.density = 0.3f;
+                    params.multiline = multiline;
+                    params.gyroid_optimized = pattern == ipGyroid;
+                    params.layer_height = 0.2;
+                    params.dont_adjust = true;
+                    Surface surface(stInternal, box);
+                    const Polylines paths = filler->fill_surface(&surface, params);
+                    ++checked;
+                    if (paths.empty()) {
+                        ++failures;
+                        continue;
+                    }
+                    for (const Polyline &path : paths) {
+                        if (path.first_point() == path.last_point()) {
+                            if (std::any_of(path.points.begin(), path.points.end(), on_wall))
+                                ++failures;
+                        } else if (!on_wall(path.first_point()) || !on_wall(path.last_point())) {
+                            ++failures;
+                        }
+                    }
+                }
+            }
+        }
+        const std::array<jint, 2> values{checked, failures};
         jintArray result = env->NewIntArray(static_cast<jsize>(values.size()));
         if (result != nullptr)
             env->SetIntArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
