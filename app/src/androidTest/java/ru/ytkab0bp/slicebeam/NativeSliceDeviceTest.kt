@@ -1983,6 +1983,71 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun sovolSv08MaxNewNozzleVariantsLoadAndProduceSlices() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+        val previousConfig = SliceBeam.CONFIG
+        val source = copyCube(context, "blocks-rf50-06-profile-cube.stl")
+        val output = File(context.cacheDir, "sovol-sv08-max-nozzle-test.gcode")
+        var model: Model? = null
+        try {
+            context.assets.open("orca_profiles/Sovol.ini").use {
+                SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+            }
+            val config = requireNotNull(SliceBeam.CONFIG)
+            val modelProfile = config.printerModels.single { it.title == "Sovol SV08 MAX" }
+            assertEquals("0.2;0.4;0.6;0.8;1.0", modelProfile["variants"])
+            context.assets.open("orca_profiles/BBL.ini").use { input ->
+                val bbl = Slic3rConfigWrapper(input)
+                config.filamentConfigs.addAll(bbl.filamentConfigs.filter { it.title == "Generic PLA" })
+            }
+            val filament = requireNotNull(config.findFilament("Generic PLA"))
+            val cases = listOf(
+                Triple("0.2", "0.10mm Standard @Sovol SV08 MAX 0.2 nozzle", "0.22"),
+                Triple("1.0", "0.50mm Standard @Sovol SV08 MAX 1.0 nozzle", "1.1")
+            )
+            for ((nozzle, processName, expectedLayerWidth) in cases) {
+                val printer = requireNotNull(config.findPrinterVariant("Sovol SV08 MAX", nozzle))
+                val process = requireNotNull(config.findPrint(processName))
+                assertEquals(nozzle, printer["nozzle_diameter"])
+                assertEquals(expectedLayerWidth, process["line_width"])
+                assertTrue(process["compatible_printers"].orEmpty().contains(printer.title.orEmpty()))
+                config.presets = ConfigObject("presets").apply {
+                    put("printer", printer.title)
+                    put("print", process.title)
+                    put("filament", filament.title)
+                }
+
+                val activeModel = Model(source)
+                model = activeModel
+                activeModel.ensureOnBed(0)
+                val effectiveConfig = SliceBeam.buildCurrentConfigObject(activeModel.requiredFilamentCount)
+                assertEquals(nozzle, effectiveConfig["nozzle_diameter"])
+                SliceBeam.genCurrentConfig(activeModel)
+                val sliceResult = activeModel.slice(
+                    SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null
+                )
+                try {
+                    assertHasExtrusion(output.readText())
+                } finally {
+                    sliceResult.release()
+                }
+                activeModel.release()
+                model = null
+                output.delete()
+            }
+        } finally {
+            model?.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
     fun enumListDefaultsRetainNamedValuesInTheNativeOptionCatalog() = withKobraProfile {
         val enumListOptions = PrintConfigDef.getInstance().options.values.filter {
             it.type == ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef.ConfigOptionType.ENUMS

@@ -1,6 +1,6 @@
-# Aktueller Stand — Nightly Batch 14, 4/10 — 2026-11-06
+# Aktueller Stand — Nightly Batch 14, 5/10 — 2026-11-06
 
-Batch 13 wurde mit 10/10 Punkten verifiziert und als `v0.8.450-nightly.1` veröffentlicht; der aktuelle Nightly ist 0.8.451. Batch 14 Punkt 1 portiert sechs Recycling-Filamentprofile und ist mit echtem Kobra-3-Slice auf Android 16/API 36 geprüft. Punkt 2 portiert `b5c4ccd9c5`: Nach dem Laden eines Mehrwerkzeug-Projekts werden Farb-, Farbart-, Mehrfarben- und Mapping-Arrays zusammen mit den Filamentprofilen auf die Werkzeugzahl erweitert. Punkt 3 gleicht 23 Flashforge-Druckervarianten mit Orka-Standardprozessen ab und aktiviert die Creator-5-Pro-Kammersteuerung. Punkt 4 korrigiert die SV08-Standardprozesse für 0,4- und 0,8-mm-Düsen. Beide gezielten API-36-Profiltests bestanden. Batch 14 steht bei **4/10**; APK/Release folgen erst nach Punkt 10 und der gebündelten Regression. Ein separater Skalierungsfehler bei gedrehten Modellen wurde ebenfalls behoben, zählt aber nicht als Orca-Batch-Punkt.
+Batch 13 wurde mit 10/10 Punkten verifiziert und als `v0.8.450-nightly.1` veröffentlicht; der aktuelle Nightly ist 0.8.451. Batch 14 Punkt 1 portiert sechs Recycling-Filamentprofile und ist mit echtem Kobra-3-Slice auf Android 16/API 36 geprüft. Punkt 2 portiert `b5c4ccd9c5`: Nach dem Laden eines Mehrwerkzeug-Projekts werden Farb-, Farbart-, Mehrfarben- und Mapping-Arrays zusammen mit den Filamentprofilen auf die Werkzeugzahl erweitert. Punkt 3 gleicht 23 Flashforge-Druckervarianten mit Orka-Standardprozessen ab und aktiviert die Creator-5-Pro-Kammersteuerung. Punkt 4 korrigiert die SV08-Standardprozesse für 0,4- und 0,8-mm-Düsen. Punkt 5 ergänzt die 0,2- und 1,0-mm-Düsenvarianten für den SV08 MAX samt passenden Prozessen. Die gezielten API-36-Profiltests bestanden; für Punkt 5 wurden beide Düsenprofile tatsächlich gesliced. Batch 14 steht bei **5/10**; APK/Release folgen erst nach Punkt 10 und der gebündelten Regression. Ein separater Skalierungsfehler bei gedrehten Modellen wurde ebenfalls behoben, zählt aber nicht als Orca-Batch-Punkt.
 
 ### Batch 14, Punkt 3/10 — Flashforge-Standardprozesse und Kammersteuerung
 
@@ -11,6 +11,12 @@ Abgleich mit Orca `b46bf81396`: Die 23 im Android-Paket enthaltenen AD5X-, Adven
 ### Batch 14, Punkt 4/10 — Sovol SV08-Standardprozesse
 
 Port von Orca `ca9204927e`: Die 0.4-mm- und 0.8-mm-SV08-Varianten wählten fehlerhafte Standardprozesse. In der gebündelten Android-Bibliothek zeigen sie nun auf die vorhandenen `0.20mm Standard`- und `0.40mm Standard`-Prozesse. `NativeSliceDeviceTest#sovolSv08BundledDefaultsResolveForFourAndEightTenthNozzles` bestand auf Android 16/API 36 (1/1) und prüft beide Düsenvarianten sowie die tatsächliche Auflösung der ausgewählten Prozesse.
+
+### Batch 14, Punkt 5/10 — Neue Sovol SV08 MAX Düsenvarianten
+
+Port von Orca `1f7e195d88`: Der SV08 MAX unterstützt jetzt die 0.2-mm- und 1.0-mm-Düsenvarianten mit den passenden Minimal-/Maximallayerhöhen und Orca-Prozessen (`0.10mm Standard` bzw. `0.50mm Standard`). Der Druckermodell-Eintrag listet jetzt die Düsen 0.2, 0.4, 0.6, 0.8 und 1.0 mm. Die neuen Prozessprofile behalten Orcas passende Düsenbreiten, Layerhöhen und Druckereignung.
+
+`NativeSliceDeviceTest#sovolSv08MaxNewNozzleVariantsLoadAndProduceSlices` bestand auf Android 16/API 36 (1/1). Der Test prüft Modellvarianten, Drucker- und Prozessauflösung, Druckereignung der Prozessprofile und effektiven Düsendurchmesser. Anschließend erzeugt er mit beiden neuen Profilen jeweils einen echten Slice mit extrudierenden G-Code-Bewegungen.
 
 ### Batch 14, Punkt 2/10 — Mehrwerkzeug-Projekte mit kurzen Filamentarrays
 
