@@ -1,3 +1,11 @@
+## Nightly 2.5 Arrange feedback fix — 2026-11-06 — 0.8.446
+
+- Code commit `c2448cb66a84e47dcbc79120b346eeb956134b89`, branch `codex/nightly-batch11-next`; release [v0.8.446-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.446-nightly.1).
+- The Arrange handler was already separate from Fill Bed; it calls `GLView.arrange()` → `GLRenderer.arrangeObjects()` → native plate-wide arrangement. The generic “no room for copies” text was also used by the selected-group placement failure path. That path now has its own message. The visible button now says “Platte neu packen” to distinguish it from “Mit Kopien füllen”.
+- Native packing uses a simplified outward-expanded outline while retaining exact mesh footprints for collision validation. Optional cavity filling is capped at 512 candidate positions per object; the primary packing result remains the committed layout.
+- `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest`: 756/756 each, no failures/errors/skips. API-36 Compose test with four manually moved models passed 1/1 before the final label/message-only edits. A later rerun of instrumentation was blocked by the emulator’s x86_64 versus ARM64 ABI mismatch; the six-mesh attempt also loaded only four meshes and did not reach its arrange assertion.
+- Debug APK `OrkanSlicerNightly25_c2448cb66a.apk`, 240,611,490 bytes; SHA-256 `c3d80d13a15cf4907597b29bc5a7d4c106bbc829735332496898318a58c1e32c`. Package/version verified as `com.exa201.orkanslicer.nightly25`, 0.8.446/code 481. Installed and launched on API 36; inspected startup log had no app crash/ANR/OOM.
+- GitHub release APK digest matches the local SHA-256; `.sha256` sidecar uploaded. Five latest Nightly releases retained: 0.8.442–0.8.446; 0.8.441 removed. No physical Xiaomi/HONOR or printer validation was available.
 ## Nightly 2.5 Arrange feedback fix — 2026-11-06 — 0.8.442
 
 - Published [v0.8.442-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.442-nightly.1) from source commit `865d22406570aa3ae20f64a4e3ff06706e8a2641`; app 0.8.442/code 477, package `com.exa201.orkanslicer.nightly25`.
@@ -682,3 +690,4 @@ Die hier damals fehlenden `arm64-v8a`-Abhängigkeiten wurden später für den vo
 scripts/check-native-prebuilts.py arm64-v8a
 scripts/build-debug.sh
 ```
+

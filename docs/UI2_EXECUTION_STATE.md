@@ -1,3 +1,12 @@
+# Nightly execution state — 2026-11-06
+
+- Aktuelle Phase: Nightly-Fehlerkorrektur für Plattenanordnung abgeschlossen; der übergeordnete Orca-Port-Batch 13 läuft weiter.
+- Abgeschlossene Änderung: Arrange bleibt eine separate plattengroße Aktion; Button heißt „Platte neu packen“. Fill-Bed und Gruppenplatzierung haben getrennte Meldungen. Native Arrange-Fußabdruck wird vereinfacht und konservativ erweitert, exakte Mesh-Überschneidungsprüfung bleibt erhalten. Optionales Hohlraum-Nesting ist auf 512 Kandidatenpositionen pro Modell begrenzt.
+- Code-Commit: `c2448cb66a84e47dcbc79120b346eeb956134b89`, auf `nightly25/codex/nightly-batch11-next` gepusht.
+- Prüfung: Debug-Unit 756/756; Slice-Unit 756/756. Vier manuell verschobene Modelle wurden zuvor per Compose-Arrange-Button erfolgreich neu angeordnet (API 36, 1/1). Letzter Wiederholungslauf war wegen Emulator-ABI-Mischung x86_64/ARM64 nicht ausführbar; der Sechs-Mesh-Test lud im Wiederholungslauf nur vier Meshes und erreichte Arrange nicht.
+- APK 0.8.446/code 481 veröffentlicht: [Nightly prerelease](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.446-nightly.1). SHA-256 `c3d80d13a15cf4907597b29bc5a7d4c106bbc829735332496898318a58c1e32c`. Auf API 36 installiert und gestartet, kein Crash/ANR/OOM im geprüften Log.
+- Blocker: physisches Xiaomi/HONOR war nicht per ADB verfügbar; emulatorische Instrumentierung ist wegen ARM64-App auf x86_64-AVD aktuell unzuverlässig.
+- Nächster konkreter Schritt: Test mit den vom Nutzer verwendeten Ringmodellen auf einem ARM64-Gerät wiederholen; danach Orca-Batch 13 bei Punkt 8/10 fortsetzen.
 # Nightly — Arrange-Retry für manuell verschobene Modelle — 2026-11-06
 
 - Aktueller Fix-Commit: `02b89b9f3834b627639f2545a506d2850255aec3`, Branch `codex/nightly-batch11-next`.
@@ -4434,3 +4443,4 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - APK Version 0.8.444 / versionCode 479: `OrkanSlicerNightly25_eaf3c1ce33.apk`, 240,610,479 Byte, SHA-256 `1d921e9d7239c877ae5b3f5d22d326e07bcdef8d35d16fd07513d05f1833b39b`.
 - Nightly-Prerelease veröffentlicht: [v0.8.444-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.444-nightly.1). APK und SHA-256-Sidecar sind hochgeladen. Branch `codex/nightly-batch11-next` enthält Commit `eaf3c1ce33`; dieser Ausführungsstatus folgt als Dokumentationscommit.
 - Falls die Kopienmeldung nach Installation von 0.8.444 beim neuen Button „Alle Modelle anordnen“ erscheint, ist das ein neuer, reproduzierbarer Widerspruch zu diesem Gerätetest; Xiaomi-Hardware ist für diesen Fall die noch offene Bestätigung.
+
