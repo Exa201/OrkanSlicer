@@ -1960,6 +1960,29 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun sovolSv08BundledDefaultsResolveForFourAndEightTenthNozzles() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val previousConfig = SliceBeam.CONFIG
+        try {
+            context.assets.open("orca_profiles/Sovol.ini").use {
+                SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+            }
+            val config = requireNotNull(SliceBeam.CONFIG)
+            val expectedDefaults = mapOf(
+                "0.4" to "0.20mm Standard",
+                "0.8" to "0.40mm Standard"
+            )
+            for ((nozzle, expectedProcess) in expectedDefaults) {
+                val printer = requireNotNull(config.findPrinterVariant("Sovol SV08", nozzle))
+                assertEquals(expectedProcess, printer["default_print_profile"])
+                assertNotNull("SV08 $nozzle mm process must be bundled", config.findPrint(expectedProcess))
+            }
+        } finally {
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
     fun enumListDefaultsRetainNamedValuesInTheNativeOptionCatalog() = withKobraProfile {
         val enumListOptions = PrintConfigDef.getInstance().options.values.filter {
             it.type == ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef.ConfigOptionType.ENUMS

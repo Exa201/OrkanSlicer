@@ -1,12 +1,16 @@
-# Aktueller Stand — Nightly Batch 14, 3/10 — 2026-11-06
+# Aktueller Stand — Nightly Batch 14, 4/10 — 2026-11-06
 
-Batch 13 wurde mit 10/10 Punkten verifiziert und als `v0.8.450-nightly.1` veröffentlicht; der aktuelle Nightly ist 0.8.451. Batch 14 Punkt 1 portiert sechs Recycling-Filamentprofile und ist mit echtem Kobra-3-Slice auf Android 16/API 36 geprüft. Punkt 2 portiert `b5c4ccd9c5`: Nach dem Laden eines Mehrwerkzeug-Projekts werden Farb-, Farbart-, Mehrfarben- und Mapping-Arrays zusammen mit den Filamentprofilen auf die Werkzeugzahl erweitert. Punkt 3 gleicht 23 Flashforge-Druckervarianten mit Orka-Standardprozessen ab und aktiviert die Creator-5-Pro-Kammersteuerung. Der gezielte API-36-Test bestätigt die Auflösung aller 23 voreingestellten Prozesse. Batch 14 steht bei **3/10**; APK/Release folgen erst nach Punkt 10 und der gebündelten Regression. Ein separater Skalierungsfehler bei gedrehten Modellen wurde ebenfalls behoben, zählt aber nicht als Orca-Batch-Punkt.
+Batch 13 wurde mit 10/10 Punkten verifiziert und als `v0.8.450-nightly.1` veröffentlicht; der aktuelle Nightly ist 0.8.451. Batch 14 Punkt 1 portiert sechs Recycling-Filamentprofile und ist mit echtem Kobra-3-Slice auf Android 16/API 36 geprüft. Punkt 2 portiert `b5c4ccd9c5`: Nach dem Laden eines Mehrwerkzeug-Projekts werden Farb-, Farbart-, Mehrfarben- und Mapping-Arrays zusammen mit den Filamentprofilen auf die Werkzeugzahl erweitert. Punkt 3 gleicht 23 Flashforge-Druckervarianten mit Orka-Standardprozessen ab und aktiviert die Creator-5-Pro-Kammersteuerung. Punkt 4 korrigiert die SV08-Standardprozesse für 0,4- und 0,8-mm-Düsen. Beide gezielten API-36-Profiltests bestanden. Batch 14 steht bei **4/10**; APK/Release folgen erst nach Punkt 10 und der gebündelten Regression. Ein separater Skalierungsfehler bei gedrehten Modellen wurde ebenfalls behoben, zählt aber nicht als Orca-Batch-Punkt.
 
 ### Batch 14, Punkt 3/10 — Flashforge-Standardprozesse und Kammersteuerung
 
 Abgleich mit Orca `b46bf81396`: Die 23 im Android-Paket enthaltenen AD5X-, Adventurer-3-, Creator-5- und Guider-4-Varianten verwiesen teilweise auf falsche oder gar nicht gebündelte Standardprozessprofile. Sie verwenden jetzt den passenden vorhandenen Prozess nach Düsendurchmesser. Creator-5-Pro-Start-G-Code enthält kein festes `M191 S0` mehr; die Kammer-Temperatursteuerung ist für die 0.8-mm-Variante aktiviert. Die in diesem Nightly nicht enthaltene Creator-5-Pro-0.25-mm-Variante wurde nicht neu erfunden.
 
 `NativeSliceDeviceTest#flashforgeBundledNozzleDefaultsResolveAndCreator5ProChamberControlIsAvailable` bestand auf Android 16/API 36 (1/1): alle 23 Standardprozessnamen werden über `Slic3rConfigWrapper.findPrint()` aufgelöst, alle drei Creator-5-Pro-Start-G-Codes lassen Kammerbefehle zu, und die 0.8-mm-Variante meldet `support_chamber_temp_control=1`. Keine Druck-/Hardwareaktion ausgeführt.
+
+### Batch 14, Punkt 4/10 — Sovol SV08-Standardprozesse
+
+Port von Orca `ca9204927e`: Die 0.4-mm- und 0.8-mm-SV08-Varianten wählten fehlerhafte Standardprozesse. In der gebündelten Android-Bibliothek zeigen sie nun auf die vorhandenen `0.20mm Standard`- und `0.40mm Standard`-Prozesse. `NativeSliceDeviceTest#sovolSv08BundledDefaultsResolveForFourAndEightTenthNozzles` bestand auf Android 16/API 36 (1/1) und prüft beide Düsenvarianten sowie die tatsächliche Auflösung der ausgewählten Prozesse.
 
 ### Batch 14, Punkt 2/10 — Mehrwerkzeug-Projekte mit kurzen Filamentarrays
 
