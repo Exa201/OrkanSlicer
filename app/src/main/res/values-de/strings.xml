@@ -345,7 +345,7 @@
     <string name="ModelMenuMoveToPlateShort">Andere Platte</string>
     <string name="ModelMenuCenterOnBedShort">Zentrieren</string>
     <string name="ModelMenuFillBedShort">Mit Kopien füllen</string>
-    <string name="ModelMenuArrangeShort">Platte neu anordnen</string>
+    <string name="ModelMenuArrangeShort">Alle Modelle anordnen</string>
     <string name="ModelMenuOrientAllShort">Alle ausrichten</string>
     <string name="ModelMenuAutoOrientSelectedShort">Auswahl ausrichten</string>
     <string name="ModelMenuFlattenShort">Flach auflegen</string>

@@ -35,8 +35,9 @@ class ModelMenuActionScopeTest {
     }
 
     @Test fun selectionAndPlateWideActionsAreKeptSeparate() {
+        assertFalse("arranging existing models affects the whole plate", ModelMenuActionScope.isSelectionScoped(R.string.ModelMenuArrange))
+        assertTrue("filling the bed creates copies of the selected model", ModelMenuActionScope.isSelectionScoped(R.string.ModelMenuFillBed))
         listOf(
-            R.string.ModelMenuArrange,
             R.string.ModelMenuOrientAll,
             R.string.ModelMenuSelectAll,
             R.string.ModelMenuDeleteAll,

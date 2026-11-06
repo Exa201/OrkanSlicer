@@ -356,7 +356,7 @@
     <string name="ModelMenuMoveToPlateShort">Other plate</string>
     <string name="ModelMenuCenterOnBedShort">Center</string>
     <string name="ModelMenuFillBedShort">Fill with copies</string>
-    <string name="ModelMenuArrangeShort">Rearrange plate</string>
+    <string name="ModelMenuArrangeShort">Arrange all models</string>
     <string name="ModelMenuOrientAllShort">Orient all</string>
     <string name="ModelMenuAutoOrientSelectedShort">Orient selected</string>
     <string name="ModelMenuFlattenShort">Lay flat</string>
