@@ -1,5 +1,13 @@
 # Build Status
 
+## Nightly 2.5 Arrange-fix prerelease — 2026-11-06 — 0.8.441
+
+- Release [v0.8.441-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.441-nightly.1), source commit `3d0363784ca9b41fa135a699ead35b8baf068ea4`; app version 0.8.441/code 476, package `com.exa201.orkanslicer.nightly25`.
+- Debug ARM64 APK `OrkanSlicerNightly25_3d0363784c.apk`, 240,591,983 bytes; SHA-256 `e48f05f766bc247e7bec975e58bd211fe964357f82ba2573e7c55fddadbd337a`. The release includes the `.sha256` sidecar.
+- `:app:assembleDebug` succeeded. API-36 instrumentation passed 1/1 with four distinct STL meshes manually moved and arranged through the Compose menu; compacted placement and plate-preview revision were verified. Existing four-cube arrange regression passed 1/1. Instrumented APK installation and startup produced no app-process crash/ANR.
+- Installed and launched the release APK in the API-36 emulator; inspected app PID logcat had no `FATAL EXCEPTION`, ANR, fatal signal, or OOM match. No physical Xiaomi or printer test was available.
+- Release retention: five newest prereleases retained (`v0.8.441` through `v0.8.437`); `v0.8.436` and its tag were removed.
+
 ## Nightly 2.5 verified prerelease — 2026-11-03 — 0.8.429
 
 - Code commit `59313276b9a70c50e1faeb46590b9fafead04d60`; app 0.8.429/code 464; package `com.exa201.orkanslicer.nightly25`.

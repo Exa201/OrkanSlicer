@@ -4362,4 +4362,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Die optionale Gap-Fill-Optimierung verwirft jetzt ihre Verbesserung, wenn sie keine sichere Lücke findet, statt die gültige Hauptanordnung zu annullieren. Die Schlussprüfung verhindert weiterhin echte Überschneidungen der projizierten Modellteile; den bereits vom Packer berücksichtigten Abstandspuffer wird sie nicht ein zweites Mal anwenden.
 - Native Arrange-Fehler werden unter `BeamArrange` mit Ursache und Modellanzahl protokolliert.
 - API-36-Gerätetest mit vier unterschiedlichen echten Meshes (Calicat, OrcaPlug, XYZ-Cube, Cylinder): manuell in vier Bereiche der Platte verschoben, Compose-Aktion „Alle anordnen“ ausgelöst, kompaktere Positionen und Aktualisierung der Plattenvorschau geprüft; 1/1 bestanden. Bestehender Vier-Würfel-Manuellverschiebe-/Arrange-Regressionstest ebenfalls 1/1 bestanden.
-- `git diff --check` erfolgreich. Xiaomi war während dieser Prüfung nicht angeschlossen. Der Fix ist verifiziert im Arbeitsstand, aber noch nicht in einem neuen APK/Release enthalten.
+- `git diff --check` erfolgreich. Xiaomi war während dieser Prüfung nicht angeschlossen.
+
+## Nightly Arrange-Fix — APK und Release — 2026-11-06
+
+- Nightly-Version auf 0.8.441 / versionCode 476 erhöht. Release-Quellcommit `3d0363784ca9b41fa135a699ead35b8baf068ea4`.
+- `:app:assembleDebug` erfolgreich. APK `OrkanSlicerNightly25_3d0363784c.apk`, 240,591,983 Byte, SHA-256 `e48f05f766bc247e7bec975e58bd211fe964357f82ba2573e7c55fddadbd337a`, ARM64, Paket `com.exa201.orkanslicer.nightly25`.
+- APK auf API-36-Emulator installiert und gestartet; App-Prozess-Logcat ohne FATAL EXCEPTION, ANR, fatal signal oder OOM.
+- Als Nightly-Prerelease `v0.8.441-nightly.1` veröffentlicht: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.441-nightly.1. Release-Assets: APK und `.sha256`-Sidecar. Die fünf neuesten Releases v0.8.441 bis v0.8.437 bleiben erhalten; v0.8.436 samt Tag entfernt.
+- GitHub-Branch enthält Quell- und Versionscommits; dieser Dokumentationsupdate folgt nach dem Release-Tag und ändert dessen Inhalt nicht. Keine Xiaomi-/Druckerprüfung erfolgt.
