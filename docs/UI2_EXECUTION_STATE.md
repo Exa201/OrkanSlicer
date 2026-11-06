@@ -1,5 +1,12 @@
 # Nightly execution state — 2026-11-06
 
+## Aktueller Stand — Nightly 0.8.450 — 2026-11-06
+
+- Gemeldeter Arrange-Fehler im aktuellen Nightly geprüft: „Platte neu packen“ ist eine eigene plattenweite Aktion; „Mit Kopien füllen“ ist getrennt. Eine verspätete asynchrone Fill-Bed-Antwort konnte nach einer Arrange-Änderung noch den irreführenden Fehler „kein Platz für weitere Kopien“ anzeigen. Solche veralteten Antworten werden jetzt verworfen; echte Kapazitätsfehler nennen ausdrücklich „Mit Kopien füllen“.
+- Verifikation: vier- und sechs-Objekt-Anordnung, Off-Plate-Rückholung/Undo/Redo und PLA/PETG-Slice auf API 36 bestanden; Debug und Slice Unit Suites je 759/759. Nightly-Debug-APK auf API-36-Emulator installiert und gestartet, Prozess aktiv; geprüfte Logs ohne Crash/ANR/OOM. Kein physisches Telefon für diesen Durchgang verbunden.
+- Branch-Commit `5b55270c85` gepusht. Version 0.8.450/code 485, APK `OrkanSlicerNightly25_0.8.450_debug.apk`, 240,633,416 Byte, SHA-256 `28508c344bed02f5a63616cc4a555dc99643a2e626f3a723aafa0570fa30ec54`; Signatur v1/v2 verifiziert. [GitHub Nightly-Prerelease](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.450-nightly.1). Retention nach Bereinigung: Releases 0.8.446–0.8.450.
+- Nächster Schritt: den Arrange-Test mit den vom Nutzer verwendeten Modellen auf physischer Hardware wiederholen, sobald Xiaomi/HONOR per ADB verbunden ist; danach mit Orca-Batch 14 fortfahren.
+
 - Latest published Nightly: 0.8.449/code 484, prerelease [v0.8.449-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.449-nightly.1), APK `OrkanSlicerNightly25_9f1d744836.apk`, SHA-256 `9f088cce47a7b0509fd74a3547816354a97c1f2925d513044913d54560004882`; signature verified and emulator launch logged. Five-release retention was 0.8.445–0.8.449.
 - Current user issue: “no room for more copies” appears after pressing Arrange. The Arrange action and Fill Bed action have separate stable Compose IDs and handlers. A stale Fill Bed calculation could nevertheless finish after Arrange changed model state and report its discarded result as a capacity failure.
 - Local correction: stale asynchronous Fill Bed callbacks now return a distinct cancellation sentinel, ignored by both Compose and legacy callers. Real Fill Bed capacity failures keep their message, now explicitly prefixed “Mit Kopien füllen”. Existing Arrange regressions remain the plate-wide action path.
@@ -4478,4 +4485,5 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Nightly-Release `v0.8.449-nightly.1`: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.449-nightly.1. APK `OrkanSlicerNightly25_9f1d744836.apk`, 230,250,410 Byte, SHA-256 `9f088cce47a7b0509fd74a3547816354a97c1f2925d513044913d54560004882`; `apksigner verify` erfolgreich. APK auf dem API-36-Emulator installiert und `MainActivity` gestartet; kein FATAL EXCEPTION, ANR, fatal signal oder OOM in den geprüften Logs.
 - Quell-/Version-Commit `9f1d744836`; Release-Assets auf GitHub stimmen im SHA-256-Digest mit der lokalen APK überein. Release-Aufbewahrung: v0.8.445 bis v0.8.449 sind die fünf neuesten; v0.8.444 samt Tag wurde entfernt.
 - Noch offen: Xiaomi-Hardwareprüfung und der Batch-13-Punkt 10. Der Emulatornachweis schließt einen Xiaomi-Gerätetest nicht ein.
+
 
