@@ -1,3 +1,10 @@
+## Nightly 2.5 Arrange stale-result fix — 0.8.451
+
+- Product-code commit `65358403f31a2969d8a910bb8d468333d17071e6`, branch `codex/nightly-batch11-next`; prerelease [v0.8.451-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.451-nightly.1).
+- Debug APK `OrkanSlicerNightly25_0.8.451_debug.apk`, 240,634,902 bytes; SHA-256 `a4b8f1515ab16f7dbcdfffcbe74b78d93d5db4c2f05689481f8461c69e409176`. Package `com.exa201.orkanslicer.nightly25`, version 0.8.451/code 486, ARM64, debug-signed. APK signature verified; GitHub asset SHA-256 matches.
+- Debug and Slice unit suites each passed 761/761; API-36 Arrange Compose instrumentation passed 1/1 with four same-size models moved fully outside the build plate and packed back by the visible plate-wide Arrange action. Installed and started on API 36; app process active, no crash/ANR/OOM/fatal-signal hits in inspected logcat. No physical Xiaomi/HONOR was connected.
+- Retained the latest five Nightly releases (0.8.447–0.8.451); removed 0.8.446.
+
 ## Nightly 2.5 Arrange feedback fix — 2026-11-06 — 0.8.446
 
 - Code commit `c2448cb66a84e47dcbc79120b346eeb956134b89`, branch `codex/nightly-batch11-next`; release [v0.8.446-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.446-nightly.1).
