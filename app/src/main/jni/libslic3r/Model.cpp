@@ -3485,6 +3485,21 @@ void ModelInstance::get_arrange_polygon(void *ap, const Slic3r::DynamicPrintConf
     ExPolygon footprint = get_object()->arrange_footprint_2d(t.get_matrix(), &physical_parts);
     if (footprint.contour.empty())
         footprint = ExPolygon{get_object()->convex_hull_2d(t.get_matrix())};
+    // libnest2d's no-fit polygon work grows sharply with contour vertex count. Keep
+    // detailed exact projections for the final collision validator, but feed the packer
+    // a simplified, slightly outward-expanded outline, including the convex-hull fallback
+    // used for repaired/detailed imports. The expansion makes the reduced outline
+    // conservative; exact physical_parts remain unchanged for overlap checks.
+    constexpr double ARRANGE_OUTLINE_TOLERANCE_MM = 0.08;
+    if (!footprint.contour.empty()) {
+        ExPolygons simplified = footprint.simplify(scaled<double>(ARRANGE_OUTLINE_TOLERANCE_MM));
+        if (simplified.size() == 1) {
+            ExPolygons conservative = offset_ex(
+                simplified, float(scaled<double>(ARRANGE_OUTLINE_TOLERANCE_MM)), ClipperLib::jtRound);
+            if (conservative.size() == 1)
+                footprint = std::move(conservative.front());
+        }
+    }
 
 //    if (!p.points.empty()) {
 //        Polygons pp{p};

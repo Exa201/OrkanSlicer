@@ -77,7 +77,12 @@ void fill_compound_arrange_gaps(ArrangePolygons &polygons, const Points &bed)
     const Polygon bed_polygon(bed);
     const BoundingBox bed_bounds(bed);
     const coord_t search_step = scaled(2.0);
-    constexpr size_t MAX_SEARCH_POSITIONS = 12000;
+    // Cavity filling is an optional secondary compaction pass: the primary nest2d
+    // arrangement already produced a valid plate layout. A large exhaustive scan here
+    // can hold the GL thread for seconds on concave meshes (for example hollow hex
+    // parts), making the Arrange action look stuck and delaying its result. Bound the
+    // optional search; if no cavity is found quickly, keep the safe primary layout.
+    constexpr size_t MAX_SEARCH_POSITIONS = 512;
     for (size_t candidate_idx : candidates) {
         ArrangePolygon &candidate = polygons[candidate_idx];
         if (candidate.bed_idx != 0 || geometry[candidate_idx].parts.empty())
