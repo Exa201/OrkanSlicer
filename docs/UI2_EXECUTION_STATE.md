@@ -1,3 +1,10 @@
+# Nightly-Plattenanordnung — Regression behoben — 2026-11-06
+
+- Auf `codex/nightly-batch11-next` bleibt „Platte neu anordnen“ von „Mit Kopien füllen“ getrennt. Der bestehende Arrange-Handler rief bereits die plattengroße native Anordnung auf; die Kopienmeldung kam aus anderen Aktionen. Die Kurzbeschriftung ist jetzt eindeutig, und auf den üblichen 6-mm-Packversuch folgt bei Platzmangel ein 2-mm-Retry wie beim Import.
+- Beide fehlgeschlagenen Packversuche stellen die vorherigen Objektpositionen wieder her; nur eine erfolgreiche vollständige Anordnung wird übernommen.
+- Verifiziert: `InitialProjectMenuDeviceTest#arrangeCompactsSeveralManuallyMovedModelsInOneAction` auf API 36 bestanden (4 einzelne Modelle, manuell über die Plattenecken verteilt, Compose-Aktion betätigt, kompakte kollisionsfreie Platzierung bestätigt). Neue Fallback-Policy-Unit-Tests bestehen. Debug-JVM 755/755, Slice-JVM 752/752, keine Fehler oder Skips. Ein früherer Emulatorlauf brach wegen eines Neustarts/Crashs der Android-Systemdienste ab; der abschließende erneute Testlauf bestand.
+- Kein Release erstellt; Nightly-Orca-Batch 13 bleibt bei 6/10. Nächster Schritt: Batch 13 bei Punkt 7 fortsetzen und Release erst nach dem 10-Punkte-Gate erzeugen.
+
 # Nightly Orca Batch 13, Punkt 6/10 — 2026-11-06
 
 - Branch `codex/nightly-batch11-next`; Orca-Port-Punkt 6 adaptiert `09f8ee54df`: `union_overlapping_ex()` gruppiert große Sammlungen von Tree-Support-Ast-Polygonen vor Clipper-Union. Integration liegt in `TreeSupport::draw_circles()`.

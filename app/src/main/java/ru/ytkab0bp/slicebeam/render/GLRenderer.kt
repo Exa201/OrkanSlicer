@@ -2147,14 +2147,24 @@ fun arrangeObjects(): Boolean {
         activeModel.getTranslation(index, translation)
         translations.add(translation)
     }
-    val arranged = activeBed.arrange(activeModel)
-    if (!arranged) {
+    fun restoreOriginalPositions() {
         translations.forEachIndexed { index, before ->
             val after = Vec3d()
             activeModel.getTranslation(index, after)
             activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
         }
+        activeModel.resetBoundingBox()
     }
+
+    // Interactive arrange first keeps the usual 6 mm separation. If that cannot pack
+    // the whole plate, retry with the same 2 mm minimum used for imported objects. The
+    // first native attempt is transactional, but restore explicitly before retrying so
+    // neither native failure nor a partial transform can affect the compact pass.
+    val arranged = PlateArrangeFallback.run(
+        arrangeWithNormalSpacing = { activeBed.arrange(activeModel) },
+        restoreOriginalPositions = ::restoreOriginalPositions,
+        arrangeCompactly = { activeBed.arrangeCompact(activeModel) },
+    )
     activeModel.resetBoundingBox()
     resetGlModels()
     return arranged
