@@ -51,8 +51,7 @@ import java.util.zip.ZipInputStream
 import cz.msebera.android.httpclient.Header
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.cloud.CloudController
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
-import ru.ytkab0bp.slicebeam.components.CloudManageBottomSheet
+import ru.ytkab0bp.slicebeam.components.CloudManageDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ProfileConfigSnapshot
 import ru.ytkab0bp.slicebeam.events.BeamServerDataUpdatedEvent
@@ -75,6 +74,7 @@ import ru.ytkab0bp.slicebeam.ui.setup.SetupCloudLevel
 import ru.ytkab0bp.slicebeam.ui.setup.SetupCloudProfileScreen
 import ru.ytkab0bp.slicebeam.ui.setup.SetupFinishScreen
 import ru.ytkab0bp.slicebeam.ui.setup.SetupIntroScreen
+import ru.ytkab0bp.slicebeam.ui.setup.SetupMessageDialog
 import ru.ytkab0bp.slicebeam.ui.setup.SetupPresetSourceScreen
 import ru.ytkab0bp.slicebeam.ui.setup.SetupPrinterSelectionScreen
 import ru.ytkab0bp.slicebeam.ui.setup.SetupFilamentSelectionScreen
@@ -86,6 +86,8 @@ import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 class SetupActivity:AppCompatActivity() {
 private var setupPages by mutableStateOf<List<SetupComposePage>>(emptyList())
+private var cloudManageDialog by mutableStateOf<CloudManageDialog?>(null)
+private var setupMessageDialog by mutableStateOf<SetupMessageState?>(null)
 private var visibleSetupPageCount by mutableIntStateOf(1)
 private var setupPagerInputEnabled by mutableStateOf(true)
 private var setupPageNavigationRequest by mutableStateOf<SetupPageNavigationRequest?>(null)
@@ -163,11 +165,10 @@ return
 }
 if (!about && !boostyOnly && !cloudProfile && !addPrinter)
 {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.IntroEarlyAccess)
-.setMessage(R.string.IntroEarlyAccessMessage)
-.setPositiveButton(android.R.string.ok, null)
-.show()
+setupMessageDialog = SetupMessageState(
+    getString(R.string.IntroEarlyAccess),
+    getString(R.string.IntroEarlyAccessMessage),
+)
 }
 if (boostyOnly || cloudProfile)
 {
@@ -206,6 +207,13 @@ outState.putInt(STATE_CURRENT_SETUP_PAGE, setupPageNavigationRequest?.page ?: cu
 outState.putBoolean(STATE_LIMIT_SETUP_PAGES, limitProfileFragmentCount)
 super.onSaveInstanceState(outState)
 }
+private data class SetupMessageState(val title: String, val message: String)
+
+private fun showSetupMessage(title: CharSequence, message: CharSequence) {
+    if (isFinishing || isDestroyed) return
+    setupMessageDialog = SetupMessageState(title.toString(), message.toString())
+}
+
 private fun openProfilePicker() {
 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
 intent.addCategory(Intent.CATEGORY_OPENABLE)
@@ -216,11 +224,7 @@ try
 profileImportLauncher.launch(intent)
 }
 catch (e:Exception) {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showSetupMessage(getString(R.string.MenuFileImportProfilesFailed), e.toString())
 }
 }
 private fun loadProfileFromPicker(uri:Uri) {
@@ -228,11 +232,10 @@ if (uri == null) return
 val fileName = IOUtils.getDisplayName(uri)
 if (fileName == null)
 {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(R.string.MenuFileOpenFileFailedNullName)
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showSetupMessage(
+    getString(R.string.MenuFileImportProfilesFailed),
+    getString(R.string.MenuFileOpenFileFailedNullName),
+)
 return
 }
 val lowerName = fileName.lowercase(Locale.ROOT)
@@ -244,11 +247,10 @@ return
 }
 if (!lowerName.endsWith(".ini"))
 {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(R.string.SetupProfileFileHint)
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showSetupMessage(
+    getString(R.string.MenuFileImportProfilesFailed),
+    getString(R.string.SetupProfileFileHint),
+)
 return
 }
 IOUtils.IO_POOL.submit({ try
@@ -430,11 +432,12 @@ inherit = obj.values.get("inherits")
 private fun saveImportedProfile(imported:Slic3rConfigWrapper) {
 if (imported.printConfigs.isEmpty() && imported.filamentConfigs.isEmpty() && imported.printerConfigs.isEmpty())
 {
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(R.string.MenuFileImportProfilesFailedEmpty)
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread {
+    showSetupMessage(
+        getString(R.string.MenuFileImportProfilesFailed),
+        getString(R.string.MenuFileImportProfilesFailedEmpty),
+    )
+}
 return
 }
 ensureImportedDefaults(imported)
@@ -464,11 +467,9 @@ finish() })
 }
 private fun showProfileImportError(e:Exception) {
 Log.e(TAG, "Failed to import setup profile", e)
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread {
+    showSetupMessage(getString(R.string.MenuFileImportProfilesFailed), e.toString())
+}
 }
 private fun deleteRecursively(file:File) {
 if (file == null || !file.exists()) return
@@ -785,6 +786,19 @@ invalidateTitleY()
 },
 onPagerStateChanged = ::onSetupPagerStateChanged,
 )
+setupMessageDialog?.let { dialog ->
+    SetupMessageDialog(
+        title = dialog.title,
+        message = dialog.message,
+        confirmLabel = ctx.getString(android.R.string.ok),
+        onDismiss = { if (setupMessageDialog === dialog) setupMessageDialog = null },
+    )
+}
+cloudManageDialog?.let { dialog ->
+    dialog.Content {
+        if (cloudManageDialog === dialog) cloudManageDialog = null
+    }
+}
 }
 }
 return themedView
@@ -960,7 +974,7 @@ loggingIn = loggingIn,
 onAccountAction = {
 if (Prefs.getCloudAPIToken() != null)
 {
-CloudManageBottomSheet(this@SetupActivity).show()
+cloudManageDialog = CloudManageDialog(this@SetupActivity)
 }
 else
 {
@@ -1161,11 +1175,10 @@ selected = enabledPrinters.contains(profile),
 
 private fun continueToFilaments() {
 if (!SetupProfileSelectionPolicy.canContinue(useCustomProfile, enabledPrinters.size)) {
-BeamAlertDialogBuilder(this@SetupActivity)
-.setTitle(R.string.IntroNoProfiles)
-.setMessage(R.string.IntroNoProfilesDescription)
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showSetupMessage(
+    getString(R.string.IntroNoProfiles),
+    getString(R.string.IntroNoProfilesDescription),
+)
 return
 }
 limitProfileFragmentCount = false
@@ -1525,11 +1538,10 @@ finish()
 catch (e:Exception) {
 Log.e(TAG, "Failed to save config", e)
 ViewUtils.postOnMainThread {
-BeamAlertDialogBuilder(this@SetupActivity)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(R.string.ConfigSaveFailed)
-.setPositiveButton(android.R.string.ok, null)
-.show()
+    showSetupMessage(
+        getString(R.string.MenuFileImportProfilesFailed),
+        getString(R.string.ConfigSaveFailed),
+    )
 }
 }
 }

@@ -416,6 +416,9 @@ public:
     ModelVolume*            add_volume(const ModelVolume &volume, ModelVolumeType type = ModelVolumeType::INVALID);
     ModelVolume*            add_volume(const ModelVolume &volume, TriangleMesh &&mesh);
     ModelVolume*            add_volume_with_shared_mesh(const ModelVolume &other, ModelVolumeType type = ModelVolumeType::MODEL_PART);
+    // Prepare a volume copy without attaching it, so callers can build a complete transaction
+    // before mutating this object's volume list.
+    std::unique_ptr<ModelVolume> prepare_volume_copy(const ModelVolume &other);
     void                    delete_volume(size_t idx);
     void                    clear_volumes();
     void                    sort_volumes(bool full_sort);
@@ -484,6 +487,10 @@ public:
     // This method is cheap in that it does not make any unnecessary copy of the volume meshes.
     // This method is used by the auto arrange function.
     Polygon       convex_hull_2d(const Transform3d &trafo_instance) const;
+
+    // A tighter outline for safe, ordinary closed meshes. Returns empty when a conservative
+    // convex hull should be used instead (open, complex, or disconnected geometry).
+    ExPolygon     arrange_footprint_2d(const Transform3d &trafo_instance, ExPolygons *exact_parts = nullptr) const;
 
     void center_around_origin(bool include_modifiers = true);
     void ensure_on_bed(bool allow_negative_z = false);

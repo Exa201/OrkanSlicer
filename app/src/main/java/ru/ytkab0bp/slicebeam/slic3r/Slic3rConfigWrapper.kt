@@ -423,7 +423,9 @@ open class Slic3rConfigWrapper {
                 "retract_restart_extra_toolchange",
                 "default_filament_profile",
                 "enable_filament_ramming",
-                "curr_bed_type")
+                "curr_bed_type",
+                "support_chamber_temp_control",
+                "support_air_filtration")
 
         @JvmField
         val PHYSICAL_PRINTER_CONFIG_KEYS: List<String> = Arrays.asList("preset_name",

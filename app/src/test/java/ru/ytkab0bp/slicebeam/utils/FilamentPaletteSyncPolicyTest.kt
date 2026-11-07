@@ -14,36 +14,36 @@ class FilamentPaletteSyncPolicyTest {
         assertArrayEquals(intArrayOf(0, 1, 2, 3), result.gates)
     }
 
-    @Test fun explicitSyncShrinksPaletteToOneOccupiedSlot() {
+    @Test fun explicitSyncRetainsEmptySlotsBeforeTheOnlyOccupiedSlot() {
         val result = FilamentPaletteSyncPolicy.replaceFromPrinter(listOf(null, null, slot("PETG", 0xFF0000), null), intArrayOf(0, 1, 2, 3))
-        assertEquals(1, result.slots.size)
-        assertEquals("PETG", result.slots[0].type)
-        assertArrayEquals(intArrayOf(2), result.gates)
+        assertEquals(4, result.slots.size)
+        assertEquals(listOf(null, null, "PETG", null), result.slots.map { it.type })
+        assertArrayEquals(intArrayOf(0, 1, 2, 3), result.gates)
     }
 
-    @Test fun gapsAndPermutedToolsKeepTheirPhysicalGateAssignments() {
-        val result = FilamentPaletteSyncPolicy.replaceFromPrinter(listOf(slot("PLA", 0xFFFFFF), null, slot("PETG", 0xFF0000), null), intArrayOf(2, 0, 3, 1))
-        assertArrayEquals(intArrayOf(0, 2), result.gates)
-        assertEquals(listOf("PLA", "PETG"), result.slots.map { it.type })
-        assertEquals(0xFFFF0000.toInt(), result.slots[1].color)
+    @Test(expected = IllegalArgumentException::class)
+    fun explicitSyncRejectsPermutedPrinterToolMapsInsteadOfCompactingThem() {
+        FilamentPaletteSyncPolicy.replaceFromPrinter(
+            listOf(slot("PLA", 0xFFFFFF), null, slot("PETG", 0xFF0000), null),
+            intArrayOf(2, 0, 3, 1),
+        )
     }
 
-    @Test fun secondPhysicalSlotEmptyKeepsThirdAndFourthGcodeTools() {
+    @Test fun secondPhysicalSlotEmptyKeepsThirdAndFourthGcodeToolsAtTheirIndices() {
         val result = FilamentPaletteSyncPolicy.replaceFromPrinter(
             listOf(slot("PLA", 0x111111), null, slot("PETG", 0x222222), slot("TPU", 0x333333)),
             intArrayOf(0, 1, 2, 3),
         )
-        assertArrayEquals(intArrayOf(0, 2, 3), result.gates)
-        assertEquals(listOf("PLA", "PETG", "TPU"), result.slots.map { it.type })
-        assertEquals("T2", GCodeToolMapper.remapToolLine("T1", result.gates))
-        assertEquals("T3", GCodeToolMapper.remapToolLine("T2", result.gates))
-        assertEquals("1,3,4", GCodeToolMapper.formatGateList(result.gates))
+        assertArrayEquals(intArrayOf(0, 1, 2, 3), result.gates)
+        assertEquals(listOf("PLA", null, "PETG", "TPU"), result.slots.map { it.type })
+        assertEquals("T1", GCodeToolMapper.remapToolLine("T1", result.gates))
+        assertEquals("T2", GCodeToolMapper.remapToolLine("T2", result.gates))
+        assertEquals("1,2,3,4", GCodeToolMapper.formatGateList(result.gates))
     }
 
-    @Test fun duplicateAndInvalidMappingsDoNotCreateExtraSlots() {
-        val result = FilamentPaletteSyncPolicy.replaceFromPrinter(listOf(slot("PLA", 0)), intArrayOf(0, 0, -1, 99))
-        assertEquals(1, result.slots.size)
-        assertArrayEquals(intArrayOf(0), result.gates)
+    @Test(expected = IllegalArgumentException::class)
+    fun explicitSyncRejectsPrinterToolMapsThatWouldRewriteSlotCommands() {
+        FilamentPaletteSyncPolicy.replaceFromPrinter(listOf(slot("PLA", 0), slot("PETG", 0)), intArrayOf(0, 0))
     }
 
     @Test(expected = IllegalArgumentException::class) fun emptyPrinterIsRejected() {

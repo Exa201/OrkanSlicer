@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="校正ツールを選び、操作を確認し、次の印刷に使える測定を理解します。" />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/ja/docs/calibration-workflows">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="校正の手順 | Kromacutドキュメント" />
+        <meta property="og:description" content="校正ツールを選び、操作を確認し、次の印刷に使える測定を理解します。" />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/ja/docs/calibration-workflows" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="ja_JP" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="校正の手順 | Kromacutドキュメント" />
+        <meta name="twitter:description" content="校正ツールを選び、操作を確認し、次の印刷に使える測定を理解します。" />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>校正の手順 | Kromacutドキュメント</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/calibration-workflows">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/calibration-workflows">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/calibration-workflows">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/calibration-workflows">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/calibration-workflows">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/calibration-workflows">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/calibration-workflows">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/calibration-workflows">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/calibration-workflows">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/calibration-workflows">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/calibration-workflows">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/calibration-workflows">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/calibration-workflows">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="ドキュメント">
+                    <a href="/ja/">ホームへ戻る</a>
+                    <a href="/app">Kromacutを開く</a>
+                    <ul><li><a href="/ja/docs/overview">概要</a></li><li><a href="/ja/docs/quick-start">クイックスタート</a></li><li><a href="/ja/docs/loading-images">画像の読み込み</a></li><li><a href="/ja/docs/image-adjustments">画像調整</a></li><li><a href="/ja/docs/reducing-colors">減色</a></li><li><a href="/ja/docs/dedithering-cleanup">ディザ除去とクリーンアップ</a></li><li><a href="/ja/docs/3d-mode">3Dモード</a></li><li><a href="/ja/docs/calibration-theory">校正の理論</a></li><li><a href="/ja/docs/auto-paint">自動ペイントの操作</a></li><li><a href="/ja/docs/flat-paint">フラット印刷</a></li><li><a href="/ja/docs/calibration-workflows">校正の手順</a></li><li><a href="/ja/docs/generating-exporting-output">モデル生成と書き出し</a></li><li><a href="/ja/docs/settings-and-controls">設定と操作</a></li><li><a href="/ja/docs/troubleshooting">トラブルシューティング</a></li><li><a href="/ja/docs/faq">よくある質問</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="calibration-workflows">校正の手順</h1>
+<p>校正は、自動ペイントが積層したフィラメントの見え方を予測するのに役立ちます。プリンターの校正ではありません。押出、温度、ベッドレベリング、ノズル設定は調整しません。まず安定したスライサー設定を使い、作品に使うものと同じ材料・観察条件で測定してください。</p>
+<p><strong>3D → 自動ペイント → 校正</strong>を開きます。ダイアログには<strong>遮蔽距離</strong>、<strong>配色見本</strong>、<strong>積層校正マトリクス</strong>があります。それぞれ異なるものを測定し、併用できます。</p>
+<p><a href="/localized/ja/diagrams/20_calibration_choices.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：3つの校正経路：ウェッジはフィラメントの不透明度、配色見本は少数の作品色の比較、撮影したマトリクスは多数の配合を測定します。すべて予測色と印刷可能な積層に役立ちます。"><img src="/localized/ja/diagrams/20_calibration_choices.svg" alt="3つの校正経路：ウェッジはフィラメントの不透明度、配色見本は少数の作品色の比較、撮影したマトリクスは多数の配合を測定します。すべて予測色と印刷可能な積層に役立ちます。" loading="lazy"></a></p>
+<table><thead><tr><th>ツール</th><th>適した用途</th><th>提供するもの</th><th>その後変わる可能性のあるもの</th></tr></thead><tbody><tr><td>遮蔽距離</td><td>フィラメントの不透明度が不明、または推定のみ</td><td>基準レールと最初に一致するウェッジ区画</td><td>HD、チャンネル推定、遷移の厚み、合計高さ、交換計画</td></tr><tr><td>配色見本</td><td>1つの作品の少数の色が特に重要</td><td>最も近い印刷候補と一致の質</td><td>局所色予測と積層の優先度。順番、高さ、形状も変わる場合があります</td></tr><tr><td>積層校正マトリクス</td><td>多数の短い配合の測定色が欲しい</td><td>正しく位置合わせした前面照明の写真</td><td>測定配合の予測、局所補間、検証済み物理モデルの当てはめ</td></tr></tbody></table>
+<p>どのツールもプリンターのXY解像度を高めたり、すべての目標色を実現可能にしたりはしません。よく校正したプロファイルでも色域は限られる場合があります。基礎モデルは<a href="/ja/docs/calibration-theory">校正の理論</a>を参照してください。</p>
+<h2 id="prepare-and-protect-your-filament-profile">フィラメントプロファイルを準備して保護する</h2>
+<p>フィラメントの行は実際のスプールを表し、欲しい画像色ではありません。</p>
+<table><thead><tr><th>操作</th><th>動作</th><th>重要な影響</th></tr></thead><tbody><tr><td>色見本 / 16進数</td><td>フィラメントの公称不透明色を設定</td><td>変更すると旧色のウェッジ校正が無効になり、保存した見え方データとの互換性も変わります。</td></tr><tr><td>名前</td><td>スプールに読みやすいラベルを付ける</td><td>名前は光学特性を変えません。配色見本やマトリクスを記録する前に編集を保存してください。</td></tr><tr><td>HD欄</td><td>0.01〜2 mmで前面照明の遮蔽距離を入力</td><td>大きいHDは通常、下地を隠すのに厚みが必要です。手入力値の確定はウェッジ校正を消去します。</td></tr><tr><td>TDから変換</td><td>従来の背面照明/リトファンTDを約TD × 0.1でHDに変換</td><td>従来のTDはこちらに入力し、HD欄には直接入れません。変換値は推定で、ウェッジ校正を置き換えます。</td></tr><tr><td>魔法の杖</td><td>色見本からHDを推定</td><td>出発点として便利ですが測定ではありません。既存のウェッジ校正を置き換えます。</td></tr><tr><td>校正バッジ</td><td>推定、または測定校正の品質ラベルを表示</td><td>ポインターを重ねるとチャンネルHDを確認できます。完成作品が元画像に一致する保証ではありません。</td></tr><tr><td>フィラメントを追加 / ごみ箱</td><td>作業構成にスプールを追加・削除</td><td>利用可能な物理色とデータの互換性が変わる場合があります。</td></tr></tbody></table>
+<p>見え方データを記録する前に、<strong>プロファイル</strong>ツールバーで名前付きの変更のない構成を保持します。</p>
+<ul><li><strong>プロファイルの選択：</strong>保存した構成を作業フィラメントに読み込みます。別の構成は現在の一覧を置き換えるため、必要な編集は先に保存してください。</li><li><strong>選択したプロファイルを保存：</strong>作業値でフィラメント一覧を上書きします。既存の配色見本とマトリクス記録は残りますが、非互換な記録は変更後の構成に適用されません。</li><li><strong>新しいプロファイルとして保存：</strong>別名の構成を作ります。フィラメント行とウェッジ測定をコピーしますが、旧プロファイルの配色見本・マトリクス履歴はコピーしません。</li><li><strong>名前を変更：</strong>測定を変えずにプロファイル名を変えます。</li><li><strong>読み込み：</strong>フィラメントファイルを読みます。<strong>書き出し</strong>は未保存変更のない名前付きプロファイルを、配色見本評価とマトリクス測定を含めて<code>.kfil</code>にバックアップします。デスクトップでは保存ダイアログ、Webではブラウザーのダウンロード動作を使います。</li><li><strong>選択したプロファイルを削除：</strong>保存したプロファイルとそのデータを削除します。再利用する可能性があれば先にバックアップを書き出してください。</li></ul>
+<p><strong>未保存の変更</strong>は作業構成が選択プロファイルと異なることを示します。マトリクス作成や配色見本結果の記録前に保存または上書きしてください。未保存変更がある状態の書き出しは旧見え方履歴を含まない「未保存の編集」プロファイルであり、その履歴の完全なバックアップではありません。テンプレートは推定HDの読み取り専用の出発点なので、校正前に自分のコピーを保存します。<a href="/ja/docs/settings-and-controls#filament-profile-files">プロファイル形式と取り込み処理</a>を参照してください。</p>
+<h2 id="hiding-distance-read-a-wedge">遮蔽距離：ウェッジを読み取る</h2>
+<h3 id="1-select-filaments-and-bases">1. フィラメントと下地を選ぶ</h3>
+<p>1つ以上のフィラメントを選ぶか、<strong>すべて選択 / すべて解除</strong>を使い、<strong>次へ：下地</strong>を選びます。</p>
+<ul><li><strong>クイック</strong>はフィラメントごとに1つの下地を使います。スカラーの不透明度閾値を測り、色見本からの保守的なチャンネル差推定を保持します。</li><li><strong>高精度</strong>はフィラメントごとに最大3つの下地を選べ、利用可能なら有用な2つを最初に推奨します。下地ごとに別のウェッジを読みます。制約付きチャンネル推定を改善するもので、3つのスペクトルチャンネルを独立に測定しません。</li><li><strong>下地の色見本</strong>はフィラメントの下に印刷するものを選びます。薄い区画がレールと目で区別できるよう、対照的な下地を使います。下地とフィラメントがほぼ同色では有用な不透明度閾値が得られません。</li></ul>
+<p>クイック/高精度を切り替えると、下地選択がそのモードの推奨値に戻ります。高精度は同じ材料を複数の下地上で比較できる場合に有用であり、名前だけであらゆる結果が良くなるわけではありません。</p>
+<h3 id="2-set-the-wedge-and-print-it">2. ウェッジを設定して印刷する</h3>
+<p><a href="/localized/ja/diagrams/07_calibration_wedge.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：校正ウェッジには不透明な基準レールの隣に徐々に厚くなる区画があり、最初の同じ区画が測定を与えます。"><img src="/localized/ja/diagrams/07_calibration_wedge.svg" alt="校正ウェッジには不透明な基準レールの隣に徐々に厚くなる区画があり、最初の同じ区画が測定を与えます。" loading="lazy"></a></p>
+<table><thead><tr><th>操作</th><th>校正印刷への影響</th></tr></thead><tbody><tr><td>層の高さ（mm）</td><td>ウェッジ区画で追加する各層の厚み。0.04〜0.40 mmです。細かい高さは測定刻みを細かくしますが、未対応のプリンター設定を安定させません。</td></tr><tr><td>最大層数（ウェッジの長さ）</td><td>4〜40段階を選びます。増やすと半透明フィラメントの測定範囲が広がり、ウェッジが長く高くなります。</td></tr><tr><td>STL（任意のプリンター）</td><td>無色の1枚をダウンロード。選択したフィラメント/下地の各組み合わせを印刷し、表示した手動交換を使います。</td></tr><tr><td>3MF（多材料）</td><td>選んだすべての読み取りを、実際のフィラメント/下地割り当てとともに1ファイルに含めます。スライサーの材料対応を確認してください。</td></tr><tr><td>ダウンロード</td><td>現在のウェッジ計画を書き出します。結果入力はその計画の層高と下地を使い、その後の無関係な編集は使いません。</td></tr></tbody></table>
+<p>表示された<strong>通常層の高さ</strong>、<strong>初層の高さ</strong>、<strong>交換する層 / Z</strong>を正確に使います。初層は印刷設定に由来し、ウェッジ自身の層の高さは通常の3Dモデル設定とは別です。Z方向に拡大縮小しないでください。<strong>次へ：結果入力</strong>で読み取り工程を開きます。ダウンロードだけではプリンターに何も送信しません。</p>
+<p>デスクトップでは両形式とも<strong>名前を付けて保存</strong>を開き、ブラウザーでは通常のダウンロード動作を使います。設定変更や結果入力の前に書き出し完了を待ちます。保存のキャンセルや書き出し失敗では、前回正常にダウンロードしたウェッジ計画は変わりません。保存に失敗すると再試行用のエラーが表示されます。</p>
+<h3 id="3-compare-and-save">3. 比較して保存する</h3>
+<p>印刷したウェッジを表向きにし、予定する前面照明で観察します。タブが1層の端です。各区画を、スマートフォン写真や画面の色見本ではなく、隣の基準レールと比べます。</p>
+<ul><li><strong>一致：</strong>レールと同じに見える最初の区画番号を入力します。区画に追加したフィラメント層数であり、プリンターの絶対層番号ではありません。</li><li><strong>同化（任意）：</strong>前の区画とまだ違って見えた最後の区画を入力します。当てはめ曲線の確認であり、必須の2つ目の不透明度測定ではありません。一致より後の値には警告が出ます。</li><li><strong>予測色見本 / HD / 信頼度 / 診断：</strong>読み取りから推定した結果を示します。フィードバックであり、追加の測定入力ではありません。</li><li><strong>校正を保存：</strong>完全で使用可能な測定を適用します。空欄のフィラメントは<strong>未入力</strong>として変わりません。高精度モードで一部だけ入力したフィラメントは、選んだすべての下地に一致値が入るまで<strong>保存されません</strong>。シート全体を終えなくても他の完全な測定は保存できます。</li></ul>
+<p>最後の区画でもレールと違うなら、終わらせるために一致とせず、長いウェッジを作ります。最初から一致するなら、印刷可能なより細かい層高や対照的な下地で情報量を増やせます。範囲端の読み取りは信頼度が低くなります。</p>
+<p>再校正は以前のウェッジ結果を置き換えます。複数の下地を組み合わせるには、1回の高精度セッションで一緒に読んでください。その後、名前付きプロファイルを保存/上書きし、バックアップを書き出します。測定HDは予測色と必要とされる材料量を変えるため、再作成して新しい高さと交換手順を確認します。</p>
+<p><strong>戻る</strong>で前の工程に戻れます。ダイアログを閉じると未保存のウェッジ選択と読み取りがリセットされるので、使える結果は先に保存します。複数の完全な多下地読み取りでセッション当てはめが始まった場合、終了を待って保存してください。計算待ちは追加で入力すべき測定ではありません。</p>
+<h3 id="printed-example-eight-filaments">印刷例：8種類のフィラメント</h3>
+<p><a href="/assets/hd-wedges-eight-colors-2026-09-13-dON8Djwq.jpg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：不透明な基準レールの隣に段階区画がある8本のHDウェッジ。左から白、黒、ピンク、黄、オレンジ、紫、シアン、緑です。"><img src="/assets/hd-wedges-eight-colors-2026-09-13-dON8Djwq.jpg" alt="不透明な基準レールの隣に段階区画がある8本のHDウェッジ。左から白、黒、ピンク、黄、オレンジ、紫、シアン、緑です。" loading="lazy"></a></p>
+<p>この実物の校正印刷は2026年9月13日に完成しました。白と有彩色のウェッジは黒の下地、黒のウェッジは白の下地を使っています。付属する<strong>8 Colors 0.2mm</strong>プロファイルには、<strong>ウェッジ層0.04 mm</strong>と<strong>初層0.10 mm</strong>が記録されています。プロファイル名は記録された印刷設定の代わりになりません。</p>
+<p>写真は区画とレールの配置、不透明に近づく様子を理解するために使い、一致番号のコピーや校正色の抽出には使わないでください。カメラの露出、ホワイトバランス、照明、ディスプレイで見かけの一致が変わります。一定の前面照明で、自分の実物を隣のレールと比較して読み取ってください。</p>
+<h2 id="palette-proof-compare-artwork-colors">配色見本：作品の色を比較する</h2>
+<p>配色見本は現在の自動ペイント積層から複数候補を印刷します。<strong>接頭列</strong>とは土台から選んだ終了高さまでの全層です。スプールを任意に独立混合するのではなく、印刷可能な終了高さを比較します。</p>
+<h3 id="choose-targets-and-candidates">目標色と候補を選ぶ</h3>
+<p>まず自動ペイントで、適格な印刷可能接頭列が2つ以上ある結果の計算を終えます。作品の3Dメッシュを先に作る必要はありません。名前付きフィラメントプロファイルを保存し、<strong>配色見本</strong>を開きます。</p>
+<table><thead><tr><th>操作</th><th>意味</th></tr></thead><tbody><tr><td>目標色</td><td>比較する作品色の数。最大10、または利用可能数まで。十分な色があれば既定は8です。</td></tr><tr><td>候補</td><td>目標ごとに要求する代替数。通常2〜5で、有用な接頭列の数に制限されます。増やすと試験片が広くなります。</td></tr><tr><td>画像から選ぶ</td><td>別の目標選択画面を開きます。重要な画像領域や色の切り替えをクリックします。</td></tr><tr><td>元の画像</td><td>手つかずのアップロード写真ではなく、見え方の当てはめ前の処理済み画像色を目標にします。</td></tr><tr><td>当てはめ済み / 実現可能</td><td>現在の自動ペイント結果が使う正確な予測色を目標にします。印刷がプレビューに一致するか確認する用途です。「実現可能」は物理精度の保証ではありません。</td></tr><tr><td>配色見本の合計目標数</td><td>画像選択中に同じ目標数を設定します。</td></tr><tr><td>選択を解除</td><td>手動の優先指定を除き、空いた枠を自動選択に戻します。</td></tr><tr><td>自動選択を使う / 選択＋自動を使う</td><td>優先指定を保持して配色見本に戻り、残りを自動で埋めます。</td></tr></tbody></table>
+<p>選んだ色は画像内のすべての出現箇所で明るく残り、未選択領域は暗くなります。目標選択は元画像を変色せず、プリンターの色域に強制的に入れません。目標数を減らすと、その数を超えた優先指定が落ちる場合があります。</p>
+<h3 id="print-and-identify-the-coupon">試験片を印刷して識別する</h3>
+<p><a href="/localized/ja/diagrams/09_palette_proof.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：各目標の候補区画は、共通の連続した土台上で異なる高さに止まります。"><img src="/localized/ja/diagrams/09_palette_proof.svg" alt="各目標の候補区画は、共通の連続した土台上で異なる高さに止まります。" loading="lazy"></a></p>
+<p><strong>配色見本マップ</strong>と<strong>結果</strong>は1行1目標で、候補A〜Eが左から右に並びます。数字は目標行です。<strong>F</strong>は共有土台の基準で、6番目の候補色や別フィラメントではありません。露出した土台の余白と比較します。</p>
+<p><strong>3MFをダウンロード</strong>は試験片を書き出し、未保存変更のない名前付きプロファイルなら識別情報と配合マップも保存します。保存後は目標選択と数を固定し、結果が別の印刷を指してしまわないようにします。表向き、縮尺100%で、埋め込まれた通常層高と初層高を使い、フィラメント割り当てを確認し、欠けた左上角で向きを合わせます。既定の8目標×5候補は44×68 mmです。連続した土台上で8 mm区画が接するため、画面の格子より境界がわかりにくい場合があります。</p>
+<h3 id="record-what-you-actually-see">実際に見えたことを記録する</h3>
+<p><strong>結果</strong>を開き、一定の観察条件で印刷候補と表示目標を比べ、最も近い区画を選びます。同率なら複数を選びます。その後、一致を説明します。</p>
+<table><thead><tr><th>回答</th><th>Kromacutに伝えること</th></tr></thead><tbody><tr><td>候補内で最良</td><td>最も誤りが少ない選択です。目標と等しいとはせず、他候補に対して支持します。</td></tr><tr><td>近い</td><td>選んだ色はほぼ合っています。優先度とともに弱い局所補正を追加します。</td></tr><tr><td>完全一致</td><td>選んだ配合はこの目標に正確に一致します。見える色を再現するための下層を含め、最も強い局所基準を保持します。</td></tr><tr><td>該当なし</td><td>すべての候補が明らかに不適切です。正しい色を捏造したり勝者を選んだりせず、局所的に拒否します。</td></tr></tbody></table>
+<p><a href="/localized/ja/diagrams/21_proof_rounds.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：配色見本を比較した後、選んだ最良候補は次回の近隣候補探索につながります。該当なしでは以前の最良基準なしに探索し、新しい目標色では別の作品色を試します。"><img src="/localized/ja/diagrams/21_proof_rounds.svg" alt="配色見本を比較した後、選んだ最良候補は次回の近隣候補探索につながります。該当なしでは以前の最良基準なしに探索し、新しい目標色では別の作品色を試します。" loading="lazy"></a></p>
+<p>回答は入力するたびに保存されます。該当なしを含め全行に回答すると<strong>結果を完了</strong>が使えます。<strong>結果を編集</strong>は完了した配色見本を修正用に開きます。保存済み見本の選択欄は同じ目標セットと続きの回をまとめます。</p>
+<ul><li><strong>目標色を継続：</strong>現在の互換性のある積層で同じ目標の次回分を印刷します。選んだ以前の最良候補を保持し、近隣の未試行候補を試し、探索用積層を1つ含む場合があります。該当なしの回答には以前の最良基準がないため、次回は代替を探索します。</li><li><strong>新しい目標色：</strong>別の目標セットの画像選択を開きます。自動選択は完了した見本の外の色を優先し、その後で試行の少ない色を選びます。</li><li><strong>候補不足 / 探索済み目標：</strong>要求サイズを満たすためだけに無関係な繰り返しで埋めることはありません。警告を読んでください。有用な選択肢が減っても校正を失ったわけではありません。</li><li><strong>配色見本を削除：</strong>確認後、その試験片と全評価を見え方データから除去します。</li></ul>
+<p>保存した結果は元画像なしでも読めます。保存済み配色見本の再ダウンロードには元の自動ペイントの正確なスナップショットが必要で、目標の継続には互換性のある現在の作品/工程が必要です。後で再印刷する可能性があれば元の3MFを残してください。</p>
+<p>配色見本の評価は近くの予測色、積層順位、最終的な印刷高さを変える場合があります。書き出す層に割り当てた実物材料を変えたり、スプールのHD校正を上書きしたりはしません。1つの結果で全体に正確なパレットが成立するわけではありません。広域の当てはめにはデータと留出し検証の条件があり、無効でも局所評価は役立つ場合があります。</p>
+<h2 id="stack-matrix-photograph-known-recipes">積層校正マトリクス：既知の配合を撮影する</h2>
+<h3 id="plan-the-board">ボードを計画する</h3>
+<p>まず変更のない名前付きプロファイルを保存します。<strong>新しいマトリクス</strong>を選ぶ前に、3D印刷設定で予定する<strong>層の高さ</strong>と<strong>初層の高さ</strong>を設定します。遮蔽距離ウェッジの層高欄はマトリクスには使いません。</p>
+<table><thead><tr><th>操作</th><th>ボードへの影響</th></tr></thead><tbody><tr><td>フィラメントの色見本</td><td>プロファイル順に2〜8種類を選びます。配合層にはこれらの材料だけを使います。</td></tr><tr><td>最大色厚み（mm）</td><td>1層の土台上の色領域を制限します。通常印刷層の整数に切り下げ、1〜64層です。0.04 mmなら0.40 mm上限で最大10層の配合を使えます。</td></tr><tr><td>最大セル数</td><td>配合数の上限：64、144、256、400、625、1,024、1,296、1,600、2,025。大きいボードは多く測れますが、ベッド面積と時間が増えます。</td></tr><tr><td>予定材料交換許容量</td><td>隅の基準を含む、計画側の材料交換推定を制限します。40〜640回または計画上の制限なしを選びます。時間推定でもスライサー最終交換回数の保証でもありません。</td></tr><tr><td>下地フィラメント</td><td>選択材料から1層の土台と短い配合下の補充層を選びます。既定は最も明るい選択材料です。薄い初層の不透明性は保証されません。</td></tr><tr><td>層の高さ / 初層の高さ</td><td>新しいボード用の現在の3D設定を読み取り専用で確認します。</td></tr><tr><td>配合 / 寸法 / 高さ / 交換の要約</td><td>ダウンロード前に占有寸法、土台＋色領域の高さ、合計高さ、印刷層数を表示します。保存済みボードは固定した高さ、選択セル、予定交換、基準、考慮した過去ボードを示します。</td></tr><tr><td>3MFを作成してダウンロード</td><td>配合を計画し、ボードを書き出して、保存計画をプロファイルに記録します。</td></tr></tbody></table>
+<p>新しいボードは<strong>適応的な色域探索</strong>を使います。上限付きで再現可能な探索が許された厚み範囲をサンプリングします。以前の測定色の隙間、未試行の深さやフィラメント遷移、予測の裏付けが弱いか測定と食い違った探索配合を優先します。予測上の新規性は実物の色が新しいという保証ではありません。連続する写真を比較できるよう、少数の基準セルは意図的に繰り返します。</p>
+<p>次のボードに使うのは、プロファイル/材料、下地、印刷高さ、承認した写真位置合わせが互換な完成ボードだけです。未印刷計画のダウンロードはその色を測定済みにしません。完成したボードは残してください。<strong>新しいマトリクス</strong>は適格な測定を自動で考慮します。下地や設定を変えると別の色域探索条件になる場合があります。</p>
+<p>新しいボードは<strong>初層の高さ</strong>による<strong>1層の土台</strong>を使い、不透明度に基づく追加の厚板はありません。たとえば<strong>初層0.10 mm＋色領域0.40 mm＝合計0.50 mm</strong>です。<strong>通常層0.04 mm</strong>なら<strong>11印刷層</strong>、つまり土台1層と色領域10層です。ダウンロード前の高さ要約はこの内訳を示し、古いボードでは保存済みの実際の土台を使います。</p>
+<p>すべての区画は同じ平らな上面で終了します。短い配合は色層の下に同じ下地フィラメントの追加層を置き、それも<strong>色厚み上限の内側</strong>に含めます。補充によって表示合計高さが増えることはありません。保存記録は有用な配合と下地補充の両方を保持します。</p>
+<p>薄い初層は自動的に不透明にはなりません。不透明な下地フィラメントを選び、一定で平らな撮影下地上で撮影してください。下から透ける光や色は測定色に影響します。追加下地を光学的に中立と扱えるのは、本当に下を隠した場合だけです。</p>
+<p>まだ半透明の土台上の測定は、その物理的な下地厚みを保持します。一致する物理積層には使えますが、別の下地厚み上の交換可能な測定や、全体の不透明下地モデルの当てはめには使いません。裸の初層が不透明でなくても、補充によって一部の区画が不透明になる場合があります。</p>
+<p>新しいボードは似た配合をまとめ、同色領域を連続させてツールパスの断片化を減らします。まとめるだけでは各層のフィラメント種類数は減らないため、交換回数や一定の時間短縮を保証しません。既存ボードは写真が引き続き一致するよう元のセル位置を保持します。</p>
+<p>厚み上限はすべての配合にその厚みを要求しません。セル数と交換許容量によって要求より少ないセルになる場合があり、厳しい交換許容量では選択した一部フィラメントを使わないこともあります。その場合は保存計画に警告します。基準区画だけでも許容量を超えるなら、許容量を増やすか厚み上限や選択材料を減らします。セルが少なくても深いボードやCFS/AMSパージは遅くなり得るため、印刷前にスライサーの最終推定を確認してください。</p>
+<p>保存要約は、互換な過去ボードで未測定の選択配合を数えます。ゼロなら既存測定の繰り返しだけなので、印刷を省き別の制限や材料を試せます。探索は有限なので、実現可能な全色を測った証明ではありません。</p>
+<p>セルは5 mm固定で隙間なし、外周にマーカー縁を追加します。たとえば32×32のデータ格子は170×170 mmのボードになります。古い保存ボードは固定の配合深さと<strong>全組み合わせ</strong>または<strong>HD選択色域</strong>のラベルを保持し、再ダウンロードしても適応形式に変わりません。</p>
+<p>デスクトップで保存をキャンセルしても新しい計画は作りません。ブラウザーではダウンロード開始時に記録します。保存エラーを確認し、3MFを保持してください。保存ボードの層高、下地、配合マップは固定され、後の設定変更で再設計されません。その記録の<strong>3MFをダウンロード</strong>は元のボードを再書き出しします。</p>
+<p>正確な層高と材料割り当てで、表向き、縮尺100%で印刷します。初層が通常層より低い場合は通常層高に正規化されます。土台はその実効初層高の1層のままで、不透明度目標のために厚くしません。古い保存ボードは追加土台層を含む元の土台を保ちます。物理校正用なので、Z縮尺や材料対応を変えるとセルが測るべき内容が無効になります。</p>
+<h3 id="load-and-align-a-photo">写真を読み込んで位置を合わせる</h3>
+<p>保存済みマトリクスの選択欄で印刷したボードを選び、<strong>写真を選択</strong>するか写真領域に画像をドロップします。強い反射のない拡散した前面照明で撮影してください。アプリが読み取れるファイルが必要で、カメラRAWは通常表示できる画像の書き出しの代わりにはなりません。</p>
+<p><a href="/localized/ja/diagrams/22_matrix_alignment.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：4つのハンドルは配合格子の外の色付きマーカーセル中心に置きます。ボードの境界は中心から半セル外側にあり、拡大図で中心と外角を区別します。"><img src="/localized/ja/diagrams/22_matrix_alignment.svg" alt="4つのハンドルは配合格子の外の色付きマーカーセル中心に置きます。ボードの境界は中心から半セル外側にあり、拡大図で中心と外角を区別します。" loading="lazy"></a></p>
+<table><thead><tr><th>操作</th><th>変更内容</th></tr></thead><tbody><tr><td>印刷された隅の凡例</td><td>必要な向き：1左上、2右上、3右下、4左下を示します。この記録の色見本に従ってください。色は選択フィラメントによって変わります。</td></tr><tr><td>左 / 右に回転</td><td>アップロード写真を90°回して再検出します。保存した物理配合マップは変えません。</td></tr><tr><td>ズーム− / 割合 / ズーム＋</td><td>確認倍率を100〜400%で変更。100%は写真全体が領域に収まる表示で、画面1ピクセル＝カメラ1ピクセルではありません。割合をクリックしてリセットし、スクロールで拡大部に移動します。</td></tr><tr><td>4つの番号付きハンドル</td><td>密なデータ格子の斜め外側にある色付きマーカーセルの中心へドラッグします。ルーペの十字線が抽出中心です。</td></tr><tr><td>テンプレート格子を表示</td><td>投影セル境界を示し、印刷と比較できます。確認用の重ね表示であり、色補正ではありません。</td></tr><tr><td>再検出</td><td>現在の写真から位置合わせを再推定します。</td></tr><tr><td>リセット</td><td>現在の写真の初期推定に戻し、手動ハンドル調整を取り消します。保存した校正は削除しません。</td></tr><tr><td>全格子線とマーカー中心を確認しました</td><td>手動調整または低信頼度検出の後に必要です。格子全体と4中心を確認してから確定してください。</td></tr></tbody></table>
+<p>ハンドルを最後の配合セルや物理的な外角に置かないでください。青いボード輪郭は各マーカー中心から半セル外側にあるべきです。<strong>透視補正プレビュー</strong>を確認し、セルが正方形に見え、印刷配置に一致するか確認します。抽出は境界を避けた内側中心ですが、格子がずれると別の色を配合に割り当ててしまいます。</p>
+<h3 id="decide-how-to-sample-then-save">抽出方法を決めて保存する</h3>
+<p><strong>基準マーカー補正</strong>は既定でオフです。オフではカメラの色かぶりを含む写真の抽出色を保持します。オンでは撮影した4マーカーとその予測配合色を比較し、推定したチャンネル別ゲインを適用します。広範な色かぶりや明るさの偏りを減らせますが、部屋の照明を独立に測るものではなく、影や反射も修復しません。マーカー予測が誤っていると偏りを加える場合もあります。明るいプレビューは測定がより正確な証拠ではありません。</p>
+<p><strong>抽出したLUTプレビュー</strong>は保存する色を配合ごとに1色ずつ示します。セルにポインターを重ねると抽出RGB値を確認できます。すべてのセルが鮮やかであるはずという期待ではなく、実物のボードと意図した観察条件に比べてください。</p>
+<p>サンプルと位置合わせ確認が整うと<strong>校正を保存</strong>が使えます。完了済み記録では<strong>校正を置き換え</strong>となり、その記録の写真測定を置き換えます。両方を残したい場合は先にバックアップをダウンロード/書き出ししてください。保存プロファイルには色、配合、写真メタデータが含まれますが、元写真自体は含みません。後で再抽出する可能性があるなら写真は別途保持します。</p>
+<p><strong>新しいマトリクス</strong>は別のボードを開始し、<strong>保存済みマトリクスに戻る</strong>は既存記録に戻ります。<strong>積層校正マトリクスを削除</strong>は選択ボードとそのデータを除去します。完成した互換ボードは併用できるため、新しい測定をしただけで古いものを消す必要はありません。</p>
+<h2 id="which-evidence-applies-to-my-next-print">次の印刷にはどのデータが適用される？</h2>
+<p><a href="/localized/ja/diagrams/23_calibration_scope.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：0.08 mmで測定した3層配合と0.04 mmの3層は物理的に異なります。既存HDは厚みから推定できますが、層数の一致だけでマトリクス色を転用できません。"><img src="/localized/ja/diagrams/23_calibration_scope.svg" alt="0.08 mmで測定した3層配合と0.04 mmの3層は物理的に異なります。既存HDは厚みから推定できますが、層数の一致だけでマトリクス色を転用できません。" loading="lazy"></a></p>
+<table><thead><tr><th>データ</th><th>確認する互換性</th></tr></thead><tbody><tr><td>ウェッジHD</td><td>測定したフィラメント色に属します。HDは特定層数の検索表ではなく厚みモデルですが、新しい設定でも実物確認が必要です。</td></tr><tr><td>配色見本の優先度と広域当てはめ</td><td>同じ順番のフィラメント識別子、色、HD/校正データ、通常層高、初層高、遷移不透明度設定が必要です。</td></tr><tr><td>完全一致の配色見本基準</td><td>フィラメント/プロファイルと層高が一致する必要があります。必要な物理末尾積層を実現できれば、遷移細部が変わっても使える場合があります。</td></tr><tr><td>積層校正マトリクス</td><td>完了して承認された位置合わせ、互換なフィラメント/プロファイル、同じ通常層高が必要です。正確な配合の利用は、測定下地または裏付けられた光学的同等性にも依存します。</td></tr></tbody></table>
+<p>0.08から0.04 mmへの変更で、撮影した3層配合が6層と再解釈されることはありません。そのマトリクスは新しい通常層高の条件外になります。選択プロファイルのウェッジHD推定は使えても、<strong>見え方モデル</strong>が正しく<strong>推定のみ</strong>、マトリクスLUT配合ゼロと表示する場合があります。</p>
+<p>初層高が違うからといってすべてのマトリクスが自動で無効になるわけではありません。マトリクスは元の土台を保持し、再利用は生成下地が測定条件または裏付けのある同等条件を満たすかに依存します。最上層のフィラメントや合計厚みが同じだけで十分とは考えないでください。制限付き下地転用と同フィラメント延長の規則は<a href="/ja/docs/calibration-theory#prediction-uncertainty">予測の不確実性</a>を参照してください。</p>
+<h2 id="read-confidence-without-overclaiming-accuracy">精度を過大評価せず信頼度を読む</h2>
+<p>フィラメントバッジ、<strong>結果の信頼度</strong>、<strong>見え方モデル / 予測信頼度</strong>は異なるものを表します。</p>
+<ul><li><strong>フィラメントの信頼度</strong>はウェッジ測定をどれほど絞り込めたかです。範囲端の読み取り、食い違い、経年で下がります。「推定」は有効なウェッジ測定がないことを示します。</li><li><strong>結果の信頼度</strong>は校正、カバー率、圧縮を組み合わせます。総合値が高くても配合色がすべてシミュレーションという場合があります。</li><li><strong>見え方モデル</strong>は利用可能な実測データと当てはめ状態を示します。比較した積層、基準、局所近傍、マトリクスLUT配合の件数で、実際に何が計算に使われたかわかります。</li><li><strong>予測信頼度</strong>は、画像に割り当てた色の裏付けを、測定、補間、当てはめ、シミュレーションを含めて示します。測定配合も特定条件でのカメラまたは人間の観測であり、研究室の保証ではありません。</li></ul>
+<p>最もましな区画を選ぶときは完全一致ではなく<strong>候補内で最良</strong>を使います。見栄えが良くなるまでマトリクス写真を調整し続けないでください。有用な次の一歩は、実際に変えた色と印刷設定を確かめる小さな実物テストです。</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

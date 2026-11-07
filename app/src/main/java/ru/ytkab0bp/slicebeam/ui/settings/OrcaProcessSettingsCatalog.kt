@@ -21,7 +21,7 @@ object OrcaProcessSettingsCatalog {
                 section("Walls", "wall_loops", "alternate_extra_wall", "detect_thin_wall"),
                 section("Seam", "seam_position", "staggered_inner_seams", "seam_gap", "wipe_speed", "role_based_wipe_speed"),
                 section("Scarf joint seam", "seam_slope_type", "seam_slope_conditional", "scarf_angle_threshold", "scarf_overhang_threshold", "seam_slope_start_height", "seam_slope_entire_loop", "seam_slope_min_length", "seam_slope_steps", "seam_slope_inner_walls", "scarf_joint_speed", "scarf_joint_flow_ratio"),
-                section("Precision", "slice_closing_radius", "resolution", "enable_arc_fitting", "elefant_foot_compensation", "elefant_foot_compensation_layers", "precise_z_height", "xy_hole_compensation", "xy_contour_compensation", "hole_to_polyhole", "hole_to_polyhole_threshold", "hole_to_polyhole_twisted"),
+                section("Precision", "slice_closing_radius", "resolution", "enable_arc_fitting", "elefant_foot_compensation", "elefant_foot_compensation_layers", "elefant_foot_layers_density", "precise_z_height", "xy_hole_compensation", "xy_contour_compensation", "hole_to_polyhole", "hole_to_polyhole_threshold", "hole_to_polyhole_twisted"),
                 section("Ironing", "ironing_type", "ironing_pattern", "ironing_flow", "ironing_spacing", "ironing_angle", "ironing_angle_fixed", "ironing_inset", "ironing_expansion"),
                 section("Wall generator", "wall_generator", "wall_transition_angle", "wall_transition_filter_deviation", "wall_transition_length", "wall_distribution_count", "min_bead_width", "min_feature_size"),
                 section("Walls and surfaces", "extra_perimeters_on_overhangs", "precise_outer_wall", "ensure_vertical_shell_thickness", "reduce_crossing_wall", "max_travel_detour_distance", "only_one_wall_top", "only_one_wall_first_layer", "wall_sequence", "wall_direction", "gap_fill_target", "reduce_infill_retraction", "is_infill_first"),
@@ -36,7 +36,7 @@ object OrcaProcessSettingsCatalog {
         ),
         OrcaSettingsCategory(
             "Infill", R.drawable.print_infill_28, listOf(
-                section("Infill", "sparse_infill_density", "sparse_infill_pattern", "fill_multiline", "infill_direction", "solid_infill_direction", "infill_anchor", "infill_anchor_max", "infill_combination", "infill_combination_max_layer_height", "minimum_sparse_infill_area", "infill_wall_overlap", "detect_narrow_internal_solid_infill", "gyroid_optimized"),
+                section("Infill", "sparse_infill_density", "sparse_infill_pattern", "fill_multiline", "infill_direction", "solid_infill_direction", "infill_anchor", "infill_anchor_max", "infill_combination", "infill_combination_max_layer_height", "minimum_sparse_infill_area", "infill_wall_overlap", "infill_lock_depth", "detect_narrow_internal_solid_infill", "gyroid_optimized"),
                 section("Flush into infill", "flush_into_infill"),
                 section("Lightning infill", "lightning_overhang_angle", "lightning_prune_angle", "lightning_straightening_angle"),
                 section("Wall flow ratio", "outer_wall_flow_ratio", "inner_wall_flow_ratio", "gap_fill_flow_ratio", "first_layer_flow_ratio"),

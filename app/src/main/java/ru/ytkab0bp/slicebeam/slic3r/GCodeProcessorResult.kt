@@ -8,6 +8,9 @@ open class GCodeProcessorResult {
     @Volatile var previewSelection: GCodePreviewSelection? = null
     @Volatile var previewLayerCount: Int = 0
 
+    /** Exact tool palette passed to native slicing, in 0-based RGB values. */
+    @Volatile var previewToolColors: IntArray? = null
+
     @JvmField
     internal var pointer: Long
 

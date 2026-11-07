@@ -13,7 +13,6 @@ class SelectedObjectQuickActionPolicyTest {
                 SelectedObjectQuickAction.ROTATE,
                 SelectedObjectQuickAction.SCALE,
                 SelectedObjectQuickAction.DUPLICATE,
-                SelectedObjectQuickAction.MORE,
             ),
             SelectedObjectQuickActionPolicy.actions,
         )
@@ -27,7 +26,6 @@ class SelectedObjectQuickActionPolicyTest {
                 R.string.ObjectActionRotate,
                 R.string.ObjectActionScale,
                 R.string.ObjectActionDuplicate,
-                R.string.ObjectActionMore,
             ),
             SelectedObjectQuickActionPolicy.actions.map { it.labelRes },
         )

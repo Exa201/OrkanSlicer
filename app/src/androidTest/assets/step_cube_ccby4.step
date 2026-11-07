@@ -1,0 +1,194 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('Simple Cube Example'),'2;1');
+FILE_NAME('cube.step','2025-12-19T09:00:00',('Author'),('Organization'),'Antigravity Tutorial','Antigravity STEP Writer','Unknown');
+FILE_SCHEMA(('AP214_AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }'));
+ENDSEC;
+DATA;
+/* Product structure */
+#10=PRODUCT('Cube','Cube','A simple 10mm cube',(#20));
+#20=PRODUCT_CONTEXT('',#30,'mechanical');
+#30=APPLICATION_CONTEXT('automotive design');
+#40=PRODUCT_DEFINITION_FORMATION('1','First version',#10);
+#50=PRODUCT_DEFINITION('design','',#40,#60);
+#60=PRODUCT_DEFINITION_CONTEXT('part definition',#30,'design');
+#70=PRODUCT_DEFINITION_SHAPE('','',#50);
+
+/* Units and context */
+#100=( GEOMETRIC_REPRESENTATION_CONTEXT(3) 
+  GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((#110)) 
+  GLOBAL_UNIT_ASSIGNED_CONTEXT((#120,#130,#140)) 
+  REPRESENTATION_CONTEXT('ID1','3D') );
+#110=UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(1.0E-06),#120,'DISTANCE_ACCURACY_VALUE','Maximum model space distance between geometric entities at asserted connectivities');
+#120=( LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.) );
+#130=( NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.) );
+#140=( NAMED_UNIT(*) SI_UNIT($,.STERADIAN.) SOLID_ANGLE_UNIT() );
+
+/* Shape representation */
+#200=SHAPE_DEFINITION_REPRESENTATION(#70,#210);
+#210=SHAPE_REPRESENTATION('',(#220),#100);
+#220=MANIFOLD_SOLID_BREP('Cube',#230);
+#230=CLOSED_SHELL('',(#240,#250,#260,#270,#280,#290));
+
+/* Faces (6 faces of the cube) */
+/* Bottom face (Z=0) */
+#240=ADVANCED_FACE('',(#241),#242,.T.);
+#241=FACE_OUTER_BOUND('',#243,.T.);
+#243=EDGE_LOOP('',(#244,#245,#246,#247));
+#244=ORIENTED_EDGE('',*,*,#300,.T.);
+#245=ORIENTED_EDGE('',*,*,#301,.T.);
+#246=ORIENTED_EDGE('',*,*,#302,.T.);
+#247=ORIENTED_EDGE('',*,*,#303,.T.);
+#242=PLANE('',#400);
+
+/* Top face (Z=10) */
+#250=ADVANCED_FACE('',(#251),#252,.T.);
+#251=FACE_OUTER_BOUND('',#253,.T.);
+#253=EDGE_LOOP('',(#254,#255,#256,#257));
+#254=ORIENTED_EDGE('',*,*,#304,.T.);
+#255=ORIENTED_EDGE('',*,*,#305,.T.);
+#256=ORIENTED_EDGE('',*,*,#306,.T.);
+#257=ORIENTED_EDGE('',*,*,#307,.T.);
+#252=PLANE('',#401);
+
+/* Front face (Y=0) */
+#260=ADVANCED_FACE('',(#261),#262,.T.);
+#261=FACE_OUTER_BOUND('',#263,.T.);
+#263=EDGE_LOOP('',(#264,#265,#266,#267));
+#264=ORIENTED_EDGE('',*,*,#300,.T.);
+#265=ORIENTED_EDGE('',*,*,#308,.T.);
+#266=ORIENTED_EDGE('',*,*,#304,.T.);
+#267=ORIENTED_EDGE('',*,*,#309,.F.);
+#262=PLANE('',#402);
+
+/* Back face (Y=10) */
+#270=ADVANCED_FACE('',(#271),#272,.T.);
+#271=FACE_OUTER_BOUND('',#273,.T.);
+#273=EDGE_LOOP('',(#274,#275,#276,#277));
+#274=ORIENTED_EDGE('',*,*,#302,.T.);
+#275=ORIENTED_EDGE('',*,*,#310,.T.);
+#276=ORIENTED_EDGE('',*,*,#306,.T.);
+#277=ORIENTED_EDGE('',*,*,#311,.F.);
+#272=PLANE('',#403);
+
+/* Left face (X=0) */
+#280=ADVANCED_FACE('',(#281),#282,.T.);
+#281=FACE_OUTER_BOUND('',#283,.T.);
+#283=EDGE_LOOP('',(#284,#285,#286,#287));
+#284=ORIENTED_EDGE('',*,*,#303,.T.);
+#285=ORIENTED_EDGE('',*,*,#311,.T.);
+#286=ORIENTED_EDGE('',*,*,#307,.T.);
+#287=ORIENTED_EDGE('',*,*,#309,.T.);
+#282=PLANE('',#404);
+
+/* Right face (X=10) */
+#290=ADVANCED_FACE('',(#291),#292,.T.);
+#291=FACE_OUTER_BOUND('',#293,.T.);
+#293=EDGE_LOOP('',(#294,#295,#296,#297));
+#294=ORIENTED_EDGE('',*,*,#301,.T.);
+#295=ORIENTED_EDGE('',*,*,#310,.T.);
+#296=ORIENTED_EDGE('',*,*,#305,.T.);
+#297=ORIENTED_EDGE('',*,*,#308,.F.);
+#292=PLANE('',#405);
+
+/* Edges (12 edges of the cube) */
+#300=EDGE_CURVE('',#500,#501,#600,.T.);
+#301=EDGE_CURVE('',#501,#502,#601,.T.);
+#302=EDGE_CURVE('',#502,#503,#602,.T.);
+#303=EDGE_CURVE('',#503,#500,#603,.T.);
+#304=EDGE_CURVE('',#504,#505,#604,.T.);
+#305=EDGE_CURVE('',#505,#506,#605,.T.);
+#306=EDGE_CURVE('',#506,#507,#606,.T.);
+#307=EDGE_CURVE('',#507,#504,#607,.T.);
+#308=EDGE_CURVE('',#501,#505,#608,.T.);
+#309=EDGE_CURVE('',#500,#504,#609,.T.);
+#310=EDGE_CURVE('',#502,#506,#610,.T.);
+#311=EDGE_CURVE('',#503,#507,#611,.T.);
+
+/* Vertices (8 vertices of the cube) */
+#500=VERTEX_POINT('',#700);
+#501=VERTEX_POINT('',#701);
+#502=VERTEX_POINT('',#702);
+#503=VERTEX_POINT('',#703);
+#504=VERTEX_POINT('',#704);
+#505=VERTEX_POINT('',#705);
+#506=VERTEX_POINT('',#706);
+#507=VERTEX_POINT('',#707);
+
+/* Edge geometries (lines) */
+#600=LINE('',#700,#800);
+#601=LINE('',#701,#801);
+#602=LINE('',#702,#802);
+#603=LINE('',#703,#803);
+#604=LINE('',#704,#804);
+#605=LINE('',#705,#805);
+#606=LINE('',#706,#806);
+#607=LINE('',#707,#807);
+#608=LINE('',#701,#808);
+#609=LINE('',#700,#809);
+#610=LINE('',#702,#810);
+#611=LINE('',#703,#811);
+
+/* Points (8 corner points) */
+#700=CARTESIAN_POINT('',(0.0,0.0,0.0));
+#701=CARTESIAN_POINT('',(10.0,0.0,0.0));
+#702=CARTESIAN_POINT('',(10.0,10.0,0.0));
+#703=CARTESIAN_POINT('',(0.0,10.0,0.0));
+#704=CARTESIAN_POINT('',(0.0,0.0,10.0));
+#705=CARTESIAN_POINT('',(10.0,0.0,10.0));
+#706=CARTESIAN_POINT('',(10.0,10.0,0.0));
+#707=CARTESIAN_POINT('',(0.0,10.0,10.0));
+
+/* Direction vectors */
+#800=VECTOR('',#900,10.0);
+#801=VECTOR('',#901,10.0);
+#802=VECTOR('',#902,10.0);
+#803=VECTOR('',#903,10.0);
+#804=VECTOR('',#904,10.0);
+#805=VECTOR('',#905,10.0);
+#806=VECTOR('',#906,10.0);
+#807=VECTOR('',#907,10.0);
+#808=VECTOR('',#908,10.0);
+#809=VECTOR('',#909,10.0);
+#810=VECTOR('',#910,10.0);
+#811=VECTOR('',#911,10.0);
+
+/* Unit direction vectors */
+#900=DIRECTION('',(1.0,0.0,0.0));
+#901=DIRECTION('',(0.0,1.0,0.0));
+#902=DIRECTION('',(-1.0,0.0,0.0));
+#903=DIRECTION('',(0.0,-1.0,0.0));
+#904=DIRECTION('',(1.0,0.0,0.0));
+#905=DIRECTION('',(0.0,1.0,0.0));
+#906=DIRECTION('',(-1.0,0.0,0.0));
+#907=DIRECTION('',(0.0,-1.0,0.0));
+#908=DIRECTION('',(0.0,0.0,1.0));
+#909=DIRECTION('',(0.0,0.0,1.0));
+#910=DIRECTION('',(0.0,0.0,1.0));
+#911=DIRECTION('',(0.0,0.0,1.0));
+
+/* Plane positions */
+#400=AXIS2_PLACEMENT_3D('',#700,#1000,#1001);
+#401=AXIS2_PLACEMENT_3D('',#704,#1002,#1003);
+#402=AXIS2_PLACEMENT_3D('',#700,#1004,#1005);
+#403=AXIS2_PLACEMENT_3D('',#703,#1006,#1007);
+#404=AXIS2_PLACEMENT_3D('',#700,#1008,#1009);
+#405=AXIS2_PLACEMENT_3D('',#701,#1010,#1011);
+
+/* Plane normals and directions */
+#1000=DIRECTION('',(0.0,0.0,1.0));
+#1001=DIRECTION('',(1.0,0.0,0.0));
+#1002=DIRECTION('',(0.0,0.0,-1.0));
+#1003=DIRECTION('',(1.0,0.0,0.0));
+#1004=DIRECTION('',(0.0,1.0,0.0));
+#1005=DIRECTION('',(1.0,0.0,0.0));
+#1006=DIRECTION('',(0.0,-1.0,0.0));
+#1007=DIRECTION('',(1.0,0.0,0.0));
+#1008=DIRECTION('',(1.0,0.0,0.0));
+#1009=DIRECTION('',(0.0,1.0,0.0));
+#1010=DIRECTION('',(-1.0,0.0,0.0));
+#1011=DIRECTION('',(0.0,1.0,0.0));
+ENDSEC;
+END-ISO-10303-21;
+
+

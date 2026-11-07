@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="it">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Genera il modello, controllalo, esporta i file e copia le istruzioni di stampa." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/it/docs/generating-exporting-output">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Generazione ed esportazione | Documentazione Kromacut" />
+        <meta property="og:description" content="Genera il modello, controllalo, esporta i file e copia le istruzioni di stampa." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/it/docs/generating-exporting-output" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="it_IT" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Generazione ed esportazione | Documentazione Kromacut" />
+        <meta name="twitter:description" content="Genera il modello, controllalo, esporta i file e copia le istruzioni di stampa." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Generazione ed esportazione | Documentazione Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/generating-exporting-output">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/generating-exporting-output">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/generating-exporting-output">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/generating-exporting-output">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/generating-exporting-output">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/generating-exporting-output">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/generating-exporting-output">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/generating-exporting-output">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/generating-exporting-output">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/generating-exporting-output">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/generating-exporting-output">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/generating-exporting-output">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/generating-exporting-output">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentazione">
+                    <a href="/it/">Vai alla pagina iniziale</a>
+                    <a href="/app">Apri Kromacut</a>
+                    <ul><li><a href="/it/docs/overview">Panoramica</a></li><li><a href="/it/docs/quick-start">Guida rapida</a></li><li><a href="/it/docs/loading-images">Caricamento delle immagini</a></li><li><a href="/it/docs/image-adjustments">Regolazioni dell’immagine</a></li><li><a href="/it/docs/reducing-colors">Riduzione dei colori</a></li><li><a href="/it/docs/dedithering-cleanup">Rimozione dithering e pulizia</a></li><li><a href="/it/docs/3d-mode">Modalità 3D</a></li><li><a href="/it/docs/auto-paint">Controlli Auto-paint</a></li><li><a href="/it/docs/calibration-theory">Teoria della calibrazione</a></li><li><a href="/it/docs/flat-paint">Flat Paint</a></li><li><a href="/it/docs/calibration-workflows">Flussi di calibrazione</a></li><li><a href="/it/docs/generating-exporting-output">Generazione ed esportazione</a></li><li><a href="/it/docs/settings-and-controls">Impostazioni e controlli</a></li><li><a href="/it/docs/troubleshooting">Risoluzione dei problemi</a></li><li><a href="/it/docs/faq">Domande frequenti</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="generating-and-exporting-output">Generazione ed esportazione</h1>
+<p>L’esportazione inizia quando immagine 2D e controlli 3D sono pronti.</p>
+<p><a href="/localized/it/diagrams/40_build_export_snapshot.svg" target="_blank" rel="noopener noreferrer" aria-label="Apri illustrazione a dimensione intera: Prepara immagine e impostazioni, genera un’istantanea, controllala ed esporta tutta la pila. Nuove impostazioni richiedono generazione; limitare l’anteprima non limita l’export."><img src="/localized/it/diagrams/40_build_export_snapshot.svg" alt="Prepara immagine e impostazioni, genera un’istantanea, controllala ed esporta tutta la pila. Nuove impostazioni richiedono generazione; limitare l’anteprima non limita l’export." loading="lazy"></a></p>
+<h2 id="before-you-export">Prima di esportare</h2>
+<p>Verifica questi punti:</p>
+<ol><li>In 2D, riduci a un numero pratico di colori.</li><li>Nelle <strong>Impostazioni stampa 3D</strong>, scegli dimensioni con <strong>Dimensione pixel (XY)</strong>. Allinea <strong>Altezza strato</strong> e <strong>Altezza primo strato</strong> allo slicer e <strong>Larghezza linea effettiva</strong> all’estrusione prevista per controlli di dettaglio e dithering dell’altezza.</li><li>Scegli <strong>Manuale</strong> o <strong>Auto-paint</strong>.</li><li>Fai clic su <strong>Genera modello 3D</strong>.</li><li>Esamina modello e <strong>Anteprima strati</strong>.</li></ol>
+<p>Un <strong>Avviso prestazioni</strong> indica possibile lentezza per dimensioni, pixel, strati o carichi simili. Puoi <strong>Generare comunque</strong> o annullare e semplificare.</p>
+<h2 id="build-3d-model">Generare il modello 3D</h2>
+<p>Fai clic su <strong>Genera modello 3D</strong> quando vuoi che vista e geometria esportata riflettano le impostazioni correnti.</p>
+<p>Durante la generazione compaiono progressi come lettura degli strati di colore, mappatura e costruzione. L’export torna utile quando la sovrapposizione scompare e il modello aggiornato è pronto.</p>
+<p>Calcolare una nuova pila Auto-paint non equivale a generare una nuova mesh. L’export usa l’ultimo modello generato e le istruzioni restano collegate a esso. Dopo modifiche a immagine, profilo, calibrazione o stampa, attendi il calcolo e rigenera prima di esportare. Una vecchia vista può rimanere durante calcolo o rifiuto delle nuove impostazioni; non ne prova il successo.</p>
+<h2 id="choose-stl-or-3mf">Scegliere STL o 3MF</h2>
+<p>Apri il menu di download 3D e scegli:</p>
+<table><thead><tr><th>Formato</th><th>Quando usarlo</th></tr></thead><tbody><tr><td>STL</td><td>Vuoi geometria unica ampiamente supportata e gestirai manualmente i cambi.</td></tr><tr><td>3MF</td><td>Vuoi colori per slicer che preservano oggetti colorati multipli.</td></tr></tbody></table>
+<p>Il 3MF preserva quando possibile i colori fisici Auto-paint. Verifica comunque le assegnazioni prima di stampare.</p>
+<p>L’anteprima può mostrare decine di miscele con poche bobine. Il 3MF assegna i filamenti reali agli strati, non un materiale per miscela. La vista colori dello slicer può quindi differire da <strong>Simulati</strong> senza essere errata. Confronta con <strong>Fisici</strong> quando controlli le assegnazioni.</p>
+<p>STL non contiene colori né assegnazioni automatiche. Usa il piano copiato con i controlli cambio colore dello slicer. 3MF è comunque un modello, non G-code eseguibile: scegli stampante, ugello, profili, temperature e velocità, poi esegui slicing.</p>
+<p>Per <strong>Flat Paint</strong> è disponibile solo 3MF: un oggetto per filamento e, a faccia in giù predefinita, un supporto trasparente. L’opzione a faccia in su lo omette. STL senza colore e a geometria unica sarebbe inutile per entrambe le lastre. Entrambi gli orientamenti supportano tutte le intensità di <strong>Mesh levigata</strong>. Ricrea il modello dopo aver cambiato l’intensità per applicarla all’anteprima e alla geometria esportata.</p>
+<h2 id="print-instructions">Istruzioni di stampa</h2>
+<p>Il pannello fornisce:</p>
+<ul><li>Pareti, riempimento, altezza strato e primo strato consigliati.</li><li><strong>Inizia con il colore</strong>.</li><li><strong>Piano cambi colore</strong> con numeri di strato e altezze approssimative.</li><li><strong>Copia</strong> per tutto il piano in testo semplice.</li></ul>
+<p>Usa il piano accanto all’anteprima dello slicer. I numeri dipendono da <strong>Altezza strato</strong> e <strong>Altezza primo strato</strong>: mantieni coerenza.</p>
+<p><a href="/localized/it/diagrams/41_swap_layers.svg" target="_blank" rel="noopener noreferrer" aria-label="Apri illustrazione a dimensione intera: Primo strato di 0,10 mm seguito da 0,04 mm. Un cambio prima dello strato 4 è al confine di 0,18 mm, mentre lo strato nuovo termina a 0,22 mm."><img src="/localized/it/diagrams/41_swap_layers.svg" alt="Primo strato di 0,10 mm seguito da 0,04 mm. Un cambio prima dello strato 4 è al confine di 0,18 mm, mentre lo strato nuovo termina a 0,22 mm." loading="lazy"></a></p>
+<p><strong>Cambio allo strato N</strong> significa che il filamento nuovo stampa N. Con primo 0,10 mm e normali 0,04 mm, gli strati 1, 2 e 3 finiscono a 0,10, 0,14 e 0,18 mm. Cambia dopo il 3, prima di estrudere il 4. Il nuovo strato termina a 0,22 mm.</p>
+<p>L’altezza approssimativa richiede attenzione: Manuale mostra Z superiore del nuovo strato, Auto-paint il confine del cambio. Usa numero e transizione reale nello slicing, non solo un valore Z simile. Gli slicer possono etichettare diversamente strato selezionato e punto d’inserimento.</p>
+<p>Flat Paint non ha piano manuale. Il pannello riassume il flusso multimateriale: assegna oggetti ai filamenti, usa trasparente e capovolgi la stampa predefinita, oppure stampa a faccia in su senza supporto. Nessuna disposizione va specchiata nello slicer.</p>
+<h2 id="recommended-slicer-setup">Impostazioni consigliate dello slicer</h2>
+<p>Kromacut consiglia:</p>
+<ul><li>Pareti: <code>1</code></li><li>Riempimento: <code>100%</code></li><li>Altezza strato: valore delle <strong>Istruzioni di stampa</strong></li><li>Primo strato: valore delle <strong>Istruzioni di stampa</strong></li></ul>
+<p>Esamina sempre l’anteprima. Le altezze sono approssimative e i cambi possono essere mostrati diversamente in base al primo strato.</p>
+<p>Mantieni <strong>scala Z al 100%</strong> e altezza costante corrispondente. Cambiare Z o attivare altezze variabili sposta transizioni e invalida il piano. Imposta un’altra altezza in Kromacut e rigenera se necessaria. Anche XY cambia dettaglio rispetto all’ugello: imposta la dimensione voluta in Kromacut affinché il controllo di larghezza la consideri.</p>
+<p>Verifica piccole isole, testo, ritagli trasparenti scollegati, fondazioni e spurgo/adescamento nello slicer. Levigare contorni non rende stampabile qualsiasi tratto. L’app non calibra flusso, retrazione, temperatura né meccanica.</p>
+<h2 id="saving-and-cancelling">Salvare e annullare</h2>
+<p>Desktop apre <strong>Salva con nome</strong>; browser usa le impostazioni di download, che decidono se chiedere posizione. Annullare non invia nulla alla stampante. Geometria e compressione possono richiedere tempo: attendi il salvataggio prima di chiudere.</p>
+<h2 id="export-tips">Suggerimenti di esportazione</h2>
+<ul><li>Rigenera dopo modifiche alle impostazioni 3D.</li><li>Non basarti solo sull’intervallo visibile; viene esportato tutto.</li><li>Se la mesh è pesante, ritaglia o riduci risoluzione in 2D e togli regioni superflue. Aumentare <strong>Dimensione pixel (XY)</strong> ingrandisce gli stessi pixel; non riduce quantità o complessità.</li><li>Se troppe tinte disattivano le istruzioni, torna a <a href="/it/docs/reducing-colors#image-colors">Riduzione dei colori</a>.</li></ul>
+<p>Successivo: <a href="/it/docs/settings-and-controls">Impostazioni e controlli</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

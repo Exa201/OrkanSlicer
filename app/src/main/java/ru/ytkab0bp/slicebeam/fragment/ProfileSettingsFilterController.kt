@@ -166,15 +166,18 @@ class ProfileSettingsFilterController(
         )
     }
 
-    fun showOptionHelp(context: Context, definition: ConfigOptionDef): Boolean =
+    internal fun showOptionHelp(
+        definition: ConfigOptionDef,
+        onShowDialog: (ProfileOptionHelpDialogState) -> Unit,
+    ): Boolean =
         ProfileOptionHelpController.show(
-            context,
             definition,
             favoriteKeys.contains(definition.key),
             favoriteKeys,
             PREF_SETTING_FAVORITES,
             BooleanSupplier { favoritesOnly },
             applyFilter,
+            onShowDialog,
         )
 
     private companion object {

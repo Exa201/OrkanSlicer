@@ -12,7 +12,6 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ScrollView
 import android.widget.ArrayAdapter
-import android.graphics.drawable.BitmapDrawable
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
@@ -33,7 +32,7 @@ import java.nio.charset.StandardCharsets
 import java.util.ArrayDeque
 import java.util.ArrayList
 import java.util.HashMap
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicBoolean
 import ru.ytkab0bp.slicebeam.MainActivity
 import ru.ytkab0bp.slicebeam.launchAppActivityResult
 import ru.ytkab0bp.slicebeam.R
@@ -48,7 +47,6 @@ import ru.ytkab0bp.slicebeam.utils.ViewUtils
 object ImageToStlConverter {
 private val MAX_SIDE = 192
 private val MAX_VECTOR_SIDE = 128
-private val PREVIEW_REQUESTS = AtomicInteger()
 private var pendingOutput: File? = null
 private var pendingExtension: String? = null
 private var requestedMode:Int = 0
@@ -59,10 +57,28 @@ private val cubeImageSelection = ArrayList<Uri>(4)
 private var selectingCubeImages:Boolean = false
 @JvmStatic
 fun pickImage(activity:Activity) {
-showFormatPairPicker(activity)
+showFormatPairPicker(activity, null)
+}
+@JvmStatic
+fun pickImage(activity:Activity, bed:BedFragment?) {
+showFormatPairPicker(activity, bed)
 }
 /** Pick a supported local image conversion pair before choosing its source file. */
- private fun showFormatPairPicker(activity:Activity) {
+private fun showFormatPairPicker(activity:Activity, bed:BedFragment?) {
+if (bed?.canShowWorkspaceComposeDialog() == true) {
+    bed.showWorkspaceComposeDialog { dismiss ->
+        ImageFormatPairDialog(
+            onDismiss = dismiss,
+            onChooseSource = { sourceFormat, targetFormat ->
+                requestedSourceFormat = sourceFormat
+                requestedTargetFormat = targetFormat
+                dismiss()
+                pickSelectedSource(activity, sourceFormat)
+            },
+        )
+    }
+    return
+}
 val form = LinearLayout(activity)
 form.setOrientation(LinearLayout.VERTICAL)
 form.setPadding(ViewUtils.dp(24), ViewUtils.dp(8), ViewUtils.dp(24), ViewUtils.dp(4))
@@ -214,6 +230,68 @@ fun showOptions(activity:Activity, selectedImages:List<Uri>, bed:BedFragment) {
 val images = ArrayList(selectedImages)
 val initialMode = requestedMode
 requestedMode = 0
+val initialTarget = requestedTargetFormat.takeIf { it in 0..4 } ?: 0
+requestedSourceFormat = -1
+requestedTargetFormat = -1
+if (bed.canShowWorkspaceComposeDialog()) {
+    showWorkspaceOptions(activity, images, bed, defaultImageToStlOptions(initialMode, initialTarget))
+    return
+}
+showOptionsLegacy(activity, images, bed, initialMode, initialTarget)
+}
+private fun showWorkspaceOptions(
+    activity: Activity,
+    images: List<Uri>,
+    bed: BedFragment,
+    initialValues: ImageToStlOptions,
+) {
+    val formState = androidx.compose.runtime.mutableStateOf(initialValues)
+    lateinit var reopenForm: () -> Unit
+    reopenForm = {
+        bed.showWorkspaceComposeDialog { dismiss ->
+            GeneratorWorkspaceDialog(R.string.ConverterTitle, onDismiss = dismiss) {
+                ImageToStlOptionsForm(
+                    activity = activity,
+                    images = images,
+                    values = formState.value,
+                    onValuesChanged = { formState.value = it },
+                    onEditImage = {
+                        val image = images.firstOrNull() ?: return@ImageToStlOptionsForm
+                        dismiss()
+                        val savedTone = intArrayOf(formState.value.toneMode, formState.value.brightness, formState.value.contrast)
+                        val savedInvert = booleanArrayOf(formState.value.invert)
+                        showLithophaneImageEditor(activity, image, bed, savedTone, savedInvert) {
+                            formState.value = formState.value.copy(
+                                toneMode = savedTone[0], brightness = savedTone[1],
+                                contrast = savedTone[2], invert = savedInvert[0],
+                            )
+                            // External Back dismissal calls this before the workspace clears the
+                            // editor panel. Reopen on the next UI turn so the editor's cleanup
+                            // cannot clear the newly attached parent form.
+                            activity.window.decorView.post {
+                                if (!activity.isFinishing && !activity.isDestroyed) reopenForm()
+                            }
+                        }
+                    },
+                    onGenerate = { values, saveAfterGeneration ->
+                        formState.value = values
+                        dismiss()
+                        generateImageToStl(activity, images, bed, values, saveAfterGeneration)
+                    },
+                )
+            }
+        }
+    }
+    reopenForm()
+}
+
+private fun showOptionsLegacy(
+    activity: Activity,
+    images: ArrayList<Uri>,
+    bed: BedFragment,
+    initialMode: Int,
+    initialTarget: Int,
+) {
 val form = LinearLayout(activity)
 form.setOrientation(LinearLayout.VERTICAL)
 form.setPadding(ViewUtils.dp(24), ViewUtils.dp(4), ViewUtils.dp(24), ViewUtils.dp(4))
@@ -223,10 +301,7 @@ form.addView(targetLabel)
 val target = Spinner(activity)
 target.setAdapter(ArrayAdapter.createFromResource(activity, R.array.ConverterTargets,
 android.R.layout.simple_spinner_dropdown_item))
-if (requestedTargetFormat >= 0 && requestedTargetFormat < target.getCount())
-    target.setSelection(requestedTargetFormat)
-requestedSourceFormat = -1
-requestedTargetFormat = -1
+if (initialTarget in 0 until target.getCount()) target.setSelection(initialTarget)
 form.addView(target)
 val modeLabel = TextView(activity)
 modeLabel.setText(R.string.ImageToStlMode)
@@ -265,6 +340,7 @@ sourcePreview.setImageBitmap(result) }) }, "ConverterPreview").start()
 }
 val imageToneSettings = intArrayOf(0, 100, 100)
 val invertImage = booleanArrayOf(false)
+lateinit var optionsDialog: androidx.appcompat.app.AlertDialog
 val editImage = android.widget.Button(activity)
 editImage.setText(R.string.LithophaneImageEditorOpen)
 form.addView(editImage, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -275,7 +351,11 @@ if (images.isEmpty())
 Toast.makeText(activity, R.string.ConverterPickImage, Toast.LENGTH_LONG).show()
 return@setOnClickListener
 }
-showImageEditor(activity, images.get(0), imageToneSettings, invertImage) })
+optionsDialog.dismiss()
+showLithophaneImageEditor(activity, images.get(0), bed, imageToneSettings, invertImage) {
+    if (!activity.isFinishing && !activity.isDestroyed) optionsDialog.show()
+}
+})
 val width = addNumberField(activity, form, R.string.ImageToStlWidth, if (initialMode >= 2) "45" else "80")
 val height = addNumberField(activity, form, R.string.ImageToStlHeight, "60")
 val baseLabel = TextView(activity)
@@ -398,76 +478,140 @@ val dialogContent = LinearLayout(activity)
 dialogContent.setOrientation(LinearLayout.VERTICAL)
 dialogContent.addView(scroll, LinearLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, dialogHeight))
-val saveAfterGeneration = booleanArrayOf(false)
-val generate = generate@{ val targetFormat = target.getSelectedItemPosition()
-if (targetFormat != 0 && mode.getSelectedItemPosition() > 1) mode.setSelection(2)
+val generate = { saveAfterGeneration: Boolean ->
+val targetFormat = target.getSelectedItemPosition().coerceIn(0, 4)
+val selectedMode = mode.getSelectedItemPosition().let { if (targetFormat != 0 && it > 1) 2 else it.coerceIn(0, 10) }
+generateImageToStl(
+    activity,
+    images,
+    bed,
+    ImageToStlOptions(
+        targetFormat = targetFormat,
+        mode = selectedMode,
+        width = width.getText().toString(),
+        height = height.getText().toString(),
+        base = base.getText().toString(),
+        relief = relief.getText().toString(),
+        resolution = resolution.getSelectedItemPosition().coerceIn(0, 3),
+        frameBase = frameBaseDepth.getText().toString(),
+        footDepth = footDepth.getText().toString(),
+        openingDiameter = lightOpening.getText().toString(),
+        curveRadius = curveRadius.getText().toString(),
+        diameter = diameter.getText().toString(),
+        topDiameter = topDiameter.getText().toString(),
+        wrapAngle = wrapAngle.getProgress(),
+        waveCount = waveCount.getProgress(),
+        waveDepth = waveDepth.getText().toString(),
+        closeBottom = closeBottom.isChecked(),
+        closeTop = closeTop.isChecked(),
+        createLightBase = createLightBase.isChecked(),
+        lightBaseThickness = baseThicknessInput.getText().toString(),
+        cableDiameter = cableDiameterInput.getText().toString(),
+        frameWidth = frameWidth.getText().toString(),
+        toneMode = imageToneSettings[0],
+        brightness = imageToneSettings[1],
+        contrast = imageToneSettings[2],
+        invert = invertImage[0],
+    ),
+    saveAfterGeneration,
+)
+}
+val generateButton = android.widget.Button(activity)
+generateButton.setText(R.string.LithophaneGenerate)
+val generateAndSaveButton = android.widget.Button(activity)
+generateAndSaveButton.setText(R.string.LithophaneGenerateAndSave)
+val actionParams = LinearLayout.LayoutParams(
+ViewGroup.LayoutParams.MATCH_PARENT, ViewUtils.dp(48))
+actionParams.setMargins(ViewUtils.dp(16), ViewUtils.dp(2), ViewUtils.dp(16), ViewUtils.dp(2))
+dialogContent.addView(generateButton, actionParams)
+dialogContent.addView(generateAndSaveButton, actionParams)
+optionsDialog = BeamAlertDialogBuilder(activity).setTitle(R.string.ConverterTitle)
+.setMessage(R.string.LithophaneGeneratorDescription).setView(dialogContent)
+.setNegativeButton(android.R.string.cancel, null)
+.create()
+optionsDialog.show()
+generateButton.setOnClickListener({ v->
+optionsDialog.dismiss()
+generate(false) })
+generateAndSaveButton.setOnClickListener({ v->
+optionsDialog.dismiss()
+generate(true) })
+}
+private fun generateImageToStl(
+    activity: Activity,
+    images: List<Uri>,
+    bed: BedFragment,
+    options: ImageToStlOptions,
+    saveAfterGeneration: Boolean,
+) {
+ val targetFormat = options.targetFormat.coerceIn(0, 4)
 val extension = arrayOf<String>("stl", "svg", "png", "jpg", "webp")[targetFormat]
-val w = parse(width.getText().toString(), 80f, 5f, 220f)
-val h = parse(height.getText().toString(), 60f, 5f, 220f)
-val baseValue = parse(base.getText().toString(), 1.2f, 0.4f, 10f)
-val reliefValue = parse(relief.getText().toString(), 4f, 0.8f, 15f)
+val w = parse(options.width, 80f, 5f, 220f)
+val h = parse(options.height, 60f, 5f, 220f)
+val baseValue = parse(options.base, 1.2f, 0.4f, 10f)
+val reliefValue = parse(options.relief, 4f, 0.8f, 15f)
 var b = baseValue
 var z = reliefValue
-val frameBase = parse(frameBaseDepth.getText().toString(), 5f, 2f, 20f)
-val standDepth = parse(footDepth.getText().toString(), 24f, 8f, 60f)
-val openingDiameter = parse(lightOpening.getText().toString(), 18f, 0f, 60f)
-val selectedMode = mode.getSelectedItemPosition()
-val detail = intArrayOf(64, 96, 128, 192)[resolution.getSelectedItemPosition()]
-val modelDiameter = parse(diameter.getText().toString(), 90f, 20f, 220f)
-val modelTopDiameter = parse(topDiameter.getText().toString(), modelDiameter, 10f, 220f)
-val imageAngle = Math.max(24, wrapAngle.getProgress())
-val waves = waveCount.getProgress()
-val waveAmplitude = parse(waveDepth.getText().toString(), 3f, 0f, 12f)
-val bottomClosed = closeBottom.isChecked()
-val topClosed = closeTop.isChecked()
-val makeBase = createLightBase.isChecked()
+val frameBase = parse(options.frameBase, 5f, 2f, 20f)
+val standDepth = parse(options.footDepth, 24f, 8f, 60f)
+val openingDiameter = parse(options.openingDiameter, 18f, 0f, 60f)
+val selectedMode = if (targetFormat != 0 && options.mode > 1) 2 else options.mode.coerceIn(0, 10)
+val detail = intArrayOf(64, 96, 128, 192)[options.resolution.coerceIn(0, 3)]
+val modelDiameter = parse(options.diameter, 90f, 20f, 220f)
+val modelTopDiameter = parse(options.topDiameter, modelDiameter, 10f, 220f)
+val imageAngle = Math.max(24, options.wrapAngle)
+val waves = options.waveCount
+val waveAmplitude = parse(options.waveDepth, 3f, 0f, 12f)
+val bottomClosed = options.closeBottom
+val topClosed = options.closeTop
+val makeBase = options.createLightBase
 val baseOuter = modelDiameter
 val baseInner = Math.max(12f, Math.min(40f, modelDiameter * 0.55f))
-val accessoryBaseThickness = parse(baseThicknessInput.getText().toString(), 7.5f, 2f, 20f)
-val cableDiameter = parse(cableDiameterInput.getText().toString(), 6f, 0f, 30f)
-val inverted = invertImage[0]
-val brightnessAdjustment = (imageToneSettings[1] - 100) / 100f
-val contrastAdjustment = imageToneSettings[2] / 100f
-val selectedToneMode = imageToneSettings[0]
+val accessoryBaseThickness = parse(options.lightBaseThickness, 7.5f, 2f, 20f)
+val cableDiameter = parse(options.cableDiameter, 6f, 0f, 30f)
+val inverted = options.invert
+val brightnessAdjustment = (options.brightness - 100) / 100f
+val contrastAdjustment = options.contrast / 100f
+val selectedToneMode = options.toneMode
 if (selectedMode >= 2)
 {
-b = parse(base.getText().toString(), 0.8f, 0.4f, 8f)
-z = parse(relief.getText().toString(), 3f, b + 0.2f, 15f)
+b = parse(options.base, 0.8f, 0.4f, 8f)
+z = parse(options.relief, 3f, b + 0.2f, 15f)
 }
 val baseThickness = b
 val maxRelief = z
 if ((selectedMode >= 2) && z <= b)
 {
 Toast.makeText(activity, R.string.LithophaneMaxMustExceedMin, Toast.LENGTH_LONG).show()
-return@generate
+return
 }
-val arcRadius = parse(curveRadius.getText().toString(), 55f, 25f, 180f)
+val arcRadius = parse(options.curveRadius, 55f, 25f, 180f)
 if (selectedMode == 5 && (!"stl".equals(extension) || arcRadius < w / (Math.PI).toFloat()))
 {
 Toast.makeText(activity, R.string.LithophaneCurveRequiresStl, Toast.LENGTH_LONG).show()
-return@generate
+return
 }
 if (selectedMode == 3 && images.size != 4)
 {
 Toast.makeText(activity, R.string.LithophaneCubeNeedsFourImages, Toast.LENGTH_LONG).show()
-return@generate
+return
 }
 if ((selectedMode == 4 || selectedMode == 5 || selectedMode >= 6) && !"stl".equals(extension))
 {
 Toast.makeText(activity, R.string.LithophaneFrameRequiresStl, Toast.LENGTH_LONG).show()
-return@generate
+return
 }
 if (selectedMode == 4 && (frameBase <= b || standDepth < openingDiameter + 3f))
 {
 Toast.makeText(activity, R.string.LithophaneFrameDimensionsInvalid, Toast.LENGTH_LONG).show()
-return@generate
+return
 }
 if (images.isEmpty())
 {
 Toast.makeText(activity, R.string.ConverterPickImage, Toast.LENGTH_LONG).show()
-return@generate
+return
 }
-val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
 IOUtils.IO_POOL.execute({ val stem = if (selectedMode == 3) "lithophane-cube-kit" else if (selectedMode == 4) "lithophane-frame" else if (selectedMode == 5) "lithophane-curved" else if (selectedMode == 2) "lithophane" else "converted-image"
 val output = File(activity.getCacheDir(), stem + "-" + System.currentTimeMillis() + "." + extension)
 val accessory = if (makeBase && selectedMode == 10)
@@ -582,7 +726,7 @@ progress.setStage(92, "Ergebnis wird geprÃ¼ft â€¦")
 validateGeneratedOutput(output, extension)
 progress.complete({ if (accessory != null)
 showGeneratedPair(activity, output, accessory, bed)
-else if (saveAfterGeneration[0])
+else if (saveAfterGeneration)
 requestSave(activity, output, extension, bed)
 else
 showGeneratedOutput(activity, output, extension, bed) })
@@ -593,29 +737,7 @@ if (output.exists()) output.delete()
 if (accessory != null && accessory.exists()) accessory.delete()
 showError(activity, e)
 }
-}) }
-val generateButton = android.widget.Button(activity)
-generateButton.setText(R.string.LithophaneGenerate)
-val generateAndSaveButton = android.widget.Button(activity)
-generateAndSaveButton.setText(R.string.LithophaneGenerateAndSave)
-val actionParams = LinearLayout.LayoutParams(
-ViewGroup.LayoutParams.MATCH_PARENT, ViewUtils.dp(48))
-actionParams.setMargins(ViewUtils.dp(16), ViewUtils.dp(2), ViewUtils.dp(16), ViewUtils.dp(2))
-dialogContent.addView(generateButton, actionParams)
-dialogContent.addView(generateAndSaveButton, actionParams)
-val optionsDialog = BeamAlertDialogBuilder(activity).setTitle(R.string.ConverterTitle)
-.setMessage(R.string.LithophaneGeneratorDescription).setView(dialogContent)
-.setNegativeButton(android.R.string.cancel, null)
-.create()
-optionsDialog.show()
-generateButton.setOnClickListener({ v->
-optionsDialog.dismiss()
-saveAfterGeneration[0] = false
-generate() })
-generateAndSaveButton.setOnClickListener({ v->
-optionsDialog.dismiss()
-saveAfterGeneration[0] = true
-generate() })
+})
 }
 private fun updateFrameOptions(mode:Int, targetVisibility:Int, baseLabel:TextView, base:EditText,
 footLabel:TextView, foot:EditText, openingLabel:TextView, opening:EditText) {
@@ -649,8 +771,43 @@ for (index in indices)
     if (index < controls.size && controls[index] != null)
 controls[index].setVisibility(if (visible) View.VISIBLE else View.GONE)
 }
-private fun showImageEditor(activity:Activity, image:Uri, savedSettings:IntArray,
-savedInvert:BooleanArray) {
+internal fun showLithophaneImageEditor(
+    activity: Activity,
+    image: Uri,
+    bed: BedFragment,
+    savedSettings: IntArray,
+    savedInvert: BooleanArray,
+    onClosed: () -> Unit = {},
+) {
+if (bed.canShowWorkspaceComposeDialog()) {
+    val resumed = AtomicBoolean(false)
+    val reopenParent = { if (resumed.compareAndSet(false, true)) onClosed() }
+    bed.showWorkspaceComposeDialog(onExternalDismiss = reopenParent) { dismiss ->
+        LithophaneToneEditorDialog(
+            activity = activity,
+            image = image,
+            initialToneMode = savedSettings[0],
+            initialBrightness = savedSettings[1],
+            initialContrast = savedSettings[2],
+            initialInvert = savedInvert[0],
+            onDismiss = { dismiss(); reopenParent() },
+            onApply = { toneMode, brightness, contrast, invert ->
+                savedSettings[0] = toneMode
+                savedSettings[1] = brightness
+                savedSettings[2] = contrast
+                savedInvert[0] = invert
+                dismiss()
+                reopenParent()
+            },
+        )
+    }
+    return
+}
+showLithophaneImageEditorLegacy(activity, image, savedSettings, savedInvert, onClosed)
+}
+
+private fun showLithophaneImageEditorLegacy(activity:Activity, image:Uri, savedSettings:IntArray,
+savedInvert:BooleanArray, onClosed: () -> Unit) {
 val editor = LinearLayout(activity)
 editor.setOrientation(LinearLayout.VERTICAL)
 editor.setPadding(ViewUtils.dp(20), ViewUtils.dp(8), ViewUtils.dp(20), ViewUtils.dp(8))
@@ -705,9 +862,20 @@ val dialog = BeamAlertDialogBuilder(activity)
 .create()
 val updateLabels = { brightnessLabel.setText(activity.getString(R.string.LithophaneBrightnessValue, brightness.getProgress() - 100))
 contrastLabel.setText(activity.getString(R.string.LithophaneContrastValue, contrast.getProgress())) }
-val updatePreview = { loadLithophanePreview(activity, image, preview, invert.isChecked(),
-2, toneMode.getSelectedItemPosition(), (brightness.getProgress() - 100) / 100f,
-contrast.getProgress() / 100f) }
+var cancelPreview: (() -> Unit)? = null
+val updatePreview = {
+cancelPreview?.invoke()
+cancelPreview = requestLithophanePreview(
+    activity, image, invert.isChecked(), toneMode.getSelectedItemPosition(),
+    (brightness.getProgress() - 100) / 100f, contrast.getProgress() / 100f,
+) { result ->
+    if (result != null && preview.isAttachedToWindow) {
+        val old = (preview.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+        if (old != null && old !== result && !old.isRecycled) old.recycle()
+        preview.setImageBitmap(result)
+    } else result?.recycle()
+}
+}
 val sliderListener = object:android.widget.SeekBar.OnSeekBarChangeListener {
 override fun onProgressChanged(seekBar:android.widget.SeekBar, progress:Int, fromUser:Boolean) {
 updateLabels()
@@ -727,6 +895,12 @@ override fun onNothingSelected(parent:android.widget.AdapterView<*>) {}
 invert.setOnCheckedChangeListener({ button, checked-> updatePreview() })
 dialog.show()
 dialog.getWindow()!!.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, maxDialogHeight)
+dialog.setOnDismissListener {
+cancelPreview?.invoke()
+val old = (preview.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+if (old != null && !old.isRecycled) old.recycle()
+onClosed()
+}
 dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener({ v->
 savedSettings[0] = toneMode.getSelectedItemPosition()
 savedSettings[1] = brightness.getProgress()
@@ -736,18 +910,23 @@ dialog.dismiss() })
 updateLabels()
 updatePreview()
 }
-private fun loadLithophanePreview(activity:Activity, uri:Uri, preview:ImageView,
-invert:Boolean, mode:Int, toneMode:Int,
-brightness:Float, contrast:Float) {
-val request = PREVIEW_REQUESTS.incrementAndGet()
-preview.setTag(request)
+internal fun requestLithophanePreview(
+    activity: Activity,
+    uri: Uri,
+    invert: Boolean,
+    toneMode: Int,
+    brightness: Float,
+    contrast: Float,
+    onResult: (Bitmap?) -> Unit,
+): () -> Unit {
+val active = AtomicBoolean(true)
 IOUtils.IO_POOL.execute({ var rendered:Bitmap? = null
 try
 {
 val source = decodeBitmap(activity.getContentResolver(), uri, 1024)
 try
 {
-rendered = renderLithophanePreview(source, invert, mode, toneMode, brightness, contrast)
+rendered = renderLithophanePreview(source, invert, 2, toneMode, brightness, contrast)
 }
 finally
 {
@@ -756,20 +935,17 @@ source.recycle()
 }
 catch (ignored:Exception) {}
 val result = rendered
-ViewUtils.postOnMainThread({ if (result == null) return@postOnMainThread
-if (activity.isFinishing() || preview.getTag() != request)
+ViewUtils.postOnMainThread({
+if (!active.get() || activity.isFinishing || activity.isDestroyed)
 {
-result.recycle()
+result?.recycle()
 return@postOnMainThread
 }
-if (preview.getDrawable() is BitmapDrawable)
-{
-val old = (preview.getDrawable() as BitmapDrawable).getBitmap()
-if (old != null && old !== result && !old.isRecycled()) old.recycle()
+onResult(result)
+}) })
+return { active.set(false) }
 }
-preview.setImageBitmap(result) }) })
-}
-private fun renderLithophanePreview(source:Bitmap, invert:Boolean, mode:Int,
+internal fun renderLithophanePreview(source:Bitmap, invert:Boolean, mode:Int,
 toneMode:Int, brightness:Float, contrast:Float):Bitmap {
 val width = source.getWidth()
 val height = source.getHeight()
@@ -834,8 +1010,45 @@ showError(activity, error)
 }
 }
 private fun showGeneratedPair(activity:Activity, model:File, accessory:File, bed:BedFragment) {
+if (bed.canShowWorkspaceComposeDialog()) {
+    bed.showWorkspaceComposeDialog { dismiss ->
+        GeneratedPairOutputDialog(
+            onDismiss = dismiss,
+            onLoadModelOnly = {
+                dismiss()
+                try { bed.loadModel(model) } catch (e:Exception) { showError(activity, e) }
+                accessory.delete()
+            },
+            onLoadBoth = {
+                dismiss()
+                try {
+                    bed.loadModel(model)
+                    bed.loadModel(accessory)
+                } catch (e:Exception) { showError(activity, e) }
+            },
+            onSaveModel = {
+                dismiss()
+                accessory.delete()
+                requestSave(activity, model, "stl", bed)
+            },
+            onSaveAccessory = {
+                dismiss()
+                model.delete()
+                requestSave(activity, accessory, "stl", bed)
+            },
+            onSaveBoth = {
+                dismiss()
+                requestSave(activity, accessory, "stl", bed)
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(
+                    { requestSave(activity, model, "stl", bed) }, 1200L,
+                )
+            },
+        )
+    }
+    return
+}
 BeamAlertDialogBuilder(activity).setTitle(R.string.GeneratedOutputTitle)
-.setMessage("Lithophane und LED-Basis wurden als zwei STL-Modelle erzeugt. Beide Teile gemeinsam auf die Druckplatte laden?")
+.setMessage(R.string.LithophanePairQuestion)
 .setNegativeButton(R.string.LithophaneGenerate, { d, w->
 if (bed != null)
 {
@@ -861,7 +1074,9 @@ showError(activity, e)
 } })
 .setNeutralButton(R.string.ConverterOnlySave, { d, w-> BeamAlertDialogBuilder(activity).setTitle(R.string.ConverterSavedTitle)
 .setMessage("Welche STL-Datei mÃ¶chtest du speichern?")
-.setItems(arrayOf<CharSequence>("Nur Lithophane", "Nur LED-Basis", "Beide Dateien nacheinander"),
+.setItems(intArrayOf(
+R.string.LithophaneSaveModelOnly, R.string.LithophaneSaveAccessoryOnly, R.string.LithophaneSaveBoth,
+).map { activity.getText(it) }.toTypedArray(),
 { dialog, which-> if (which == 0)
 {
 accessory.delete()
@@ -905,7 +1120,7 @@ if (output != null && output.exists()) output.delete()
 showError(activity, error)
 }
 }
-private fun showGeneratedOutput(activity:Activity, output:File, extension:String, bed:BedFragment) {
+internal fun showGeneratedOutput(activity:Activity, output:File, extension:String, bed:BedFragment) {
 val loadable = ("stl".equals(extension) || "svg".equals(extension) || "3mf".equals(extension)) && bed != null
 if (!loadable)
 {
@@ -916,6 +1131,27 @@ return
 }
 requestSave(activity, output, extension, bed)
 return
+}
+if (bed.canShowWorkspaceComposeDialog()) {
+    bed.showWorkspaceComposeDialog { dismiss ->
+        GeneratedModelOutputDialog(
+            message = output.name + "\n\n" + activity.getString(R.string.GeneratedOutputQuestion),
+            onDismiss = dismiss,
+            onDiscard = { dismiss(); output.delete() },
+            onSave = { dismiss(); requestSave(activity, output, extension, bed) },
+            onUse = {
+                dismiss()
+                try {
+                    bed.loadModel(output, false, 1, object:BedFragment.ModelLoadCallback {
+                        override fun onLoaded(model:ru.ytkab0bp.slicebeam.slic3r.Model, firstNewObject:Int, addedObjects:Int) {
+                            output.delete()
+                        }
+                    })
+                } catch (error:Exception) { showError(activity, error) }
+            },
+        )
+    }
+    return
 }
 BeamAlertDialogBuilder(activity).setTitle(R.string.GeneratedOutputTitle)
 .setMessage(output.getName() + "\n\n" + activity.getString(R.string.GeneratedOutputQuestion))
@@ -941,6 +1177,17 @@ if (bitmap == null)
 {
 requestSave(activity, output, extension, bed)
 return
+}
+if (bed.canShowWorkspaceComposeDialog()) {
+    bed.showWorkspaceComposeDialog { dismiss ->
+        GeneratedRasterPreviewDialog(
+            bitmap = bitmap,
+            onDismiss = dismiss,
+            onDiscard = { dismiss(); output.delete() },
+            onSave = { dismiss(); requestSave(activity, output, extension, bed) },
+        )
+    }
+    return
 }
 val preview = ImageView(activity)
 preview.setImageBitmap(bitmap)
@@ -1103,6 +1350,18 @@ Toast.makeText(activity, activity.getString(R.string.ConverterSavedInFolder, fol
 showSavedOutputQuestion(activity, output, extension!!, bed) })
 }
 catch (error:Exception) {
+if (ConverterStorage.isPermissionFailure(error)) {
+    android.util.Log.w("ConverterStorage", "Saved folder permission is no longer valid; falling back to Android's save picker", error)
+    ConverterStorage.clearRoot(activity)
+    ViewUtils.postOnMainThread({
+        if (activity.isFinishing()) {
+            output.delete()
+            return@postOnMainThread
+        }
+        requestSavePicker(activity, output, extension!!, bed)
+    })
+    return@execute
+}
 showError(activity, if (error is IOException) error as IOException else IOException(error))
 }
 })
@@ -1134,9 +1393,26 @@ return
 }
 showSavedOutputQuestion(activity, output, extension!!, bed)
 }
-private fun showSavedOutputQuestion(activity:Activity, output:File, extension:String, bed:BedFragment?) {
+internal fun showSavedOutputQuestion(activity:Activity, output:File, extension:String, bed:BedFragment?) {
 if (("stl".equals(extension) || "svg".equals(extension) || "3mf".equals(extension)) && bed != null)
 {
+if (bed.canShowWorkspaceComposeDialog()) {
+    bed.showWorkspaceComposeDialog { dismiss ->
+        GeneratedSavedOutputDialog(
+            onDismiss = dismiss,
+            onKeepSaved = { dismiss(); output.delete() },
+            onLoad = {
+                dismiss()
+                try {
+                    bed.loadModel(output)
+                } catch (e:Exception) {
+                    showError(activity, e)
+                }
+            },
+        )
+    }
+    return
+}
 BeamAlertDialogBuilder(activity).setTitle(R.string.ConverterSavedTitle)
 .setMessage(R.string.ConverterLoadQuestion)
 .setNegativeButton(R.string.ConverterOnlySave, { d, w-> output.delete() })
@@ -1161,6 +1437,8 @@ Bitmap.CompressFormat.PNG
 else if ("jpg".equals(extension)) Bitmap.CompressFormat.JPEG else Bitmap.CompressFormat.WEBP
 BufferedOutputStream(FileOutputStream(file)).use({ out-> if (!bitmap.compress(format, 95, out)) throw IOException("Das Bild konnte nicht gespeichert werden.") })
 }
+internal fun decodePreviewBitmap(activity: Activity, uri: Uri): Bitmap =
+    decodeBitmap(activity.getContentResolver(), uri, 512)
 @Throws(IOException::class)
 private fun decodeBitmap(resolver:ContentResolver, uri:Uri):Bitmap {
 return decodeBitmap(resolver, uri, MAX_SIDE)
@@ -1425,8 +1703,20 @@ return edit
 private fun parse(value:String, fallback:Float, min:Float, max:Float):Float {
 return ru.ytkab0bp.slicebeam.utils.LithophaneInput.parseClamped(value, fallback, min, max)
 }
-private fun showError(activity:Activity, error:Exception) {
-ViewUtils.postOnMainThread({ if (activity.isFinishing()) return@postOnMainThread
+internal fun showError(activity:Activity, error:Exception) {
+ViewUtils.postOnMainThread({ if (activity.isFinishing() || activity.isDestroyed) return@postOnMainThread
+val bed = (activity as? MainActivity)?.let {
+    runCatching { it.navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull()
+}
+if (bed?.canShowWorkspaceComposeDialog() == true) {
+    bed.showWorkspaceComposeDialog { dismiss ->
+        ConverterErrorDialog(
+            message = error.message ?: error.toString(),
+            onDismiss = dismiss,
+        )
+    }
+    return@postOnMainThread
+}
 BeamAlertDialogBuilder(activity).setTitle(R.string.ConverterFailed)
 .setMessage(if (error.message == null) error.toString() else error.message)
 .setPositiveButton(android.R.string.ok, null).show() })

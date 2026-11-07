@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ro">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Curățare în vecinătate după culoarea exactă, cu efecte asupra punctelor, marginilor, transparenței și insulelor imprimabile." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/ro/docs/dedithering-cleanup">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Eliminarea ditheringului și curățarea | Documentație Kromacut" />
+        <meta property="og:description" content="Curățare în vecinătate după culoarea exactă, cu efecte asupra punctelor, marginilor, transparenței și insulelor imprimabile." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/ro/docs/dedithering-cleanup" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="ro_RO" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Eliminarea ditheringului și curățarea | Documentație Kromacut" />
+        <meta name="twitter:description" content="Curățare în vecinătate după culoarea exactă, cu efecte asupra punctelor, marginilor, transparenței și insulelor imprimabile." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Eliminarea ditheringului și curățarea | Documentație Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/dedithering-cleanup">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentație">
+                    <a href="/ro/">Mergi la pagina principală</a>
+                    <a href="/app">Deschide Kromacut</a>
+                    <ul><li><a href="/ro/docs/overview">Prezentare generală</a></li><li><a href="/ro/docs/quick-start">Ghid rapid</a></li><li><a href="/ro/docs/loading-images">Încărcarea imaginilor</a></li><li><a href="/ro/docs/image-adjustments">Ajustările imaginii</a></li><li><a href="/ro/docs/reducing-colors">Reducerea culorilor</a></li><li><a href="/ro/docs/dedithering-cleanup">Eliminarea ditheringului și curățarea</a></li><li><a href="/ro/docs/3d-mode">Modul 3D</a></li><li><a href="/ro/docs/auto-paint">Comenzi Auto-paint</a></li><li><a href="/ro/docs/calibration-theory">Teoria calibrării</a></li><li><a href="/ro/docs/flat-paint">Flat Paint</a></li><li><a href="/ro/docs/calibration-workflows">Fluxuri de calibrare</a></li><li><a href="/ro/docs/generating-exporting-output">Generarea și exportul rezultatului</a></li><li><a href="/ro/docs/settings-and-controls">Setări și comenzi</a></li><li><a href="/ro/docs/troubleshooting">Depanare</a></li><li><a href="/ro/docs/faq">Întrebări frecvente</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="dedithering-and-cleanup">Eliminarea ditheringului și curățarea</h1>
+<p><strong>Eliminare dithering</strong> înlocuiește pixelii nesusținuți local cu culori vecine. Este o trecere separată de curățare a imaginii, nu un algoritm de cuantizare sau o simulare a ceea ce poate imprima duza.</p>
+<p>Folosește-o pe modele de dithering cu culori repetate sau pe o imagine redusă cu puncte izolate. Poate funcționa înaintea cuantizării dacă sursa conține deja asemenea modele sau după cuantizare, pe regiunile reduse. Nu este un filtru de reducere a zgomotului fotografic: pixelii vecini din fotografii au adesea culori exacte ușor diferite.</p>
+<h2 id="how-a-pixel-is-chosen">Cum este ales un pixel</h2>
+<p><a href="/localized/ro/diagrams/36_dedither_neighbors.svg" target="_blank" rel="noopener noreferrer" aria-label="Deschide ilustrația la dimensiune completă: Cei opt pixeli din jur votează după culoarea exactă. Intensitatea stabilește câți vecini identici sunt necesari pentru păstrarea centrului; trecerile repetate folosesc fiecare rezultatul anterior."><img src="/localized/ro/diagrams/36_dedither_neighbors.svg" alt="Cei opt pixeli din jur votează după culoarea exactă. Intensitatea stabilește câți vecini identici sunt necesari pentru păstrarea centrului; trecerile repetate folosesc fiecare rezultatul anterior." loading="lazy"></a></p>
+<p>Fiecare pixel verifică cei opt vecini imediați, inclusiv diagonalele. Dacă suficienți au <strong>exact același RGB și alfa</strong>, rămâne neschimbat. Altfel, preia cea mai frecventă culoare diferită din vecinătate. Egalitățile sunt rezolvate aleatoriu, deci aceleași setări nu produc neapărat rezultate identice la rulări diferite.</p>
+<p>Se folosesc numai culori vecine existente, inclusiv pixeli transparenți. Acestea nu sunt mediate într-o nuanță nouă.</p>
+<h2 id="weight">Intensitate</h2>
+<p><strong>Intensitate</strong> reprezintă numărul de vecini identici necesar pentru a păstra pixelul original. Interval <strong>1–9</strong>; valoare implicită <strong>4</strong>.</p>
+<table><thead><tr><th>Exemplu</th><th>Rezultat</th></tr></thead><tbody><tr><td>Niciun vecin identic</td><td>Se schimbă dacă există un vecin de altă culoare, chiar și la intensitatea 1.</td></tr><tr><td>Trei vecini identici</td><td>Rămâne la intensitatea 3; poate fi înlocuit la intensitatea 4.</td></tr><tr><td>Centrul și toți cei opt vecini sunt identici</td><td>Rămâne chiar și la intensitatea 9, deoarece nu există un vecin diferit.</td></tr></tbody></table>
+<p>Valorile mici tind să păstreze detaliile; cele mari fac mai mulți pixeli eligibili pentru înlocuire. Cu doar opt vecini, intensitatea 9 nu poate atinge pragul de păstrare. Este o setare agresivă pentru margini, nu o rază mai mare. Pixelii de la marginea imaginii au și mai puțini vecini disponibili.</p>
+<h2 id="passes">Treceri</h2>
+<p><strong>Treceri</strong> repetă curățarea de <strong>1–10</strong> ori, implicit <strong>1</strong>. Fiecare trecere citește întregul rezultat anterior. Trecerile suplimentare pot elimina puncte persistente, dar pot și deplasa marginile, rupe conexiuni înguste sau șterge text mic.</p>
+<p>Săgețile de resetare ale câmpurilor readuc intensitatea la 4 sau trecerile la 1. Resetarea panoului le restabilește pe ambele. Niciuna nu restaurează imaginea anterioară; pentru aceasta folosește Anulează.</p>
+<h2 id="apply-and-inspect">Aplică și inspectează</h2>
+<ol><li>Folosește întâi <strong>Aplică</strong> pentru toate ajustările active. Eliminarea ditheringului citește vederea ajustată, iar integrarea lor prealabilă evită să lași ajustări live active peste rezultatul curățat.</li><li>Începe cu o trecere. Intensitatea implicită este 4; încearcă valori mai mici dacă detaliile fine sunt importante.</li><li>Apasă <strong>Aplică</strong>, apoi inspectează contururile, literele și marginile transparente la zoom mare.</li><li>Anulează înainte de a compara altă setare pe aceeași imagine inițială.</li></ol>
+<p>Apăsările repetate pe Aplică continuă curățarea imaginii deja curățate. Nu sunt comparații independente cu originalul.</p>
+<h2 id="effect-on-the-print">Efectul asupra imprimării</h2>
+<p>Eliminarea pixelilor izolați de altă culoare poate înlătura insule minuscule de culoare, dar și detalii dorite. Alfa participă la vot, așa că eliminarea ditheringului poate extinde sau micșora silueta și deschide sau închide găuri.</p>
+<p>Operația lucrează în <strong>pixelii imaginii</strong>, nu în milimetri. Un detaliu de trei pixeli la 0,1 mm/pixel ocupă 0,3 mm înainte de deciziile ulterioare ale geometriei sau slicerului. Eliminarea ditheringului nu primește diametrul duzei. Folosește <a href="/ro/docs/3d-mode">comenzile pentru detalii imprimabile 3D</a> și previzualizarea slicerului pentru a verifica elementele fizice.</p>
+<h2 id="dedither-versus-height-dithering">Eliminarea ditheringului față de ditheringul de înălțime</h2>
+<table><thead><tr><th>Instrument</th><th>Unde</th><th>Ce se schimbă</th></tr></thead><tbody><tr><td>Eliminare dithering</td><td>2D</td><td>Regiunile cu culoare exactă și, posibil, conturul transparent al imaginii sursă.</td></tr><tr><td>Dithering de înălțime</td><td>Auto-paint în 3D</td><td>Modelul generat al înălțimii suprafeței, folosit pentru a aproxima culorile țintă.</td></tr></tbody></table>
+<p>Folosirea unuia nu îl activează pe celălalt. Nu aplica eliminarea ditheringului dacă vrei să păstrezi pixel art-ul intenționat sau punctarea artistică.</p>
+<p>În continuare: <a href="/ro/docs/3d-mode">Modul 3D</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

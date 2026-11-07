@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-PT">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Limpeza da vizinhança por cores exatas e os seus efeitos em pontos isolados, contornos, transparência e ilhas imprimíveis." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/pt-PT/docs/dedithering-cleanup">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Remoção de pontilhamento e limpeza | Documentação Kromacut" />
+        <meta property="og:description" content="Limpeza da vizinhança por cores exatas e os seus efeitos em pontos isolados, contornos, transparência e ilhas imprimíveis." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/pt-PT/docs/dedithering-cleanup" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="pt_PT" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Remoção de pontilhamento e limpeza | Documentação Kromacut" />
+        <meta name="twitter:description" content="Limpeza da vizinhança por cores exatas e os seus efeitos em pontos isolados, contornos, transparência e ilhas imprimíveis." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Remoção de pontilhamento e limpeza | Documentação Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/dedithering-cleanup">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentação">
+                    <a href="/pt-PT/">Ir para a página inicial</a>
+                    <a href="/app">Abrir Kromacut</a>
+                    <ul><li><a href="/pt-PT/docs/overview">Visão geral</a></li><li><a href="/pt-PT/docs/quick-start">Início rápido</a></li><li><a href="/pt-PT/docs/loading-images">Carregar imagens</a></li><li><a href="/pt-PT/docs/image-adjustments">Ajustes de imagem</a></li><li><a href="/pt-PT/docs/reducing-colors">Redução de cores</a></li><li><a href="/pt-PT/docs/dedithering-cleanup">Remoção de pontilhamento e limpeza</a></li><li><a href="/pt-PT/docs/3d-mode">Modo 3D</a></li><li><a href="/pt-PT/docs/auto-paint">Controlos de pintura automática</a></li><li><a href="/pt-PT/docs/calibration-theory">Teoria da calibração</a></li><li><a href="/pt-PT/docs/flat-paint">Pintura plana</a></li><li><a href="/pt-PT/docs/calibration-workflows">Fluxos de calibração</a></li><li><a href="/pt-PT/docs/generating-exporting-output">Geração e exportação</a></li><li><a href="/pt-PT/docs/settings-and-controls">Definições e controlos</a></li><li><a href="/pt-PT/docs/troubleshooting">Resolução de problemas</a></li><li><a href="/pt-PT/docs/faq">Perguntas frequentes</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="dedithering-and-cleanup">Remoção de pontilhamento e limpeza</h1>
+<p><strong>Remover pontilhamento</strong> substitui píxeis com pouco apoio local por cores vizinhas. É uma passagem independente de limpeza, não um algoritmo de quantização nem uma simulação do que o bico imprime.</p>
+<p>Use em padrões pontilhados com cores repetidas ou numa imagem reduzida com pontos isolados. Pode funcionar antes da quantização se a origem já tiver esses padrões, ou depois nas regiões reduzidas. Não é um filtro de ruído fotográfico: píxeis vizinhos de uma fotografia costumam ter cores exatas ligeiramente diferentes.</p>
+<h2 id="how-a-pixel-is-chosen">Como se escolhe um píxel</h2>
+<p><a href="/localized/pt-PT/diagrams/36_dedither_neighbors.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: Os oito píxeis vizinhos votam pela cor exata. O peso define quantos iguais são necessários para manter o centro; cada passagem usa o resultado anterior."><img src="/localized/pt-PT/diagrams/36_dedither_neighbors.svg" alt="Os oito píxeis vizinhos votam pela cor exata. O peso define quantos iguais são necessários para manter o centro; cada passagem usa o resultado anterior." loading="lazy"></a></p>
+<p>Cada píxel verifica oito vizinhos imediatos, incluindo diagonais. Se houver suficientes com <strong>RGB e alfa exatamente iguais</strong>, mantém-se. Caso contrário, adota a cor diferente mais frequente. Os empates são aleatórios, pelo que definições iguais podem produzir resultados diferentes.</p>
+<p>Só se usam cores vizinhas existentes, incluindo píxeis transparentes. Não são combinadas numa média para criar outra tonalidade.</p>
+<h2 id="weight">Peso</h2>
+<p><strong>Peso</strong> é o número de vizinhos iguais necessário para manter o píxel original. Intervalo <strong>1 a 9</strong>; predefinição <strong>4</strong>.</p>
+<table><thead><tr><th>Exemplo</th><th>Resultado</th></tr></thead><tbody><tr><td>Nenhum vizinho igual</td><td>Muda se existir outra cor vizinha, mesmo com peso 1.</td></tr><tr><td>Três vizinhos iguais</td><td>Mantém-se com peso 3; pode ser substituído com peso 4.</td></tr><tr><td>Centro e oito vizinhos iguais</td><td>Mantém-se mesmo com peso 9 porque não existe vizinho diferente.</td></tr></tbody></table>
+<p>Valores baixos tendem a preservar detalhe; valores altos tornam mais píxeis elegíveis para substituição. Com apenas oito vizinhos, o peso 9 não atinge o limiar de conservação. É uma definição agressiva de contornos, não um raio maior. Píxeis nas margens têm também menos vizinhos.</p>
+<h2 id="passes">Passagens</h2>
+<p><strong>Passagens</strong> repete a limpeza <strong>1 a 10</strong> vezes, com <strong>1</strong> por predefinição. Cada passagem lê todo o resultado anterior. Passagens extra podem remover pontos persistentes, mas também mover contornos, quebrar ligações estreitas ou apagar texto pequeno.</p>
+<p>As setas individuais repõem peso 4 ou passagens 1. A reposição do painel repõe ambos. Nenhuma restaura a imagem anterior; use Anular para isso.</p>
+<h2 id="apply-and-inspect">Aplicar e examinar</h2>
+<ol><li><strong>Aplique</strong> primeiro ajustes ativos. A limpeza lê a vista ajustada; incorporá-los antes evita ajustes em direto sobre o resultado limpo.</li><li>Comece com uma passagem. O peso predefinido é 4; experimente menos quando o detalhe fino importa.</li><li>Clique em <strong>Aplicar</strong> e examine contornos, letras e bordos transparentes com grande ampliação.</li><li>Anule antes de comparar outra definição na mesma imagem inicial.</li></ol>
+<p>Cliques repetidos em Aplicar continuam a limpar a imagem já limpa. Não são comparações independentes com a original.</p>
+<h2 id="effect-on-the-print">Efeito na impressão</h2>
+<p>Remover píxeis isolados de outra cor pode eliminar ilhas minúsculas, mas também detalhe desejado. O alfa participa na votação, pelo que a limpeza pode aumentar ou diminuir a silhueta e abrir ou fechar buracos.</p>
+<p>Trabalha em <strong>píxeis da imagem</strong>, não milímetros. Um detalhe de três píxeis a 0,1 mm/píxel ocupa 0,3 mm antes de decisões posteriores de malha ou laminador. Não existe entrada de diâmetro de bico. Use os <a href="/pt-PT/docs/3d-mode">controlos 3D de detalhe imprimível</a> e o laminador para verificar detalhes físicos.</p>
+<h2 id="dedither-versus-height-dithering">Remoção de pontilhamento e pontilhamento de altura</h2>
+<table><thead><tr><th>Ferramenta</th><th>Onde</th><th>O que muda</th></tr></thead><tbody><tr><td>Remover pontilhamento</td><td>2D</td><td>Regiões de cor exata e possivelmente o contorno transparente da imagem.</td></tr><tr><td>Pontilhamento de altura</td><td>Pintura automática em 3D</td><td>Padrão de alturas de superfície gerado para aproximar cores-alvo.</td></tr></tbody></table>
+<p>Usar uma não ativa a outra. Não aplique a limpeza se pretender preservar arte de píxeis ou pontilhismo intencional.</p>
+<p>Seguinte: <a href="/pt-PT/docs/3d-mode">Modo 3D</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

@@ -17,44 +17,49 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.function.Supplier
+import ru.ytkab0bp.slicebeam.components.ColorChooserDialog
 
-/** Material 3 profile row that opens the app's existing Orca-compatible color picker. */
+/** Material 3 profile row that hosts its color palette in Compose. */
 object ComposeProfileColorOption {
     @Composable
     fun Content(
         title: String,
         initialValue: String,
-        openPicker: Runnable,
+        onColorPicked: (Int) -> Unit,
         onLongClick: Runnable,
-    ) = ColorOptionRow(title, initialValue, openPicker, onLongClick)
+    ) = ColorOptionRow(title, initialValue, onColorPicked, onLongClick)
 
     @JvmStatic
     fun create(
         title: String,
         valueProvider: Supplier<String>,
-        openPicker: Runnable,
+        onColorPicked: (Int) -> Unit,
         onLongClick: Runnable,
-    ): ProfileSettingsComposeItem = ColorOptionItem(title, valueProvider, openPicker, onLongClick)
+    ): ProfileSettingsComposeItem = ColorOptionItem(title, valueProvider, onColorPicked, onLongClick)
 
     private class ColorOptionItem(
         private val title: String,
         private val valueProvider: Supplier<String>,
-        private val openPicker: Runnable,
+        private val onColorPicked: (Int) -> Unit,
         private val onLongClick: Runnable,
     ) : ProfileSettingsComposeItem {
         @Composable
         override fun Content(rowPosition: Int, onEditorStateChanged: (Boolean) -> Unit) {
             val initialValue = valueProvider.get().orEmpty()
-            ComposeProfileColorOption.Content(title, initialValue, openPicker, onLongClick)
+            ComposeProfileColorOption.Content(title, initialValue, onColorPicked, onLongClick)
         }
     }
 
@@ -63,14 +68,17 @@ object ComposeProfileColorOption {
 private fun ColorOptionRow(
     title: String,
     initialValue: String,
-    openPicker: Runnable,
+    onColorPicked: (Int) -> Unit,
     onLongClick: Runnable,
 ) {
     val value = initialValue
     val fallbackColor = MaterialTheme.colorScheme.primary
-    val swatch = remember(value, fallbackColor) {
-        runCatching { Color(AndroidColor.parseColor(value)) }.getOrElse { fallbackColor }
+    val (initialColor, swatch) = remember(value, fallbackColor) {
+        val parsed = runCatching { AndroidColor.parseColor(value) }
+            .getOrElse { fallbackColor.toArgb() }
+        parsed to Color(parsed)
     }
+    var showColorChooser by remember { mutableStateOf(false) }
 
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
@@ -83,7 +91,7 @@ private fun ColorOptionRow(
                 .heightIn(min = 52.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .combinedClickable(
-                    onClick = openPicker::run,
+                    onClick = { showColorChooser = true },
                     onLongClick = onLongClick::run,
                 )
                 .padding(horizontal = 12.dp, vertical = 6.dp),
@@ -112,6 +120,16 @@ private fun ColorOptionRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+    }
+    if (showColorChooser) {
+        ColorChooserDialog(
+            initialColor = initialColor,
+            onDismiss = { showColorChooser = false },
+            onColorChosen = { color ->
+                onColorPicked(color)
+                showColorChooser = false
+            },
+        )
     }
 }
 }

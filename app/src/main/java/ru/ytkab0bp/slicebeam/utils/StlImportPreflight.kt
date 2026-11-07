@@ -12,8 +12,12 @@ object StlImportPreflight {
             RandomAccessFile(file, "r").use { input ->
                 input.seek(80)
                 val count = Integer.reverseBytes(input.readInt()).toLong() and 0xffffffffL
-                if (count > limit && file.length() == 84L + 50L * count) count else null
+                largeTriangleCount(count, file.length(), limit)
             }
         } catch (_: IOException) { null }
     }
+
+    /** Pure policy check, also lets tests verify large STL thresholds without allocating huge files. */
+    internal fun largeTriangleCount(triangleCount: Long, fileLength: Long, limit: Long = 500_000L): Long? =
+        triangleCount.takeIf { it > limit && fileLength == 84L + 50L * it }
 }

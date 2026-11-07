@@ -152,6 +152,10 @@ void orient(OrientMeshs &items, const OrientMeshs &excludes, const OrientParams 
 // this function should be deleted, since rotating objects are so complicated that its inherited transformation may be a trouble
 void orient(ModelObject* obj);
 
+// Import placement favors a low, bed-stable orientation for compact nesting.
+// The support-optimized orient() remains available for the explicit user tool.
+void orient_for_import(ModelObject* obj);
+
 void orient(ModelInstance* instance);
 
 }} // namespace Slic3r::orientment

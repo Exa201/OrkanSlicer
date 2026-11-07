@@ -11,7 +11,7 @@
         <meta name="theme-color" content="#ffffff" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="application-name" content="Kromacut" />
-        <meta name="description" content="Import, crop, pan, zoom, and manage the source image." />
+        <meta name="description" content="Import, crop, resize, and touch up image pixels before they become printed regions." />
         <meta
             name="keywords"
             content="Kromacut, free image to 3D print, color lithophane, filament swaps, palette quantization, STL export, 3MF export"
@@ -22,7 +22,7 @@
 
         <!-- Open Graph / social -->
         <meta property="og:title" content="Loading Images | Kromacut Docs" />
-        <meta property="og:description" content="Import, crop, pan, zoom, and manage the source image." />
+        <meta property="og:description" content="Import, crop, resize, and touch up image pixels before they become printed regions." />
         <meta property="og:type" content="article" />
         <meta property="og:url" content="https://kromacut.com/docs/loading-images" />
         <meta property="og:site_name" content="Kromacut" />
@@ -37,7 +37,7 @@
         <!-- Twitter -->
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:title" content="Loading Images | Kromacut Docs" />
-        <meta name="twitter:description" content="Import, crop, pan, zoom, and manage the source image." />
+        <meta name="twitter:description" content="Import, crop, resize, and touch up image pixels before they become printed regions." />
         <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
         <meta name="twitter:image:alt" content="Kromacut logo" />
         <title>Loading Images | Kromacut Docs</title>
@@ -69,40 +69,67 @@
                 ]
             }
         </script>
-      <script type="module" crossorigin src="./assets/index-BitRc1L5.js"></script>
-      <link rel="stylesheet" crossorigin href="./assets/index-DjVXpfYh.css">
-    </head>
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/loading-images">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/loading-images">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/loading-images">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/loading-images">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/loading-images">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/loading-images">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/loading-images">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/loading-images">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/loading-images">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/loading-images">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/loading-images">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/loading-images">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/loading-images">
+</head>
     <body>
         <div id="root">
             <main class="seo-doc-page">
                 <nav aria-label="Documentation">
                     <a href="/">Kromacut home</a>
                     <a href="/app">Open Kromacut</a>
-                    <ul><li><a href="/docs/overview">Overview</a></li><li><a href="/docs/quick-start">Quick Start</a></li><li><a href="/docs/loading-images">Loading Images</a></li><li><a href="/docs/reducing-colors">Reducing Colors</a></li><li><a href="/docs/dedithering-cleanup">Dedithering And Cleanup</a></li><li><a href="/docs/3d-mode">3D Mode</a></li><li><a href="/docs/calibration-theory">Calibration Theory</a></li><li><a href="/docs/generating-exporting-output">Generating And Exporting Output</a></li><li><a href="/docs/settings-and-controls">Settings And Controls</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li><li><a href="/docs/faq">FAQ</a></li></ul>
+                    <ul><li><a href="/docs/overview">Overview</a></li><li><a href="/docs/quick-start">Quick Start</a></li><li><a href="/docs/loading-images">Loading Images</a></li><li><a href="/docs/image-adjustments">Image Adjustments</a></li><li><a href="/docs/reducing-colors">Reducing Colors</a></li><li><a href="/docs/dedithering-cleanup">Dedithering And Cleanup</a></li><li><a href="/docs/3d-mode">3D Mode</a></li><li><a href="/docs/auto-paint">Auto-paint Controls</a></li><li><a href="/docs/calibration-theory">Calibration Theory</a></li><li><a href="/docs/flat-paint">Flat Paint</a></li><li><a href="/docs/calibration-workflows">Calibration Workflows</a></li><li><a href="/docs/generating-exporting-output">Generating And Exporting Output</a></li><li><a href="/docs/settings-and-controls">Settings And Controls</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li><li><a href="/docs/faq">FAQ</a></li></ul>
                 </nav>
                 <article>
                     <h1 id="loading-images">Loading Images</h1>
-<p>Kromacut starts with one image. You can use your own image or the app logo it loads by default.</p>
+<p>In <strong>2D</strong> mode, you prepare the image that the 3D model will use. Color changes affect the target colors; pixel edits affect the shapes and details in the print.</p>
 <h2 id="choose-a-source">Choose A Source</h2>
-<p>Use any normal image file Kromacut can open in the web app or standalone desktop build. The preview toolbar includes a file upload button, and the preview area accepts drag and drop while you are in <strong>2D</strong> mode.</p>
-<h2 id="preview-controls">Preview Controls</h2>
-<p>The 2D preview is intentionally pixel-crisp so the reduced image shows exact color regions.</p>
-<ul><li>Scroll to zoom in or out.</li><li>Drag the image to pan.</li><li>Use <strong>Undo</strong> and <strong>Redo</strong> after image edits such as crop, adjustment bake, dedither, quantize, swatch changes, or clear.</li><li>Use <strong>Toggle checkerboard</strong> when transparent pixels are hard to see.</li><li>Use <strong>Download image</strong> to save the current 2D result as an image.</li></ul>
-<h2 id="crop-the-image">Crop The Image</h2>
-<p>Click <strong>Crop</strong> to enter crop mode. Drag the crop rectangle or its handles, then click <strong>Save crop</strong>. Use <strong>Cancel crop</strong> if you do not want to keep the selection.</p>
-<p>Cropping is useful before color reduction because it removes background areas that would otherwise influence the palette.</p>
+<p>Click <strong>Choose file</strong> in the preview toolbar, or drag an image file into the 2D preview. Only the first file in a drop is loaded. Use an image format your browser or desktop webview can decode; PNG is useful when transparency matters. Develop camera RAW files and export an ordinary image format first.</p>
+<p>Kromacut starts with its logo as an example. Loading another image replaces the current working image. It does not publish the image or download a source from a pasted web link.</p>
+<h2 id="inspect-without-changing-the-image">Inspect Without Changing The Image</h2>
+<table><thead><tr><th>Control</th><th>Effect</th></tr></thead><tbody><tr><td>Mouse wheel</td><td>Zooms around the pointer. This changes only the view, not image resolution or print size.</td></tr><tr><td>Left-drag</td><td>Pans when no touch-up tool is active.</td></tr><tr><td>Middle-drag</td><td>Pans even while a touch-up tool is active.</td></tr><tr><td>Toggle checkerboard</td><td>Shows a pattern behind transparent pixels. The pattern is not part of the image or print.</td></tr><tr><td>Image size badge</td><td>Shows pixel dimensions. During cropping, it also shows proposed crop dimensions.</td></tr></tbody></table>
+<p>The preview uses sharp pixel edges rather than smoothing them. Zoom in to find isolated pixels and narrow details.</p>
+<h2 id="crop-resize-or-change-print-size">Crop, Resize, Or Change Print Size?</h2>
+<p><a href="/assets/30_crop_resize_scale-BLrgkFqA.svg" target="_blank" rel="noopener noreferrer" aria-label="Open illustration at full size: Crop removes part of the image, resize reduces pixel resolution, and Pixel Size changes the physical scale of each pixel."><img src="/assets/30_crop_resize_scale-BLrgkFqA.svg" alt="Crop removes part of the image, resize reduces pixel resolution, and Pixel Size changes the physical scale of each pixel." loading="lazy"></a></p>
+<p><em>Schematic dimensions illustrate the relationship, not a recommended print size.</em></p>
+<h3 id="crop">Crop</h3>
+<p>Click <strong>Crop</strong>, drag the selection or its corner and edge handles, then choose <strong>Save crop</strong>. <strong>Cancel crop</strong> leaves the image unchanged. Saving keeps the selected rectangle at image-pixel resolution.</p>
+<p>Crop out unwanted margins before reducing colors so they do not compete with the subject for the palette. Crop is rectangular; use transparency for an irregular background.</p>
+<h3 id="resize-image">Resize Image</h3>
+<p><strong>Scale</strong> runs from <strong>1% to 100%</strong>, default <strong>50%</strong>. <strong>Current</strong> and <strong>After resize</strong> show dimensions before you commit. Click <strong>Apply</strong> to downscale. 100%, or a value that rounds to the same dimensions, does nothing. The reset arrow resets the percentage, not the image.</p>
+<p>Resize uses smoothing, so it can introduce blended edge colors and partial transparency. Resize before quantization, or reduce colors again afterward. Repeated applications resize the already-resized image: two 50% applications leave 25% of the original width and height. Use Undo to restore detail rather than trying to enlarge it here.</p>
+<h3 id="physical-size-in-3d">Physical size in 3D</h3>
+<p><strong>Pixel Size (XY)</strong> is millimeters per image pixel, not image resolution. A fully opaque 1000-pixel-wide image at 0.1 mm/pixel is 100 mm wide. Resizing to 500 pixels at the same setting gives 50 mm. Changing to 0.2 mm/pixel restores the 100 mm width, but not the discarded detail. Fully transparent outer margins are excluded from the model footprint.</p>
+<p>Reducing pixel dimensions reduces processing and geometry workload. Changing Pixel Size alone does not remove pixels. See <a href="/docs/3d-mode">3D mode</a> for physical-scale controls.</p>
 <h2 id="touch-up-pixels">Touch Up Pixels</h2>
-<p>The 2D preview toolbar includes five hard-edged tools for direct pixel editing. All edits are palette-safe: they use exact colors without blending, so no stray gradient pixels sneak into your palette. <strong>Brush</strong> paints with the selected color, <strong>Eraser</strong> makes pixels transparent, and <strong>Fill</strong> replaces a contiguous region of one exact color. <strong>Text</strong> creates bold, hard-edged lettering: click the image and type directly in an on-canvas text box that appears at that spot. The <strong>color picker</strong> lets you sample a color directly from the image and switches to Brush.</p>
-<p>Set the Brush and Eraser size with a slider (1–64 image pixels), with a size-accurate cursor outline to guide you. For Text, the text box supports multiple lines (press Enter) and word-wraps at its width—drag the handle on its right edge to adjust the wrap width, and drag the move handle (arrows icon) above the box to reposition it. The size slider and color control update your text draft live. Apply your text with the check button or Ctrl+Enter, or discard it with the X button or Escape; clicking elsewhere on the image or switching tools also applies the current text. Choose your color from the current image palette, use a custom color input, or use the color picker tool to sample from the image.</p>
-<p>Each completed stroke, fill, or text placement is exactly one <strong>Undo</strong> or <strong>Redo</strong> step. Drawing is live and never blocks the app. Press <strong>Escape</strong> to leave the active tool; while editing, middle-drag still pans and the mouse wheel still zooms. Image adjustments remain non-destructive: touch-up edits apply to the underlying source, and the active adjustments reapply on top.</p>
-<h2 id="resize-the-image">Resize The Image</h2>
-<p>Use <strong>Resize Image</strong> to reduce the source image resolution by percentage. This changes the actual pixel dimensions of the current image, so a 1000x800 image resized to 50% becomes 500x400 pixels.</p>
-<p>Resizing is useful when the source image is much larger than the physical detail you want to print. Smaller images build faster, produce lighter 3D models, and make each pixel's physical size easier to reason about before reducing colors.</p>
-<h2 id="remove-or-replace-an-image">Remove Or Replace An Image</h2>
-<p>Use <strong>Remove image</strong> to clear the current image. To replace it, choose another file or drag a new image into the preview.</p>
-<h2 id="tips">Tips</h2>
-<ul><li>Start with the cleanest image you can. Heavy compression, tiny details, and noisy backgrounds usually become extra color regions.</li><li>Crop first, resize if needed, then adjust and reduce colors.</li><li>Transparent border pixels are not useful for the 3D model. Keep only the visible subject area you want printed.</li></ul>
-<p>Next: <a href="/docs/reducing-colors">Reducing colors</a>.</p>
+<p><strong>Brush</strong>, <strong>Eraser</strong>, <strong>Fill</strong>, <strong>Text</strong>, and <strong>Pick color from image</strong> use hard-edged pixels without antialiasing. A custom color can still add a palette color; hard edges prevent unintended blended edge colors.</p>
+<p><a href="/assets/31_pixel_tools-DTIgHEeU.svg" target="_blank" rel="noopener noreferrer" aria-label="Open illustration at full size: Brush adds exact-color pixels, eraser removes pixels through transparency, fill changes a connected region, and text becomes hard-edged image pixels."><img src="/assets/31_pixel_tools-DTIgHEeU.svg" alt="Brush adds exact-color pixels, eraser removes pixels through transparency, fill changes a connected region, and text becomes hard-edged image pixels." loading="lazy"></a></p>
+<table><thead><tr><th>Tool or field</th><th>How it works</th><th>Effect on the print</th></tr></thead><tbody><tr><td>Brush</td><td>Drag to paint opaque pixels. Size is a diameter from 1 to 64 image pixels, default 4.</td><td>Repairs outlines, joins regions, or thickens details. The cursor shows its footprint.</td></tr><tr><td>Eraser</td><td>Uses the same size control but writes fully transparent pixels.</td><td>Removes material from the shape, potentially creating holes or disconnecting pieces.</td></tr><tr><td>Fill</td><td>Replaces the clicked region matching its exact RGB and alpha. Connections are edge-to-edge, not diagonal.</td><td>Recolors one connected region, not every occurrence of the color. There is no photographic color-tolerance setting.</td></tr><tr><td>Pick color from image</td><td>Samples a nontransparent source pixel and switches to Brush.</td><td>Reuses a color from the underlying image, not an unbaked adjustment effect.</td></tr><tr><td>Tool color</td><td>Choose from Image colors, use the picker, or enter six-digit hex. Closing the popover commits the selection.</td><td>Sets the opaque Brush, Fill, or Text color.</td></tr><tr><td>Text size</td><td>Font size from 6 to 128 image pixels, default 24.</td><td>Larger text leaves larger features at a fixed physical scale; this is not a millimeter value.</td></tr></tbody></table>
+<h3 id="place-text">Place text</h3>
+<p>Select Text, click the image, and type. Enter adds a line. Drag the move handle above the box to reposition it, or its right-edge handle to adjust word wrapping. Size and color update the draft.</p>
+<p>Click the check button or press <strong>Ctrl+Enter</strong> (<strong>Command+Enter</strong> on macOS) to apply. Clicking another image location or switching tools also commits it. X or <strong>Escape</strong> discards an open draft; another Escape exits the tool. Applied text becomes pixels, not an editable text object.</p>
+<p>Each changed stroke, fill, or text placement is one image-history step. A 1-pixel stroke at 0.1 mm/pixel is only 0.1 mm wide, however large it looks when zoomed in. Inspect narrow lettering in the slicer.</p>
+<h2 id="remove-a-background">Remove A Background</h2>
+<p>There is no automatic subject-selection or AI background-removal control. For a flat background, open its swatch in Image colors, make it fully transparent, and Apply. This removes every exact match, including matching subject pixels. Use Eraser for local removal and checkerboard to inspect the outline.</p>
+<p>Do not use swatch <strong>Delete</strong> for this: it remaps colors instead of making pixels transparent. See <a href="/docs/reducing-colors#image-colors">Image colors</a>.</p>
+<h2 id="undo-download-and-clear">Undo, Download, And Clear</h2>
+<p><strong>Undo</strong> and <strong>Redo</strong> step through committed image changes such as loading, cropping, resizing, baking adjustments, quantization, dedithering, swatch edits, and touch-ups. They are not a history of every setting or slider movement. A new image edit clears the redo path. History belongs to the current app session, so save the image if you need it later.</p>
+<p><strong>Download image</strong> saves the underlying working image as PNG at image-pixel resolution. It excludes zoom, checkerboard, crop handles, and text drafts. Apply text and <strong>Apply adjustments</strong> first to include them. Desktop uses a file-save dialog; browser placement follows browser download settings.</p>
+<p><strong>Remove image</strong> clears the workspace, not the settings. Do not rely on it as a reversible edit: it does not add the cleared image as a new Undo step. Download a copy first if you need to preserve it.</p>
+<p>Next: <a href="/docs/image-adjustments">Image adjustments</a>.</p>
                 </article>
             </main>
         </div>

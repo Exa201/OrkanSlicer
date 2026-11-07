@@ -1,19 +1,58 @@
 # OrcaSlicer Mobile — Feature Parity Audit
 
+## Verified status (2026-10-16)
+
+The original counts below are historical and must not be read as the current UI coverage.
+The current source audit reports 887 parsed native keys and 490 visible setting rows routed
+to native definitions (319 process, 100 filament, 71 printer; 483 distinct catalog keys).
+The row count includes keys that appear in more than one editor. The profile route checker
+also verifies that those rows reach matching profile parsers. Run
+`scripts/check_profile_setting_routes.py` and `scripts/audit_orca_feature_gap_doc.py` to
+recalculate the current figures; the latter only reconciles settings literally named in
+this older curated list and is not a complete desktop-parity scanner.
+
+As of this audit, the two safe, native-backed omissions `elefant_foot_layers_density` and
+`infill_lock_depth` are now exposed in the existing Precision and Infill groups. We kept
+the other candidates out of the UI where the core does not implement them (`adaptive_layer_height`),
+where Orca sets them internally (`has_scarf_joint_seam`), where dependent sequence editing
+would be absent (`first_layer_sequence_choice`, `other_layers_sequence_choice`), where the
+native definition has no useful label/help (`elefant_foot_min_width`), or where the native
+tooltip warns of a possible brim-to-model fusion (`brim_use_efc_outline`). Bed-type temperatures are exposed as six clearly named plate groups with separate first-layer
+and other-layer values. The selected printer plate determines the values shown before slicing;
+explicit Orca values are preserved, while missing legacy plate values are filled from the
+high-temperature plate setting. The printer profile defaults to Orca’s configured bed type, with
+the existing PEI/high-temperature fallback when no default is configured.
+
+The calibration menu now has an explicit “save measured result” action for Orca modes whose
+G-code changes correspond to a profile value: pressure advance, nozzle temperature, maximum
+volumetric speed, outer-wall speed (VFA), and filament retraction length. The result is range-
+checked and staged through the existing profile-edit repository; the user must evaluate the
+printed test and review/save the profile change. No calibration command is sent to a printer.
+`Calib_Flow_Rate` is declared in the bundled native enum but has no implementation use in its
+G-code path, so the app does not offer a flow-rate test or pretend to save a result for it.
+
 Audit of what the OrcaSlicer engine (now bundled via `app/src/main/jni/libslic3r`)
 exposes vs. what the mobile UI actually surfaces. Goal: find features lost when the
 project was ported from SliceBeam (Prusa engine) to the Orca engine.
 
-## Method
+## Historical baseline (2026-10-10)
 
-- Engine options: `grep this->add("…")` in `app/src/main/jni/libslic3r/PrintConfig.cpp` → **862** config keys.
-- UI-exposed options: every `def.options.get("…")` in the config fragments plus the
-  section keys in `OrcaPrintSettingsBuilder` → **253** real engine keys wired into the UI.
-- Model tools: enumerated from `components/bed_menu/*` (File / Camera / Orientation / Transform / Slice).
+The first audit counted **862** native keys and **253** UI keys and estimated 180–200 missing
+FDM settings. That snapshot predates the current profile catalogs and is no longer a current
+coverage estimate. It remains here only to explain earlier prioritization.
 
-**Result: ~253 / 862 engine options are exposed.** After removing SLA/resin, CLI verbs,
-runtime state, and preset-metadata keys, roughly **180–200 genuine user-facing FDM settings
-are defined in the engine but not shown in the app**, plus several whole model-editing tools.
+## Current method and counts
+
+- Native option definitions are parsed from the current Orca `PrintConfig` and preset schema.
+- Visible settings come from `OrcaProcessSettingsCatalog`, `OrcaFilamentSettingsCatalog`, and
+  `OrcaPrinterSettingsCatalog`; the route checker also verifies profile parser routing.
+- Model tools are inspected from the current model, edit, camera, and slice menus.
+
+Current source audit: **887** parsed native keys and **490** visible setting rows routed to native
+definitions (319 process, 100 filament, 71 printer; 483 distinct catalog keys). These counts do
+not measure desktop parity: some native keys are runtime/internal, while model tools use separate
+object-level APIs. Run `scripts/check_profile_setting_routes.py` and
+`scripts/audit_orca_feature_gap_doc.py` to recalculate them.
 
 > The lists below are curated to the settings OrcaSlicer **desktop actually shows in its tabs**.
 > Pure-internal keys (`e_position`, `layer_z`, `print_time`, `inherits`, `*_settings_id`, CLI
@@ -21,88 +60,46 @@ are defined in the engine but not shown in the app**, plus several whole model-e
 
 ---
 
-## 1. Missing Print settings (Process tabs)
+## 1. Process settings: current coverage and remaining keys
 
-### Quality
-- **Adaptive layer height** — `adaptive_layer_height` (big one; desktop has the height-range gizmo too)
-- Precise wall / Z: `precise_outer_wall`, `precise_z_height`, `ensure_vertical_shell_thickness`
-- Elephant-foot advanced: `elefant_foot_compensation_layers`, `elefant_foot_layers_density`, `elefant_foot_min_width`
-- Hole/contour compensation: `xy_hole_compensation`, `xy_contour_compensation`, `hole_to_polyhole`, `hole_to_polyhole_threshold`, `hole_to_polyhole_twisted`
-- Ironing advanced: `ironing_pattern`, `ironing_angle`, `ironing_inset`, `ironing_expansion`, `ironing_fan_speed`
-- Fuzzy skin advanced: `fuzzy_skin_mode`, `fuzzy_skin_first_layer`, `fuzzy_skin_noise_type`, `fuzzy_skin_scale`, `fuzzy_skin_octaves`, `fuzzy_skin_persistence`, ripple family
+The process catalog currently contains 319 native keys. Jerk and acceleration, pressure advance,
+bridge and flow controls, scarf seam, fuzzy skin, ironing, support, brim ears, timelapse, power-loss
+recovery, and object labeling are represented in the current settings UI. These are completed
+areas; do not re-add them as missing settings.
 
-### Seam (Orca scarf-joint seam is a headline feature — entirely missing)
-- `seam_gap`, `wipe_speed`, `role_based_wipe_speed`
-- Scarf joint: `has_scarf_joint_seam`, `seam_slope_type`, `seam_slope_start_height`, `seam_slope_entire_loop`,
-  `seam_slope_min_length`, `seam_slope_steps`, `seam_slope_inner_walls`, `seam_slope_conditional`,
-  `scarf_angle_threshold`, `scarf_overhang_threshold`, `scarf_joint_speed`, `scarf_joint_flow_ratio`
-
-### Strength / Infill
-- Per-feature flow ratios: `outer_wall_flow_ratio`, `inner_wall_flow_ratio`, `top_solid_infill_flow_ratio`,
-  `bottom_solid_infill_flow_ratio`, `internal_solid_infill_flow_ratio`, `sparse_infill_flow_ratio`,
-  `gap_fill_flow_ratio`, `first_layer_flow_ratio`, `bridge_density`
-- Internal bridges: `internal_bridge_density`, `internal_bridge_angle`, `internal_bridge_speed`,
-  `internal_bridge_flow`, `internal_bridge_fan_speed`, `thick_internal_bridges`, `dont_filter_internal_bridges`, `enable_extra_bridge_layer`, `counterbore_hole_bridging`
-- Infill advanced: `internal_solid_infill_pattern`, `solid_infill_direction`, `infill_combination_max_layer_height`,
-  `detect_narrow_internal_solid_infill`, `min_width_top_surface`, `top_surface_density`, `bottom_surface_density`,
-  `gyroid_optimized`, `lightning_overhang_angle`, `infill_lock_depth`, locked/skin/skeleton infill family
-- Walls: `wall_sequence`, `wall_direction`, `overhang_reverse` (+`_threshold`,`_internal_only`), `only_one_wall_top`
-
-### Speed / Motion (large gap — mostly missing)
-- Jerk: `default_jerk`, `outer_wall_jerk`, `inner_wall_jerk`, `infill_jerk`, `top_surface_jerk`,
-  `travel_jerk`, `initial_layer_jerk`, `initial_layer_travel_jerk`
-- Junction deviation: `default_junction_deviation`
-- Accel: `accel_to_decel_enable`, `accel_to_decel_factor`
-- First layer: `initial_layer_travel_speed`, `initial_layer_infill_speed`
-- Overhang speed system: `enable_overhang_speed`, `slowdown_for_curled_perimeters`
-- Resonance avoidance (Orca): `resonance_avoidance`, `max_resonance_avoidance_speed`, `min_resonance_avoidance_speed`
-- Pressure advance: `enable_pressure_advance`, `pressure_advance`,
-  `adaptive_pressure_advance`(+`_model`,`_overhangs`,`_bridges`)
-
-### Support
-- Tree (organic): `tree_support_branch_angle_organic`, `tree_support_branch_diameter_organic`,
-  `tree_support_branch_distance_organic`, `tree_support_wall_count`, `tree_support_with_infill`, `tree_support_auto_brim`
-- Support ironing: `support_ironing`, `support_ironing_flow`, `support_ironing_pattern`, `support_ironing_spacing`
-- Misc: `support_critical_regions_only`, `support_remove_small_overhang`, `support_interface_not_for_body`,
-  `independent_support_layer_height`, `support_object_first_layer_gap`
-
-### Brim / Skirt
-- **Brim ears** (painted brim): `brim_ears`, `brim_ears_max_angle`, `brim_ears_detection_length`, `brim_use_efc_outline`
-- `combine_brims`, `brim_flow_ratio`, `single_loop_draft_shield`, `skirt_speed`, `skirt_start_angle`, `skirt_type`
-
-### Others / Special
-- **Timelapse**: `enable_timelapse`, `timelapse_type`
-- **Power-loss recovery**: `enable_power_loss_recovery`
-- **Object skipping / labeling**: `exclude_object`, `gcode_add_line_number`, `disable_m73`, `scan_first_layer`, `spaghetti_detector`
-- Sequential print first-layer sequencing: `first_layer_sequence_choice`, `other_layers_sequence_choice`
+The route audit finds these native keys absent from profile catalogs: `adaptive_layer_height`,
+`brim_use_efc_outline`, `elefant_foot_min_width`, `first_layer_sequence_choice`,
+`has_scarf_joint_seam`, and `other_layers_sequence_choice`. `adaptive_layer_height` is handled by
+the model layer-height editor instead of the process preset. Orca sets `has_scarf_joint_seam`
+internally. Sequence choice needs its paired state/editor; `brim_use_efc_outline` has a native
+warning about possible brim fusion; `elefant_foot_min_width` lacks useful native UI metadata.
 
 ---
 
-## 2. Missing Filament settings
-- **Bed-type temps** (Orca per-plate temps): `cool_plate_temp`(+initial), `eng_plate_temp`(+initial),
-  `textured_plate_temp`(+initial), `supertack_plate_temp`(+initial) — only `hot_plate_temp` is exposed today
-- Pressure advance per filament: `enable_pressure_advance`, `pressure_advance`
-- Cooling advanced: `additional_cooling_fan_speed`, `fan_kickstart`, `fan_speedup_time`, `fan_speedup_overhangs`,
-  `close_additional_fan_first_x_layers`, `first_x_layer_fan_speed`, `internal_bridge_fan_speed`
-- Air filtration: `activate_air_filtration`(+during/on-completion), `complete_print_exhaust_fan_speed`, `during_print_exhaust_fan_speed`
-- Chamber control: `activate_chamber_temp_control`, `chamber_temperature` (exposed) vs `support_chamber_temp_control`
-- Filament physical: `temperature_vitrification`, `nozzle_temperature_range_low`/`_high`, `filament_shrink`,
-  `filament_change_length`, `high_current_on_filament_swap`, `filament_adaptive_volumetric_speed`
-- Filament ironing overrides: `filament_ironing_flow/inset/spacing/speed`
+## 2. Filament settings: current coverage and remaining keys
+
+The filament catalog contains 100 native keys. It includes all six bed-surface temperature groups,
+pressure advance, cooling, air filtration, chamber controls, physical properties, ironing overrides,
+and tool-change settings. Printer capability gates such as `support_chamber_temp_control` and
+`support_air_filtration` belong to the printer profile, not the filament profile.
+
+`filament_adaptive_volumetric_speed` remains hidden because Orca marks it experimental/incomplete.
+The audit script also reports `slice`, which is a phantom key in the older curated notes, not a
+native filament option.
 
 ---
 
-## 3. Missing Printer settings
-- **Machine motion limits** (whole group): `machine_max_speed_*`, `machine_max_acceleration_*`,
-  `machine_max_jerk_*`, `machine_max_junction_deviation`, `machine_min_extruding_rate`, `machine_min_travel_rate`
-- Multi-extruder / multi-tool: `extruder_type`, `nozzle_volume`, `nozzle_volume_type`, `extruder_printable_area`,
-  `extruder_printable_height`, `extruder_ams_count`, `master_extruder_id`, `physical_extruder_map`
-- Z-hop: `z_hop_types`, `retract_lift_enforce`, `long_retractions_when_cut`, `retraction_distances_when_cut`
-- `nozzle_hrc`, `nozzle_type`, `printer_structure`, `bed_mesh_*`, `adaptive_bed_mesh_margin`, `preheat_steps`
+## 3. Printer settings: current coverage and remaining gaps
+
+The printer catalog contains 71 native keys. Machine motion limits, Z-hop/retraction-lift settings,
+bed type, custom G-code, physical host settings, and the chamber/filtration capability gates are
+already exposed. The remaining multi-extruder printer fields are only partially represented; in
+particular, Orca-specific AMS count and physical extruder mapping do not yet have an end-to-end
+mobile editing and validation flow.
 
 ---
 
-## 4. Missing model-editing tools (gizmos)
+## 4. Missing model-editing tools (gizmos) and implemented tools
 
 Current tools: **Move, Rotate, Scale, Mirror, Auto-orient, Lay-on-face (Flatten), Arrange**, plus
 bed/object context actions (duplicate, fill-bed, center, delete, select-all).
@@ -111,38 +108,37 @@ Missing vs OrcaSlicer desktop:
 
 | Tool | Status | Notes |
 |------|--------|-------|
-| **Cut** (plane, dowels/connectors, keep parts) | ❌ | Task #6 |
-| **Color / MMU painting** | ❌ | Task #7 — engine has the data path (`mmu_segmented_region_*`, filament-per-feature, flush volumes) |
-| **Support painting** (enforcers/blockers) | ❌ | Orca FacetsAnnotation; pairs with support settings |
-| **Seam painting** | ❌ | complements the missing scarf-seam settings |
-| **Fuzzy-skin painting** | ❌ | Orca paints fuzzy regions |
-| **Text / Emboss** | ❌ | desktop text gizmo |
-| **SVG import / emboss** | ❌ | desktop SVG gizmo |
-| **Measure** | ❌ | distance/angle measuring |
-| **Negative / Modifier / Support-blocker volumes** | ❌ | per-part meshes with setting overrides |
-| **Per-object / per-part setting overrides** | ❌ | right-click "Add settings" in desktop |
-| **Variable / adaptive layer height** (height-range gizmo) | ❌ | ties to `adaptive_layer_height` |
-| **Split to objects / parts** | ❌ | `split` exists in engine as a verb |
-| **Simplify mesh / mesh boolean** | ❌ | desktop mesh ops |
+| **Cut** (plane, connectors, keep upper/lower) | ✅ | `TransformCutMenu`, `Model.cut`, native `CutUtils`; connector and plane controls are in the model menu |
+| **Color / MMU painting** | ✅ | `PaintModeView` and native `PaintSession`; painted facet data is preserved in 3MF. Compound-volume hit identification remains limited |
+| **Support painting** | ✅ | Native facet annotations and support paint mode; tested for touch state and commit |
+| **Seam painting** | ✅ | Native facet annotations and seam paint mode |
+| **Fuzzy-skin painting** | ✅ | Native facet annotations and fuzzy paint mode |
+| **Text emboss / engrave** | ✅ | `EmbossModeView` and `Native.model_emboss_text`; engrave uses a negative volume |
+| **SVG import / emboss** | ❌ | SVG guard/simplification exists, but there is no surface-placement SVG emboss workflow |
+| **Measure** | ✅ | `MeasureModePanel` and renderer surface-point measurement |
+| **Negative / Modifier / Support-blocker volumes** | ⚠️ | Native volume types, cut connectors and text engraving exist; no general UI to add/import, place, and edit these volumes |
+| **Per-object / per-part setting overrides** | ❌ | No mobile editing/apply workflow for model-object or volume config overrides |
+| **Variable / adaptive layer height** | ✅ | Model menu opens the layer-height profile editor and writes the native object layer-height profile; this does not use the commented-out `adaptive_layer_height` preset key |
+| **Split to objects / parts** | ✅ | `splitSelectedObject()` invokes native `Model.split` |
+| **Simplify mesh** | ✅ | Selected-object simplification with ratio/target controls and large-model safeguards |
+| **Mesh boolean operations** | ❌ | MCUT is present in native dependencies, but no user-facing boolean tool is routed |
 
 ---
 
 ## 5. Prioritized recommendations
 
-1. **Speed/Motion + Jerk/Junction + Pressure Advance** — biggest single settings gap; pure UI work
-   (engine already supports them). High user impact, low risk.
-2. **Per-feature flow ratios + internal bridge settings** — UI work only.
-3. **Bed-type temperatures (filament)** — Orca printers expect these; currently only `hot_plate_temp`.
-4. **Scarf-joint seam + seam painting** — marquee Orca quality feature.
-5. **Brim ears, ironing-advanced, fuzzy-skin-advanced** — UI work only.
-6. **Cut tool** (Task #6) and **Color painting** (Task #7) — large, need native + gizmo work.
-7. **Machine motion limits** in Printer tab — needs the array/matrix editor widget.
+1. **Per-object / per-part setting overrides and modifier volumes** — largest remaining Orca workflow gap; needs a model-aware editor and explicit native application of per-object configuration.
+2. **SVG surface emboss** — the native SVG and emboss code exists, but the app needs a bounded import, placement, depth, and add/engrave workflow.
+3. **Mesh boolean operations** — MCUT is bundled; expose only after validating memory use, cancellation, and undo for mobile-sized meshes.
+4. **Complex multi-volume painting** — extend raycast results with volume/facet ownership before claiming support for arbitrary compound 3MF objects.
+5. **Remaining profile options** — `adaptive_layer_height` is commented out in the native preset schema; `brim_use_efc_outline` carries a fusion warning; sequence choice requires related setting state. Keep these hidden until their behavior can be represented safely.
 
-### Quick wins (engine-ready, UI-only)
-Adding these keys to `OrcaPrintSettingsBuilder` / `FilamentConfigFragment` / `PrinterConfigFragment`
-immediately surfaces them — they already slice correctly:
-`default_jerk`, `outer_wall_jerk`, `inner_wall_jerk`, `infill_jerk`, `travel_jerk`,
-`enable_pressure_advance`, `pressure_advance`, `accel_to_decel_enable`, `accel_to_decel_factor`,
-`initial_layer_travel_speed`, all `*_flow_ratio`, `internal_bridge_*`, `seam_gap`, `brim_ears*`,
-`cool_plate_temp`/`textured_plate_temp`/`eng_plate_temp` (+initial), `enable_timelapse`,
-`exclude_object`, `adaptive_layer_height`.
+
+### Completed high-priority settings
+
+Do not add duplicate controls for jerk, pressure advance, flow ratios, internal bridges, scarf seam,
+brim ears, timelapse, machine motion limits, or bed-surface temperatures. Printer capability options
+`support_chamber_temp_control` and `support_air_filtration` are exposed under Printer → Capabilities
+and recognized by the printer-profile import route. The native filament option
+`filament_adaptive_volumetric_speed` remains hidden because Orca labels it experimental/incomplete;
+per-object volumetric coefficients only work for profiles that already contain saved values.

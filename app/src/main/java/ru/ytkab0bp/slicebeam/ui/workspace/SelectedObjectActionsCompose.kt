@@ -36,7 +36,6 @@ internal enum class SelectedObjectQuickAction(val labelRes: Int) {
     ROTATE(R.string.ObjectActionRotate),
     SCALE(R.string.ObjectActionScale),
     DUPLICATE(R.string.ObjectActionDuplicate),
-    MORE(R.string.ObjectActionMore),
 }
 
 internal object SelectedObjectQuickActionPolicy {
@@ -45,7 +44,6 @@ internal object SelectedObjectQuickActionPolicy {
         SelectedObjectQuickAction.ROTATE,
         SelectedObjectQuickAction.SCALE,
         SelectedObjectQuickAction.DUPLICATE,
-        SelectedObjectQuickAction.MORE,
     )
 }
 

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Kromacutの機能と主な作業の流れのつながり。" />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/ja/docs/overview">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="概要 | Kromacutドキュメント" />
+        <meta property="og:description" content="Kromacutの機能と主な作業の流れのつながり。" />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/ja/docs/overview" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="ja_JP" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="概要 | Kromacutドキュメント" />
+        <meta name="twitter:description" content="Kromacutの機能と主な作業の流れのつながり。" />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>概要 | Kromacutドキュメント</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/overview">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/overview">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/overview">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/overview">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/overview">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/overview">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/overview">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/overview">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/overview">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/overview">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/overview">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/overview">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/overview">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="ドキュメント">
+                    <a href="/ja/">ホームへ戻る</a>
+                    <a href="/app">Kromacutを開く</a>
+                    <ul><li><a href="/ja/docs/overview">概要</a></li><li><a href="/ja/docs/quick-start">クイックスタート</a></li><li><a href="/ja/docs/loading-images">画像の読み込み</a></li><li><a href="/ja/docs/image-adjustments">画像調整</a></li><li><a href="/ja/docs/reducing-colors">減色</a></li><li><a href="/ja/docs/dedithering-cleanup">ディザ除去とクリーンアップ</a></li><li><a href="/ja/docs/3d-mode">3Dモード</a></li><li><a href="/ja/docs/calibration-theory">校正の理論</a></li><li><a href="/ja/docs/auto-paint">自動ペイントの操作</a></li><li><a href="/ja/docs/flat-paint">フラット印刷</a></li><li><a href="/ja/docs/calibration-workflows">校正の手順</a></li><li><a href="/ja/docs/generating-exporting-output">モデル生成と書き出し</a></li><li><a href="/ja/docs/settings-and-controls">設定と操作</a></li><li><a href="/ja/docs/troubleshooting">トラブルシューティング</a></li><li><a href="/ja/docs/faq">よくある質問</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="overview">概要</h1>
+<p>Kromacutは平面画像を、色の層を積み重ねた3Dプリントに変換します。中心となる考え方は単純です。画像の色が物理的な層になり、その順番と高さが印刷計画になります。</p>
+<p>HueForge風の印刷、カラーリトファン風のレリーフ、フィラメント交換によって最終的な画像を作る積層展示作品を作りたいときにKromacutを使ってください。</p>
+<h2 id="main-workflow">主な作業の流れ</h2>
+<p>多くのプロジェクトは同じ手順で進みます。</p>
+<ol><li><a href="/ja/docs/loading-images">画像を読み込む、または取り込む</a>。</li><li>印刷可能なパレットになるまで<a href="/ja/docs/reducing-colors">減色する</a>。</li><li>画像にノイズがある場合、孤立ピクセルを<a href="/ja/docs/dedithering-cleanup">ディザ除去またはクリーンアップする</a>。</li><li><a href="/ja/docs/3d-mode">3Dモード</a>に切り替え、手動または自動ペイントを選ぶ。</li><li>STLまたは3MFファイルを<a href="/ja/docs/generating-exporting-output">作成して書き出し</a>、印刷手順に従う。</li></ol>
+<h2 id="two-ways-to-paint">2つの色付け方法</h2>
+<p>Kromacutの3Dモードには2つの印刷方式があります。</p>
+<table><thead><tr><th>方式</th><th>適した用途</th><th>操作する項目</th></tr></thead><tbody><tr><td>手動</td><td>画像の各色を直接制御したい場合。</td><td>色の順番、色ごとの厚み、印刷設定、交換。</td></tr><tr><td>自動ペイント</td><td>物理的なフィラメント積層の計画をKromacutに任せたい場合。</td><td>フィラメント色、遮蔽距離、最大高さ、最適化オプション。</td></tr></tbody></table>
+<p>手動モードは<strong>画像の色</strong>パネルに表示された色から始まります。自動ペイントは実際のフィラメントとその<strong>遮蔽距離（HD）</strong>から始まり、画像に合わせた印刷可能な層を生成します。</p>
+<h2 id="what-you-see-in-the-app">アプリに表示されるもの</h2>
+<p>2Dで絵柄を準備し、3Dで物理的な層を計画します。以下のガイドもこの区分に沿っています。</p>
+<h2 id="illustrated-guides">図解ガイド</h2>
+<p>やりたい作業から始めてください。各ガイドでは操作、相互作用、実物の印刷への影響を説明します。図は模式例で、校正済みの色予測ではありません。図をクリックするかキーボードで選択すると原寸大で開きます。</p>
+<table><thead><tr><th>作業</th><th>ガイド</th></tr></thead><tbody><tr><td>寸法、層の高さ、手動の色順を設定する</td><td><a href="/ja/docs/3d-mode">3Dモード</a></td></tr><tr><td>フィラメントを選び、混色を最適化し、印刷可能な細部を確認する</td><td><a href="/ja/docs/auto-paint">自動ペイント</a></td></tr><tr><td>表向きまたは裏向きの平らな多材料の板を作る</td><td><a href="/ja/docs/flat-paint">フラット印刷</a></td></tr><tr><td>HDを測定し、配色見本を比較し、積層校正マトリクスを撮影する</td><td><a href="/ja/docs/calibration-workflows">校正の手順</a></td></tr><tr><td>輪郭を整え、ピクセルを修正する</td><td><a href="/ja/docs/loading-images">画像の読み込み</a></td></tr><tr><td>色調と色を調整し、結果を画像に適用する</td><td><a href="/ja/docs/image-adjustments">画像調整</a></td></tr><tr><td>減色し、パレットを管理する</td><td><a href="/ja/docs/reducing-colors">減色</a></td></tr><tr><td>2Dのクリーンアップと高さディザを混同せず、点状ノイズを除く</td><td><a href="/ja/docs/dedithering-cleanup">ディザ除去とクリーンアップ</a></td></tr><tr><td>完成した積層を確認し、スライサーに渡す</td><td><a href="/ja/docs/generating-exporting-output">モデル生成と書き出し</a></td></tr></tbody></table>
+<h2 id="workspace-layout">作業領域の構成</h2>
+<p>作業領域には主に3つの部分があります。</p>
+<ul><li>ヘッダーにはドキュメント、テーマ操作、コミュニティリンクがあります。</li><li>左パネルには現在のモードの操作があります。</li><li><strong>2D</strong>では、調整、ディザ除去、減色、独自パレット、検出した画像の色が表示されます。</li><li><strong>3D</strong>では、印刷設定、手動操作、自動ペイントの操作、印刷手順が表示されます。</li><li>メインプレビューには2D画像のキャンバスまたは3Dモデルが表示されます。</li></ul>
+<blockquote><p>ヒント：3D設定を変更してもモデルは自動で再作成されません。印刷設定、手動の色ごとの厚み、自動ペイントのオプションを変更した後は、<strong>3Dモデルを作成</strong>をクリックしてください。</p></blockquote>
+<h2 id="good-first-project">最初に適したプロジェクト</h2>
+<p>主題が明確で背景の細部が少ない、高コントラストの画像から始めてください。4〜16色に減色し、層の順番がわかっていれば手動モード、フィラメントの遮蔽距離を校正済みなら自動ペイントを使います。</p>
+<hr>
+<p>次へ：<a href="/ja/docs/quick-start">クイックスタート</a>。</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

@@ -64,14 +64,14 @@ def main() -> None:
     all_visible = set.union(*catalogs.values())
     native = native_options()
     sections = (
-        ("print", "## 1. Missing Print settings", "## 2. Missing Filament settings"),
-        ("filament", "## 2. Missing Filament settings", "## 3. Missing Printer settings"),
-        ("printer", "## 3. Missing Printer settings", "## 4. Missing model-editing tools"),
+        ("print", "## 1. Process settings: current coverage and remaining keys", "## 2. Filament settings: current coverage and remaining keys"),
+        ("filament", "## 2. Filament settings: current coverage and remaining keys", "## 3. Printer settings: current coverage and remaining gaps"),
+        ("printer", "## 3. Printer settings: current coverage and remaining gaps", "## 4. Missing model-editing tools"),
     )
 
     print(f"Native option keys parsed: {len(native)}")
     print(f"Profile catalog keys: {len(all_visible)} (process {len(catalogs['print'])}, filament {len(catalogs['filament'])}, printer {len(catalogs['printer'])})")
-    print("The list below only reconciles keys literally named in the old feature-gap notes; it is not full Orca desktop parity.")
+    print("This is a focused reconciliation of native keys named in the audit sections, not a full Orca desktop parity scan.")
     for profile, heading, next_heading in sections:
         listed = documented_native_keys(section(audit, heading, next_heading), native)
         already_anywhere = listed & all_visible

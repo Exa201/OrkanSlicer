@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-PT">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Filamentos, detalhes imprimíveis, correspondência de cores, limites de altura e confiança." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/pt-PT/docs/auto-paint">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Controlos de pintura automática | Documentação Kromacut" />
+        <meta property="og:description" content="Filamentos, detalhes imprimíveis, correspondência de cores, limites de altura e confiança." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/pt-PT/docs/auto-paint" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="pt_PT" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Controlos de pintura automática | Documentação Kromacut" />
+        <meta name="twitter:description" content="Filamentos, detalhes imprimíveis, correspondência de cores, limites de altura e confiança." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Controlos de pintura automática | Documentação Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/auto-paint">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/auto-paint">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/auto-paint">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/auto-paint">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/auto-paint">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/auto-paint">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/auto-paint">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/auto-paint">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/auto-paint">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/auto-paint">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/auto-paint">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/auto-paint">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/auto-paint">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentação">
+                    <a href="/pt-PT/">Ir para a página inicial</a>
+                    <a href="/app">Abrir Kromacut</a>
+                    <ul><li><a href="/pt-PT/docs/overview">Visão geral</a></li><li><a href="/pt-PT/docs/quick-start">Início rápido</a></li><li><a href="/pt-PT/docs/loading-images">Carregar imagens</a></li><li><a href="/pt-PT/docs/image-adjustments">Ajustes de imagem</a></li><li><a href="/pt-PT/docs/reducing-colors">Redução de cores</a></li><li><a href="/pt-PT/docs/dedithering-cleanup">Remoção de pontilhamento e limpeza</a></li><li><a href="/pt-PT/docs/3d-mode">Modo 3D</a></li><li><a href="/pt-PT/docs/auto-paint">Controlos de pintura automática</a></li><li><a href="/pt-PT/docs/calibration-theory">Teoria da calibração</a></li><li><a href="/pt-PT/docs/flat-paint">Pintura plana</a></li><li><a href="/pt-PT/docs/calibration-workflows">Fluxos de calibração</a></li><li><a href="/pt-PT/docs/generating-exporting-output">Geração e exportação</a></li><li><a href="/pt-PT/docs/settings-and-controls">Definições e controlos</a></li><li><a href="/pt-PT/docs/troubleshooting">Resolução de problemas</a></li><li><a href="/pt-PT/docs/faq">Perguntas frequentes</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="auto-paint-controls">Controlos de pintura automática</h1>
+<p>A pintura automática prevê camadas finas sobrepostas e escolhe alturas imprimíveis para a imagem preparada. Várias cores visíveis podem resultar de diferentes espessuras de um só filamento. Vinte cores de imagem não exigem necessariamente vinte bobinas.</p>
+<p>Defina <a href="/pt-PT/docs/3d-mode#3d-print-settings">tamanho físico, alturas e largura efetiva</a>, adicione filamentos realmente disponíveis, aguarde o cálculo e <strong>Gere o modelo 3D</strong>. As entradas recalculam automaticamente; a geometria só atualiza ao gerar.</p>
+<h2 id="filament-inputs">Entradas de filamento</h2>
+<table><thead><tr><th>Controlo</th><th>O que introduzir ou fazer</th><th>Efeito</th></tr></thead><tbody><tr><td><strong>Adicionar filamento</strong></td><td>Cria uma linha cinzenta neutra.</td><td>Adiciona material disponível, não uma posição física na impressora.</td></tr><tr><td><strong>Amostra / Hex</strong></td><td>Escolha cor opaca ou hexadecimal.</td><td>Altera misturas e cor exportada. Introduza a cor real da bobina, não a desejada no resultado.</td></tr><tr><td><strong>Nome</strong></td><td>Dê um nome útil.</td><td>Identifica a bobina. Vazio regressa a nome automático pela cor.</td></tr><tr><td><strong>HD</strong></td><td>Distância frontal de ocultação, 0,01–2 mm.</td><td>HD menor oculta mais depressa. Maior precisa de espessura e transmite mais à mesma espessura.</td></tr><tr><td><strong>Converter de TD</strong></td><td>Introduza TD convencional de litofania/retroiluminação e <strong>Converta</strong>.</td><td>Aproximadamente TD × 0,1, arredondado a 0,01 mm e limitado à gama HD. Não reconverta uma HD.</td></tr><tr><td><strong>Varinha</strong></td><td>Estima HD pela cor.</td><td>Suposição inicial, não medição.</td></tr><tr><td><strong>Indicador de estado</strong></td><td>Examine <strong>Estimativa</strong> ou confiança calibrada; passe o rato para canais RGB.</td><td>Descreve evidência HD da linha, não exatidão global.</td></tr><tr><td><strong>Lixo</strong></td><td>Remove a linha.</td><td>O filamento deixa de estar disponível. Perfis só mudam quando guardados.</td></tr><tr><td><strong>Calibrar</strong></td><td>Abre HD, Prova de paleta ou Matriz.</td><td>Registe evidências físicas com <a href="/pt-PT/docs/calibration-workflows">Fluxos de calibração</a>.</td></tr></tbody></table>
+<p>Confirmar HD, converter TD ou usar a varinha apaga a calibração HD dessa linha. Mudar a cor calibrada desativa a calibração e usa uma estimativa pela cor. Regressar à cor medida pode reativar a calibração preservada, se não tiver sido apagada ou substituída. Mudar o nome não é medir.</p>
+<p>O comportamento medido dos canais afeta cor e espessura de transição. Se mudar material ou processo, não assuma que a vista antiga continua validada.</p>
+<h2 id="filament-profiles">Perfis de filamentos</h2>
+<p>Carregar um perfil substitui o conjunto de trabalho. <strong>Alterações por guardar</strong> significa que difere do selecionado.</p>
+<table><thead><tr><th>Ação</th><th>Resultado</th></tr></thead><tbody><tr><td><strong>Guardar alterações no perfil atual</strong></td><td>Substitui o perfil editável. Desativado sem alterações, sem seleção ou com modelo de perfil.</td></tr><tr><td><strong>Guardar como novo perfil</strong></td><td>Introduza nome não vazio para guardar separadamente, incluindo modelos modificados.</td></tr><tr><td><strong>Renomear perfil selecionado</strong></td><td>Muda o nome, não filamentos. Indisponível para modelos ou sem seleção.</td></tr><tr><td><strong>Importar perfil de ficheiro</strong></td><td>Lê <code>.kfil</code>, antigo <code>.kapp</code>, JSON ou CSV/TSV HueForge suportado.</td></tr><tr><td><strong>Exportar filamentos atuais como .kfil</strong></td><td>Exporta o conjunto. Ambiente de trabalho abre Guardar como; navegador segue transferência. Cancelar não muda calibração.</td></tr><tr><td><strong>Eliminar perfil selecionado</strong></td><td>Remove o guardado. Exporte cópia antes se necessário. Modelos não se eliminam.</td></tr></tbody></table>
+<p>As evidências de aparência pertencem a uma configuração exata. Enquanto houver alterações por guardar, as evidências do perfil não passam à pintura automática. Exportar cria outro perfil sem evidências incompatíveis antigas. A calibração HD por filamento é separada das matrizes e provas do perfil. Consulte <a href="/pt-PT/docs/settings-and-controls#filament-profile-files">Compatibilidade e importação</a>.</p>
+<h3 id="templates">Modelos de perfil</h3>
+<p>Fornecem cores anunciadas, nomes, marcas e HD estimadas. São só de leitura. Retire cores que não possui, calibre e <strong>Guarde como novo perfil</strong>. As referências não garantem um lote ou condição de observação. São não oficiais, não aprovações de fornecedores.</p>
+<h2 id="standard-matching">Correspondência normal</h2>
+<p>Com <strong>Correspondência de cor melhorada desligada</strong>, os filamentos ordenam-se do escuro ao claro por luminância e calculam-se transições, não pela ordem de adição. O mapeamento de alturas usa também luminância: normaliza brilho entre píxeis não transparentes mais escuro e mais claro, coloca esse intervalo entre fundação e topo e ajusta a camadas imprimíveis. Matizes diferentes com igual brilho podem receber a mesma altura independentemente da cor. Repetições, separação, pontilhamento e otimizador ficam inativos.</p>
+<p>Use esta base simples para relevo guiado por brilho. A correspondência melhorada considera cor na sequência e atribuição de alturas, sendo adequada quando importam diferenças de matiz.</p>
+<h2 id="max-height">Altura máxima</h2>
+<p>Limpe <strong>Altura máxima</strong> ou prima <strong>Auto</strong> para a altura calculada alinhada às camadas. Aceita 0,5–20 mm. É um teto, não um alvo; o resultado pode ser menor.</p>
+<p>Um limite entre fronteiras válidas arredonda para baixo. Se as transições normais forem altas demais, são comprimidas e aparece a altura automática para comparação.</p>
+<p><a href="/localized/pt-PT/diagrams/15_transition_height.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: Empilhamentos automáticos e limitados preservam a fundação opaca enquanto encurtam transições superiores."><img src="/localized/pt-PT/diagrams/15_transition_height.svg" alt="Empilhamentos automáticos e limitados preservam a fundação opaca enquanto encurtam transições superiores." loading="lazy"></a></p>
+<p><em>Esquema. As faixas representam sequências de materiais, não misturas previstas.</em></p>
+<p>A fundação tem de atingir cerca de 95% de opacidade em cada canal RGB modelado. Um limite insuficiente rejeita em vez de tratar suporte translúcido como opaco. Aumente o limite ou use um filamento adequado à fundação com HD menor.</p>
+<p>A compressão pode eliminar cores intermédias úteis. Não é uma escala uniforme da mesma imagem. Em <strong>Pintura plana</strong>, o suporte é geometria adicional e a primeira camada difere do relevo. Verifique dimensões completas em <strong>Modelo</strong> e no laminador; Altura máxima não inclui a espessura do suporte.</p>
+<h2 id="printable-detail">Detalhe imprimível</h2>
+<p>Defina <a href="/pt-PT/docs/3d-mode#effective-line-width"><strong>Largura de linha efetiva</strong> em <strong>Definições de impressão 3D</strong></a> para a extrusão prevista, não diâmetro do bico nem tamanho do píxel. Avisos e limpeza opcional usam essa definição; os controlos continuam aqui.</p>
+<p>Imagine uma <strong>faixa roxa de dois píxeis</strong> sobre azul. A <strong>0,10 mm/píxel</strong>, mede <strong>0,20 mm</strong>. Se a extrusão prevista for <strong>0,40 mm</strong>, é mais estreita. O Kromacut pode assinalar <strong>em risco</strong>, mas mantém a faixa mesmo com limpeza. Uma região fina visível pode fazer parte de uma camada inferior muito mais larga, e trajetórias do laminador podem preservar detalhe assinalado por esta análise só da imagem.</p>
+<p><a href="/localized/pt-PT/diagrams/13_printable_detail.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: A faixa de dois píxeis é mais estreita que a extrusão. Âmbar é aviso, não filamento. A limpeza mantém a faixa e só substitui um pequeno ponto rosa fechado por azul."><img src="/localized/pt-PT/diagrams/13_printable_detail.svg" alt="A faixa de dois píxeis é mais estreita que a extrusão. Âmbar é aviso, não filamento. A limpeza mantém a faixa e só substitui um pequeno ponto rosa fechado por azul." loading="lazy"></a></p>
+<p><em>Estimativa de largura, não trajetória exata. As barras comparam larguras; os quadrados mostram a imagem de exemplo.</em></p>
+<p><strong>Omitir pontos isolados de cor</strong> oferece:</p>
+<ul><li><strong>Desligado:</strong> mantém todos os píxeis de origem, incluindo regiões assinaladas.</li><li><strong>Ligado:</strong> substitui apenas cores usadas exclusivamente em pontos pequenos, compactos e fechados pela cor mais larga circundante antes de corresponder e gerar. A extensão total do ponto deve ser menor que a largura efetiva, com uma só cor circundante inequívoca numa região maior. Se a cor também existir numa linha ou zona grande em qualquer parte, mantém-se em toda a imagem.</li></ul>
+<p>Linhas finas, ligações diagonais, ramos presos a zonas largas, detalhes da margem e pontos junto a transparência ou várias cores mantêm-se. Nunca se cria um buraco nem se edita a imagem 2D original. A limpeza é cautelosa e pode deixar pontos indesejados; use <a href="/pt-PT/docs/dedithering-cleanup">limpeza 2D</a> para alterações amplas.</p>
+<p>Use <strong>Abrir pré-visualização</strong> para examinar:</p>
+<ul><li><strong>Em risco:</strong> âmbar marca regiões finas junto a cores largas; rosa marca finas sem vizinho largo. Outros píxeis escurecem. São avisos, não previsão de impossibilidade.</li><li><strong>Resultado:</strong> píxeis recebidos após limpeza opcional. Não é vista do laminador nem garantia.</li><li><strong>Assinalados / elegíveis / omitidos:</strong> proporção de avisos, píxeis que cumprem regras e número realmente substituído. <strong>Píxeis assinalados mantidos</strong> conta avisos que não mudam a imagem.</li></ul>
+<p>Quando se omitem cores elegíveis, a imagem limpa é usada para contar alvos e planear. Retirar uma cor inteira pode mudar correspondências noutros locais; examine a regeneração. Avisos não nulos com <strong>0 píxeis omitidos</strong> significam que todo o detalhe foi mantido.</p>
+<p>Após mudar a opção, aguarde e volte a <strong>Gerar modelo 3D</strong>. A análise mede regiões ligadas de cores de origem, não camadas físicas, paredes, enchimento nem extrusão variável. Verifique sempre trajetórias. Se aí perder detalhe, aumente XY, engrosse em 2D ou escolha extrusão mais fina suportada.</p>
+<h2 id="enhanced-color-matching">Correspondência de cor melhorada</h2>
+<p>Procura sequências para a paleta 2D atual. Pode omitir filamentos sem cobertura útil. Oito bobinas não exigem oito sequências.</p>
+<p>O otimizador não volta a reduzir secretamente a paleta. Mais cores exigem mais trabalho. Prepare em <a href="/pt-PT/docs/reducing-colors">Redução de cores</a> e avalie a aparência possível em 3D.</p>
+<p>Desligar a melhoria desliga separação e pontilhamento. Novos cálculos cancelam anteriores; progresso é aproximado. Um cálculo falhado não recorre a empilhamento manual sem relação. O modelo antigo pode permanecer até gerar um novo válido.</p>
+<h3 id="total-repeat-limit">Limite total de repetições</h3>
+<p>Escolha <strong>Desligado</strong> ou até <strong>2, 4, 6, 8 ou 12 aparições extra</strong> no empilhamento inteiro. Não é por filamento nem número exato de trocas. Preto → amarelo → preto usa uma aparição extra de preto. Voltar ao material sobre novo substrato cria outro percurso de mistura.</p>
+<p><a href="/localized/pt-PT/diagrams/14_repeats_separation.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: Orçamento partilhado de repetições e atribuições distintas comparados com fusão de cores abandonadas."><img src="/localized/pt-PT/diagrams/14_repeats_separation.svg" alt="Orçamento partilhado de repetições e atribuições distintas comparados com fusão de cores abandonadas." loading="lazy"></a></p>
+<p><em>Sequências e atribuições conceptuais, não previsões de materiais.</em></p>
+<p>Mais repetições permitem pesquisa mais ampla e possíveis trocas adicionais na impressão. O orçamento é um teto. Sequências desnecessárias podem ser omitidas.</p>
+<h3 id="preserve-color-separation">Preservar separação de cores</h3>
+<p>A correspondência normal pode mapear cores diferentes para o mesmo resultado. Ative <strong>Preservar separação de cores</strong> quando as distinções importam, como letras no fundo ou tons de rosto adjacentes.</p>
+<p><strong>Limite de correspondência única (ΔE)</strong> é a diferença máxima estrita para uma cor ter um resultado distinto. Intervalo 1–100; predefinição 6. Menor exige proximidade mais difícil. Maior permite erro, não filamentos fisicamente melhores.</p>
+<p><strong>Exigir correspondência única para todas as cores</strong> está ativo por predefinição. Atribuições incompletas falham. Desligue para <strong>paleta parcial</strong>: cores sem correspondência perdem resultados distintos e fundem-se nos restantes. A imagem fica preenchida mas perde distinções. Se nenhuma cor for elegível, mesmo o modo parcial falha porque nada resta para fundir.</p>
+<p>O otimizador maximiza primeiro cores preservadas e cobertura. Depois prefere menos aparições repetidas, sequências e camadas físicas, antes de menor erro dentro do limite. Explora repetições progressivamente e pode parar quando preserva todas. Uma verificação final remove sequências individuais que não melhoram prioridades.</p>
+<p>Perante falha estrita, considere menos cores, mais altura/repetições, outro filamento, limite ΔE maior ou fusão parcial. Escolha o compromisso pretendido em vez de subir limites só para ocultar o erro.</p>
+<p>Separação e <strong>Pontilhamento de altura</strong> são exclusivos. Ativar um desliga o outro.</p>
+<h2 id="height-dithering">Pontilhamento de altura</h2>
+<p>Pode distribuir erro de arredondamento por blocos pequenos de alturas vizinhas quando a entrada contém alturas entre fronteiras de camada. Estas diferenças podem sugerir tons intermédios à distância. Exige correspondência melhorada e atua no mapa exportado, não na origem 2D.</p>
+<p><a href="/localized/pt-PT/diagrams/16_height_dithering.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: Com alturas fracionárias, compara-se ajuste direto com distribuição do erro por alturas imprimíveis próximas."><img src="/localized/pt-PT/diagrams/16_height_dithering.svg" alt="Com alturas fracionárias, compara-se ajuste direto com distribuição do erro por alturas imprimíveis próximas." loading="lazy"></a></p>
+<p><em>Mecanismo esquemático, não antes/depois garantido. Topos diferentes não significam cores de bobina extra.</em></p>
+<p>Com o dithering ativado, a pintura automática procura uma altura intermédia entre a camada selecionada e uma camada imprimível adjacente quando a mistura melhora a correspondência prevista. As correspondências exatas e as dos alvos calibrados mantêm a altura selecionada; as regiões sem uma mistura vizinha útil permanecem inalteradas. Regenere o modelo depois de alterar a opção e compare a pré-visualização com o resultado no laminador. Desativar o dithering repõe a correspondência discreta habitual.</p>
+<p>O tamanho do ponto segue <strong>Largura de linha efetiva</strong> nas <strong>Definições de impressão 3D</strong> em relação ao <strong>Tamanho do píxel</strong>, arredondado a blocos inteiros. É aproximado, não garantia exata de largura mínima. Regiões de bordo evitam o mesmo tratamento para reduzir artefactos. Verifique ilhas pequenas e deslocações extra.</p>
+<p>Com erro fracionário, a redistribuição pode ajudar tons amplos mas tornar gráficos pequenos ruidosos e geometria pesada. Não acrescenta gama ausente nem valida calibração sem apoio. Muitas pequenas regiões tornam a combinação com Pintura plana especialmente dispendiosa porque partilham cada camada completa.</p>
+<h2 id="optimizer-settings">Definições do otimizador</h2>
+<p><a href="/localized/pt-PT/diagrams/18_optimizer_choices.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: Prioridades uniforme, central e periférica, com detalhe crescente representado por mais alturas possíveis."><img src="/localized/pt-PT/diagrams/18_optimizer_choices.svg" alt="Prioridades uniforme, central e periférica, com detalhe crescente representado por mais alturas possíveis." loading="lazy"></a></p>
+<p><em>Pesos e escolhas esquemáticos, não cores medidas nem contagens exatas. Zonas escuras recebem menos prioridade, não são removidas.</em></p>
+<table><thead><tr><th>Controlo</th><th>Escolhas e efeito</th></tr></thead><tbody><tr><td><strong>Algoritmo</strong></td><td><strong>Rápido:</strong> pesquisa menor e rápida. <strong>Equilibrado:</strong> predefinição geral. <strong>Minucioso:</strong> refinamento mais fundo com vários inícios. <strong>Profundo:</strong> pesquisa ampla e cara. <strong>Ordem base exata:</strong> enumera ordens aplicáveis sem repetição.</td></tr><tr><td><strong>Prioridade regional</strong></td><td><strong>Uniforme:</strong> mesmo peso por píxel. <strong>Centro:</strong> favorece cores centrais. <strong>Margens:</strong> favorece cores exteriores. Altera prioridades, não recorte nem extrusão.</td></tr><tr><td><strong>Detalhe de transição</strong></td><td><strong>Compacto (80%)</strong>, <strong>Detalhado (90%, predefinição)</strong> e <strong>Máximo (95%)</strong> definem opacidades finais. Mais permite transições altas e cores intermédias, sujeitas a convergência antecipada e limite.</td></tr><tr><td><strong>Semente (opcional)</strong></td><td><strong>Automática</strong> deriva uma semente estável das entradas. Introduza inteiro para outra pesquisa determinística; limpe para automática. Não é um controlo de qualidade.</td></tr></tbody></table>
+<p>O detalhe afeta transições superiores, não a fundação opaca. Não aumenta resolução nem estreita extrusão. Cores adicionais podem não ajudar esta imagem.</p>
+<p>Com a mesma semente, níveis heurísticos superiores conservam o melhor inferior. Continua a ser otimização de previsões. A ordem exata verifica 109 600 ordens não vazias com oito filamentos e 986 409 com nove. Repetições usam refinamento separado, não prova exaustiva de todos os empilhamentos repetidos.</p>
+<h2 id="transition-zones-and-confidence">Zonas de transição e confiança</h2>
+<table><thead><tr><th>Leitura</th><th>Interpretação</th></tr></thead><tbody><tr><td><strong>Zonas de transição</strong></td><td>Sequências físicas com início, fim e espessura. Indicadores comprimidos significam menos espessura que a ideal.</td></tr><tr><td><strong>Altura total / camadas físicas</strong></td><td>Dimensões calculadas, não contagem de cores ou bobinas.</td></tr><tr><td><strong>Estado de separação</strong></td><td>Cores preservadas/fundidas, capacidade, pior ΔE preservado e repetições. Alvos fundidos não são correspondências bem-sucedidas acima do limite.</td></tr><tr><td><strong>Modelo de aparência</strong></td><td>Indica se há simulação, ajuste, comparação local ou matriz. Contagem de medições não significa que todos os resultados foram medidos.</td></tr><tr><td><strong>Confiança de previsão: média / mínima</strong></td><td>Força de apoio das cores mapeadas. Média ponderada pode ocultar zona fraca revelada pelo mínimo. Contagens distinguem medição, interpolação, ajuste e simulação.</td></tr><tr><td><strong>Confiança do resultado</strong></td><td>Combina calibração HD, cobertura e compressão. Não é percentagem medida de exatidão nem igual à confiança de previsão.</td></tr><tr><td><strong>Calibração / Cobertura / Compressão</strong></td><td>Qualidade HD, cobertura das cores e impacto do limite. Valores altos não certificam impressão.</td></tr><tr><td><strong>Pontuação de qualidade</strong></td><td>Comparação do otimizador, não medição. Em separação não estrita incompleta passa a <strong>Paleta parcial</strong>.</td></tr><tr><td><strong>Iterações / Acerto de cache</strong></td><td>Trabalho e reutilização. Mais iterações não provam melhor cor.</td></tr><tr><td><strong>Ótimo exato / Melhor encontrado</strong></td><td>Comparação exaustiva sem repetição versus refinamento heurístico/repetido. Nenhum prova exatidão física.</td></tr><tr><td><strong>Nenhuma sequência removível</strong></td><td>Eliminar uma só sequência não preserva prioridades. Outra reorganização múltipla pode ser melhor.</td></tr></tbody></table>
+<p>A evidência enfraquece longe de medições, quando vizinhas discordam ou previsões de validação falham. A correspondência normal pode incluir custo limitado de incerteza. Separação usa ΔE bruto para elegibilidade; incerteza não torna válida uma cor fora do limite.</p>
+<p>Depois de mudar processo ou altura, examine o resumo. Alta calibração geral não significa que cada nova receita tenha apoio. Consulte <a href="/pt-PT/docs/calibration-workflows">Fluxos de calibração</a>.</p>
+<h2 id="suggest-next-filament">Sugerir o próximo filamento</h2>
+<p><strong>Sugerir o próximo filamento</strong> aparece após existir resultado. Procura uma cor hipotética que melhore cobertura, não um produto anunciado nem bobina carregada.</p>
+<table><thead><tr><th>Campo ou ação</th><th>Significado</th></tr></thead><tbody><tr><td><strong>Amostra hexadecimal</strong></td><td>Cor opaca sugerida.</td></tr><tr><td><strong>ΔE estimado +…%</strong></td><td>Redução estimada de erro médio considerando misturas se adicionada. Mais é melhor; não é confiança.</td></tr><tr><td><strong>HD</strong></td><td>Estimativa emprestada do filamento existente mais próximo em cor percetual. Não medida para um produto.</td></tr><tr><td><strong>Abrange</strong></td><td>Percentagem de píxeis com erro estimado melhorado.</td></tr><tr><td><strong>Isolamento</strong></td><td>Distinção dos atuais entre 0 e 1. Maior indica lacuna mais separada.</td></tr><tr><td><strong>Adicionar aos filamentos</strong></td><td>Adiciona linha <code>Kromacut-Suggestion-…</code> e recalcula.</td></tr></tbody></table>
+<p>Encontre uma bobina real se útil e introduza cor/calibração reais. Não imprima assumindo que a linha hipotética existe. Sugestões reiniciam quando mudam cores ou filamentos. Sem candidato significa que o conjunto já cobre bem segundo este teste aproximado.</p>
+<p>Seguinte: <a href="/pt-PT/docs/flat-paint">Pintura plana</a>, <a href="/pt-PT/docs/calibration-workflows">Fluxos de calibração</a> ou <a href="/pt-PT/docs/generating-exporting-output">Geração e exportação</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

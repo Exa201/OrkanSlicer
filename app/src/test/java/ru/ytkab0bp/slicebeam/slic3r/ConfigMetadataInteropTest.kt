@@ -102,6 +102,7 @@ class ConfigMetadataInteropTest {
         val skipDefaults = PrintConfigDef::class.java.getField("SKIP_DEFAULT_OPTIONS")
         assertTrue(Modifier.isStatic(skipDefaults.modifiers))
         assertTrue(PrintConfigDef.SKIP_DEFAULT_OPTIONS.contains("tower_speed"))
+        assertTrue("Missing current bed type must preserve the native PEI fallback", PrintConfigDef.SKIP_DEFAULT_OPTIONS.contains("curr_bed_type"))
 
         val singleton = PrintConfigDef::class.java.getDeclaredField("instance")
         assertTrue(Modifier.isStatic(singleton.modifiers))

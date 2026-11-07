@@ -75,8 +75,6 @@ template<class M> void AABBMesh::init(const M &mesh, bool calculate_epsilon)
 AABBMesh::AABBMesh(const indexed_triangle_set &tmesh, bool calculate_epsilon)
     : m_tm(&tmesh)
     , m_aabb(new AABBImpl())
-    , m_vfidx{tmesh}
-    , m_fnidx{its_face_neighbors(tmesh)}
 {
     init(tmesh, calculate_epsilon);
 }
@@ -84,8 +82,6 @@ AABBMesh::AABBMesh(const indexed_triangle_set &tmesh, bool calculate_epsilon)
 AABBMesh::AABBMesh(const TriangleMesh &mesh, bool calculate_epsilon)
     : m_tm(&mesh.its)
     , m_aabb(new AABBImpl())
-    , m_vfidx{mesh.its}
-    , m_fnidx{its_face_neighbors(mesh.its)}
 {
     init(mesh, calculate_epsilon);
 }
@@ -95,16 +91,12 @@ AABBMesh::~AABBMesh() {}
 AABBMesh::AABBMesh(const AABBMesh &other)
     : m_tm(other.m_tm)
     , m_aabb(new AABBImpl(*other.m_aabb))
-    , m_vfidx{other.m_vfidx}
-    , m_fnidx{other.m_fnidx}
 {}
 
 AABBMesh &AABBMesh::operator=(const AABBMesh &other)
 {
     m_tm = other.m_tm;
     m_aabb.reset(new AABBImpl(*other.m_aabb));
-    m_vfidx = other.m_vfidx;
-    m_fnidx = other.m_fnidx;
 
     return *this;
 }

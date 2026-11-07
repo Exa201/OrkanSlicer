@@ -80,6 +80,7 @@ abstract class ProfileListFragment : Fragment() {
     private var dropdownMenu by mutableStateOf(ProfileDropdownMenuPolicy.create(emptyList(), -1))
     private var dropdownMenuTitle by mutableIntStateOf(R.string.SlotPrinterConfigTooltip)
     private var dropdownExpanded by mutableStateOf(false)
+    private var activeOptionHelpDialog by mutableStateOf<ProfileOptionHelpDialogState?>(null)
     private var dropdownItemsSnapshot: List<ProfileListItem> = emptyList()
     private var renderedProfileTitle: String? = null
     private var renderedConfigUid: Int = -1
@@ -91,6 +92,10 @@ abstract class ProfileListFragment : Fragment() {
     @Composable
     protected open fun BelowFilamentPaletteContent(modifier: Modifier = Modifier) = Unit
 
+    /** Optional route summary/actions shown at a stable position above profile settings. */
+    @Composable
+    protected open fun ProfileHeaderContent(modifier: Modifier = Modifier) = Unit
+
     /** Profile config screens override this to render categories as horizontal tabbed pages. */
     protected open fun useTabs(): Boolean = false
 
@@ -99,6 +104,9 @@ abstract class ProfileListFragment : Fragment() {
 
     /** The print screen overrides this to show its multi-color filament palette bar. */
     protected open fun showFilamentPalette(): Boolean = false
+
+    /** Quick controls can remain visible when their related palette is available elsewhere. */
+    protected open fun showBelowFilamentPaletteContent(): Boolean = showFilamentPalette()
 
     override fun onCreateView(ctx: Context): View {
         refreshProfileDropdownTitle()
@@ -288,20 +296,27 @@ abstract class ProfileListFragment : Fragment() {
                         if (profileSettingsViewModel != null) {
                             ComposeProfileSettingsStatus(profileSettingsViewModel!!)
                         }
+                        ProfileHeaderContent(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                        )
                         if (showFilamentPalette() && !isPortrait) {
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 filamentPaletteController?.Content(
                                     modifier = Modifier.weight(1f).heightIn(min = 64.dp).padding(bottom = 2.dp),
                                 )
-                                BelowFilamentPaletteContent(
-                                    modifier = Modifier.width(290.dp).padding(end = 12.dp, bottom = 4.dp),
-                                )
+                                if (showBelowFilamentPaletteContent()) {
+                                    BelowFilamentPaletteContent(
+                                        modifier = Modifier.width(290.dp).padding(end = 12.dp, bottom = 4.dp),
+                                    )
+                                }
                             }
                         } else {
-                            filamentPaletteController?.Content(
-                                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(bottom = 2.dp),
-                            )
                             if (showFilamentPalette()) {
+                                filamentPaletteController?.Content(
+                                    modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(bottom = 2.dp),
+                                )
+                            }
+                            if (showBelowFilamentPaletteContent()) {
                                 BelowFilamentPaletteContent(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 3.dp),
                                 )
@@ -322,6 +337,9 @@ abstract class ProfileListFragment : Fragment() {
                             }
                         }
                         profileFooter?.Content(isPortrait)
+                        activeOptionHelpDialog?.let { dialog ->
+                            ProfileOptionHelpDialog(dialog) { activeOptionHelpDialog = null }
+                        }
                     }
                 }
             }
@@ -335,6 +353,7 @@ abstract class ProfileListFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
+        activeOptionHelpDialog = null
         SliceBeam.EVENT_BUS.unregisterListener(this)
         unfolded.clear()
     }
@@ -606,9 +625,12 @@ abstract class ProfileListFragment : Fragment() {
                 if (position >= 0) recyclerView?.refreshItem(position)
             },
             Runnable {
-                val context = getContext()
                 val controller = profileFilterController
-                if (context != null && controller != null) controller.showOptionHelp(context, definition)
+                if (controller != null) {
+                    controller.showOptionHelp(definition) { dialog ->
+                        activeOptionHelpDialog = dialog
+                    }
+                }
             },
         )
     }

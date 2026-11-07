@@ -14,7 +14,9 @@ open class AppBoot {
     companion object {
         private const val TAG = "boot"
 
-        private var executor: ExecutorService? = Executors.newCachedThreadPool()
+        // Startup work is dependency-aware but finite; two workers avoid a thread per task
+        // and leave CPU and memory headroom on entry-level phones.
+        private var executor: ExecutorService? = Executors.newFixedThreadPool(2)
         private var tasks: List<BootTask>? = null
         private var pendingMain: MutableList<Runnable>? = ArrayList()
         private var pendingTasks: MutableList<BootTask>? = ArrayList()

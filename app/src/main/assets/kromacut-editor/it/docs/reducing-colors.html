@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="it">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Comprendi la riduzione in due fasi, le tavolozze fisse e la differenza tra ricolorazione e trasparenza." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/it/docs/reducing-colors">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Riduzione dei colori | Documentazione Kromacut" />
+        <meta property="og:description" content="Comprendi la riduzione in due fasi, le tavolozze fisse e la differenza tra ricolorazione e trasparenza." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/it/docs/reducing-colors" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="it_IT" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Riduzione dei colori | Documentazione Kromacut" />
+        <meta name="twitter:description" content="Comprendi la riduzione in due fasi, le tavolozze fisse e la differenza tra ricolorazione e trasparenza." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Riduzione dei colori | Documentazione Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/reducing-colors">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/reducing-colors">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/reducing-colors">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/reducing-colors">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/reducing-colors">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/reducing-colors">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/reducing-colors">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/reducing-colors">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/reducing-colors">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/reducing-colors">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/reducing-colors">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/reducing-colors">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/reducing-colors">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentazione">
+                    <a href="/it/">Vai alla pagina iniziale</a>
+                    <a href="/app">Apri Kromacut</a>
+                    <ul><li><a href="/it/docs/overview">Panoramica</a></li><li><a href="/it/docs/quick-start">Guida rapida</a></li><li><a href="/it/docs/loading-images">Caricamento delle immagini</a></li><li><a href="/it/docs/image-adjustments">Regolazioni dell’immagine</a></li><li><a href="/it/docs/reducing-colors">Riduzione dei colori</a></li><li><a href="/it/docs/dedithering-cleanup">Rimozione dithering e pulizia</a></li><li><a href="/it/docs/3d-mode">Modalità 3D</a></li><li><a href="/it/docs/auto-paint">Controlli Auto-paint</a></li><li><a href="/it/docs/calibration-theory">Teoria della calibrazione</a></li><li><a href="/it/docs/flat-paint">Flat Paint</a></li><li><a href="/it/docs/calibration-workflows">Flussi di calibrazione</a></li><li><a href="/it/docs/generating-exporting-output">Generazione ed esportazione</a></li><li><a href="/it/docs/settings-and-controls">Impostazioni e controlli</a></li><li><a href="/it/docs/troubleshooting">Risoluzione dei problemi</a></li><li><a href="/it/docs/faq">Domande frequenti</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="reducing-colors">Riduzione dei colori</h1>
+<p>La quantizzazione sostituisce molti colori sorgente con un insieme minore, semplificando le regioni usate dai flussi 3D Manuale e Auto-paint. Una tavolozza 2D contiene colori obiettivo, non un profilo filamenti né previsioni misurate di stampa.</p>
+<p>Ritaglia e ridimensiona prima. Se hai cambiato le <a href="/it/docs/image-adjustments">regolazioni dell’immagine</a>, fai Applica nel pannello prima di quantizzare.</p>
+<h2 id="the-two-stage-pipeline">Il processo in due fasi</h2>
+<p><a href="/localized/it/diagrams/34_quantization_pipeline.svg" target="_blank" rel="noopener noreferrer" aria-label="Apri illustrazione a dimensione intera: Peso algoritmo limita la tavolozza intermedia; Numero di colori o una tavolozza fissa controlla la seconda fase."><img src="/localized/it/diagrams/34_quantization_pipeline.svg" alt="Peso algoritmo limita la tavolozza intermedia; Numero di colori o una tavolozza fissa controlla la seconda fase." loading="lazy"></a></p>
+<p><strong>Peso algoritmo</strong> e <strong>Numero di colori</strong> hanno ruoli diversi. K-means con peso 128 raggruppa prima in un massimo di 128 colori. Automatico con numero 16 fonde poi fino a 16. Peso non è percentuale, opacità né numero di filamenti.</p>
+<table><thead><tr><th>Campo o azione</th><th>Significato</th></tr></thead><tbody><tr><td>Tavolozza: Automatico</td><td>Trova colori dipendenti dall’immagine, poi ne limita il numero.</td></tr><tr><td>Tavolozza: integrata, fornitore o personalizzata</td><td>Mappa l’intermedio sui colori abilitati. Non tutti quelli disponibili devono apparire.</td></tr><tr><td>Numero di colori</td><td>Limite finale Automatico: 2–256, predefinito 16. Disattivato per tavolozza fissa.</td></tr><tr><td>Peso algoritmo</td><td>Budget intermedio: 2–256, predefinito 128. Più alto conserva in genere più dettaglio intermedio, non necessariamente migliore corrispondenza finale.</td></tr><tr><td>Algoritmo</td><td>Metodo della prima fase. Predefinito: K-means.</td></tr><tr><td>Applica</td><td>Elabora l’immagine sottostante e crea un passo Annulla. Cambiare un’impostazione da solo non ricolora.</td></tr><tr><td>Freccia di ripristino</td><td>Ripristina Automatico, 16 colori, peso 128 e K-means. Non recupera un’immagine precedente.</td></tr></tbody></table>
+<p>Il risultato può avere meno colori del richiesto. Aumentare il numero dopo la riduzione non recupera quelli scartati: <strong>Annulla</strong> prima di confrontare alternative dalla stessa sorgente.</p>
+<p>La quantizzazione preserva trasparenza completa ma rende <strong>completamente opachi tutti i pixel parzialmente trasparenti</strong>. Un bordo alfa morbido non è un bordo stampato parzialmente.</p>
+<h2 id="choose-an-algorithm">Scegliere un algoritmo</h2>
+<p>Questi metodi raggruppano colori. Nessuno aggiunge dithering spaziale né garantisce che un dettaglio sopravviva alla larghezza dell’ugello.</p>
+<table><thead><tr><th>Algoritmo</th><th>Cosa cambia</th><th>Confronto utile</th></tr></thead><tbody><tr><td>Nessuno (solo post-elaborazione)</td><td>Salta il quantizzatore iniziale; Peso disattivato. Riduzione finale o mappatura fissa avvengono comunque.</td><td>Mappare direttamente grafica pulita su tavolozza nota. Non è un’opzione universale per lasciare tutto invariato.</td></tr><tr><td>Posterizza</td><td>Divide i canali RGB in livelli discreti, poi applica Peso.</td><td>Grafica volutamente a gradini; i livelli disponibili cambiano per salti.</td></tr><tr><td>Median-cut</td><td>Divide la distribuzione in gruppi rappresentati da medie.</td><td>Confrontare quando un altro metodo perde un gruppo tonale importante.</td></tr><tr><td>K-means</td><td>Trova gruppi pesati per numero di pixel con inizializzazione casuale.</td><td>Partenza per foto e grafica mista. Esecuzioni uguali possono differire leggermente.</td></tr><tr><td>Wu</td><td>Usa statistiche cromatiche per divisioni con minore variazione interna.</td><td>Confrontare su gradienti e fotografie.</td></tr><tr><td>Octree</td><td>Raggruppa tramite suddivisioni RGB e unisce per rispettare il budget.</td><td>Confrontare su grafica con molte regioni distinte.</td></tr></tbody></table>
+<p>Non esiste un algoritmo universalmente migliore. Controlla soggetto, scritte piccole e accenti importanti alla dimensione fisica prevista.</p>
+<h2 id="fixed-and-supplier-palettes">Tavolozze fisse e dei fornitori</h2>
+<p>Una tavolozza fissa offre solo i colori scelti. Dopo l’eventuale prima riduzione, ogni pixel non trasparente va al colore disponibile più vicino in Lab. È corrispondenza d’immagine, non simulazione ottica dei filamenti.</p>
+<p>Le <strong>Tavolozze dei fornitori</strong> sono riferimenti non ufficiali di nomi e colori esadecimali dichiarati. Non garantiscono disponibilità attuale né colore stampato. Per esempio Bambu usa la <a href="https://store.bblcdn.com/s7/default/1084369ef84345bbaa5d704a492954e0/Bambu_PLA_Basic_Hex_Code.pdf" target="_blank" rel="noopener noreferrer">tabella esadecimale dei filamenti Bambu Lab</a>. Kromacut non è affiliato né approvato dai produttori.</p>
+<p>Le tavolozze integrate e dei fornitori sono di sola lettura. Clonale per personalizzare. Usa separatamente la <a href="/it/docs/calibration-theory">calibrazione dei filamenti</a> per il comportamento reale di bobine e strati.</p>
+<h2 id="custom-palettes">Tavolozze personalizzate</h2>
+<table><thead><tr><th>Controllo</th><th>Cosa fare</th></tr></thead><tbody><tr><td>Crea tavolozza</td><td>Assegna nome e almeno un colore valido abilitato. Viene selezionata.</td></tr><tr><td>Modifica tavolozza selezionata</td><td>Cambia la tavolozza, non i pixel correnti. Applica poi quantizzazione.</td></tr><tr><td>Aggiungi colore</td><td>Aggiunge selettore, esadecimale e nome facoltativo. Validi <code>#RGB</code> o <code>#RRGGBB</code>; righe non valide escluse al salvataggio.</td></tr><tr><td>Nome facoltativo</td><td>Etichetta il colore, per esempio con la bobina. Non cambia la corrispondenza.</td></tr><tr><td>Occhio</td><td>Disabilita senza cancellare. Deve rimanere almeno un colore valido attivo.</td></tr><tr><td>Rimuovi riga</td><td>Cancella la riga; non puoi rimuovere l’ultima.</td></tr><tr><td>Clona</td><td>Copia una tavolozza diversa da Automatico in una modificabile, preservando nomi e disabilitazioni.</td></tr><tr><td>Importa</td><td>Legge <code>.kpal</code> e segnala importati, sovrascritti, duplicati o rinominati. Seleziona la prima importata quando applicabile.</td></tr><tr><td>Esporta</td><td>Salva la personalizzata in <code>.kpal</code>, con nomi e disabilitati. Clona prima le integrate per una copia modificabile.</td></tr><tr><td>Elimina tavolozza selezionata</td><td>Rimuove il salvataggio e torna a Automatico. Non cancella pixel.</td></tr><tr><td>Salva / Annulla</td><td>Conferma o scarta la bozza.</td></tr></tbody></table>
+<p><strong>Le mie bobine (5/8)</strong> significa cinque colori abilitati su otto. Partecipano solo gli abilitati. Tavolozze e selezione si salvano localmente: esporta copie prima di cancellare dati. Sono separate dai <a href="/it/docs/settings-and-controls#filament-profile-files">profili filamenti</a>.</p>
+<h2 id="image-colors">Colori dell’immagine</h2>
+<p>Descrive la sorgente, non regolazioni live non incorporate. Il contatore esclude trasparenza completa. Le descrizioni mostrano esadecimale, alfa e pixel. Alfa diversi possono creare voci separate con stesso RGB. Immagini molto colorate hanno una lista limitata, non ogni colore fotografico.</p>
+<p>Fai clic su un campione per <strong>Modifica colore</strong>. Usa RGBA o esadecimale, poi Applica. Sei cifre cambiano RGB mantenendo l’alfa corrente; otto includono alfa esplicito. Usa il controllo trasparenza o un suffisso alfa quando l’opacità conta.</p>
+<p><a href="/localized/it/diagrams/35_swatch_operations.svg" target="_blank" rel="noopener noreferrer" aria-label="Apri illustrazione a dimensione intera: Sostituzione opaca ricolora ogni corrispondenza esatta, alfa zero rimuove pixel ed Elimina rimappa anziché tagliare fori."><img src="/localized/it/diagrams/35_swatch_operations.svg" alt="Sostituzione opaca ricolora ogni corrispondenza esatta, alfa zero rimuove pixel ed Elimina rimappa anziché tagliare fori." loading="lazy"></a></p>
+<table><thead><tr><th>Azione</th><th>Cosa cambia</th></tr></thead><tbody><tr><td>Applica colore opaco</td><td>Sostituisce tutte le corrispondenze RGB/alfa esatte, incluse regioni scollegate.</td></tr><tr><td>Applica alfa trasparente</td><td>Rimuove corrispondenze dall’immagine e sagoma. Scompaiono anche pixel uguali nel soggetto.</td></tr><tr><td>Applica al campione trasparente</td><td>Sostituisce tutti i pixel trasparenti, potendo creare sfondo o riempire fori.</td></tr><tr><td>Elimina</td><td>Riquantizza con tavolozza restante. <strong>Non</strong> cancella pixel. L’algoritmo iniziale continua, quindi altri colori possono cambiare.</td></tr><tr><td>Chiudi / Esc</td><td>Scarta la modifica non confermata.</td></tr></tbody></table>
+<p>Scegli <strong>Nessuno (solo post-elaborazione)</strong> prima di Elimina per mappatura diretta. Usa <a href="/it/docs/loading-images#touch-up-pixels">Riempimento o Gomma</a> per modifiche locali. Annulla se cambia più del previsto.</p>
+<p>Le istruzioni manuali sono disattivate oltre 64 colori non trasparenti. Una tavolozza minore semplifica anche sotto tale limite, ma meno obiettivi non significa automaticamente meno cambi Auto-paint.</p>
+<p>Successivo: <a href="/it/docs/dedithering-cleanup">Rimozione dithering e pulizia</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

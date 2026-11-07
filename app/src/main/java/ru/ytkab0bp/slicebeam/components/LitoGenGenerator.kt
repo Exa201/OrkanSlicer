@@ -11,7 +11,6 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.IOUtils
 import ru.ytkab0bp.slicebeam.utils.LithophaneStlWriter
-import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import java.io.File
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -52,18 +51,13 @@ object LitoGenGenerator {
     }
 
     private fun showOptions(activity: Activity, images: List<Uri>, bed: BedFragment) {
-        LitoGenOptionsDialog.show(activity, images) { options, saveAfter ->
+        LitoGenOptionsDialog.show(activity, images, bed) { options, saveAfter ->
             val validation = LitoGenFormLogic.validate(options)
             if (validation != null) {
-                BeamAlertDialogBuilder(activity)
-                    .setTitle(R.string.LitoGenTitle)
-                    .setMessage(validationMessage(activity, validation))
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show()
-                false
+                validationMessage(activity, validation)
             } else {
                 generate(activity, images, bed, options, saveAfter)
-                true
+                null
             }
         }
     }
@@ -76,7 +70,7 @@ object LitoGenGenerator {
         saveAfter: Boolean,
     ) {
         val detail = intArrayOf(64, 96, 128, 192)[options.detailIndex]
-        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
         IOUtils.IO_POOL.execute {
             val output = File(activity.cacheDir, "litogen-photo-cube-${System.currentTimeMillis()}.stl")
             progress.setOutputFile(output)
@@ -164,13 +158,7 @@ object LitoGenGenerator {
             } catch (error: Exception) {
                 progress.fail()
                 if (output.exists()) output.delete()
-                ViewUtils.postOnMainThread {
-                    BeamAlertDialogBuilder(activity)
-                        .setTitle(R.string.ConverterFailed)
-                        .setMessage(error.message ?: error.toString())
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show()
-                }
+                showGeneratorFailure(activity, bed, error.message ?: error.toString())
             }
         }
     }

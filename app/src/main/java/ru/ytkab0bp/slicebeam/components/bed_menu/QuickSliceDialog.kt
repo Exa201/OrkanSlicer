@@ -1,6 +1,5 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
-import android.view.ViewGroup
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,29 +10,31 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import java.math.BigDecimal
 
 /** Quick slicing with larger, scrollable fields and validated profile values. */
@@ -53,101 +54,146 @@ object QuickSliceDialog {
         val qualityOptions = context.resources.getStringArray(R.array.QuickSliceQualities).toList()
         val currentPrint = SliceBeam.buildCurrentConfigObject()
         val originalLayerHeight = currentPrint?.get("layer_height") ?: "0.20"
-        val selectedPrinter = mutableIntStateOf(printerNames.indexOf(presets["printer"]).coerceAtLeast(0))
-        val selectedFilament = mutableIntStateOf(filamentNames.indexOf(presets["filament"]).coerceAtLeast(0))
-        val selectedQuality = mutableIntStateOf(1.coerceAtMost((qualityOptions.size - 1).coerceAtLeast(0)))
-        val layerHeight = mutableStateOf(originalLayerHeight)
-        val infill = mutableStateOf(currentPrint?.get("fill_density")?.replace("%", "") ?: "15")
-        val supports = mutableStateOf(currentPrint?.get("support_material") == "1")
-        val brim = mutableStateOf((currentPrint?.get("brim_width")?.toDoubleOrNull() ?: 0.0) > 0.0)
-        val invalidLayerHeight = mutableStateOf(false)
-        val invalidInfill = mutableStateOf(false)
-
-        val composeView = ComposeView(context).apply {
-            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            setContent {
-                BeamComposeTheme {
-                    QuickSliceContent(
-                        printerNames = printerNames,
-                        filamentNames = filamentNames,
-                        projectFilamentSummary = projectFilamentSummary,
-                        qualityOptions = qualityOptions,
-                        selectedPrinter = selectedPrinter.intValue,
-                        selectedFilament = selectedFilament.intValue,
-                        selectedQuality = selectedQuality.intValue,
-                        onPrinterSelected = { selectedPrinter.intValue = it },
-                        onFilamentSelected = { selectedFilament.intValue = it },
-                        onQualitySelected = { selectedQuality.intValue = it },
-                        layerHeight = layerHeight.value,
-                        onLayerHeightChanged = { layerHeight.value = it; invalidLayerHeight.value = false },
-                        infill = infill.value,
-                        onInfillChanged = { infill.value = it; invalidInfill.value = false },
-                        supports = supports.value,
-                        onSupportsChanged = { supports.value = it },
-                        brim = brim.value,
-                        onBrimChanged = { brim.value = it },
-                        invalidLayerHeight = invalidLayerHeight.value,
-                        invalidInfill = invalidInfill.value,
-                    )
-                }
-            }
-        }
-        val dialog = BeamAlertDialogBuilder(context)
-            .setTitle(R.string.QuickSliceTitle)
-            .setView(composeView)
-            .setPositiveButton(R.string.QuickSliceStart, null)
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
-
-        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val values = QuickSliceProfileValues.resolve(
-                qualityIndex = selectedQuality.intValue,
-                originalLayerHeight = originalLayerHeight,
-                enteredLayerHeight = layerHeight.value,
-                enteredInfill = infill.value,
-                supports = supports.value,
-                brim = brim.value,
-            )
-            invalidLayerHeight.value = values.invalidLayerHeight
-            invalidInfill.value = values.invalidInfill
-            if (values.settings == null) return@setOnClickListener
-
-            val selectedPrinterName = printerNames.getOrNull(selectedPrinter.intValue)
-            val selectedFilamentName = filamentNames.getOrNull(selectedFilament.intValue)
-            val temporary = TemporaryProjectSettings.active
-            val printer = selectedPrinterName.takeIf { !temporary || it != presets["printer"] }
-            val filament = selectedFilamentName.takeIf { !temporary || it != presets["filament"] }
-            if ((printer != null || filament != null) && !SliceBeam.applyProfileSelection(printer, filament)) {
-                Toast.makeText(context, R.string.ConfigSaveFailed, Toast.LENGTH_LONG).show()
-                return@setOnClickListener
-            }
-            when (QuickSliceProfileTransaction.apply(
-                config,
-                QuickSliceProfileTransaction.Values(
-                    layerHeight = values.settings.layerHeight,
-                    infillPercent = values.settings.infillPercent,
-                    supports = values.settings.supports,
-                    brim = values.settings.brim,
-                ),
-                SliceBeam::saveConfig,
-            )) {
-                QuickSliceProfileTransaction.Result.SAVED -> Unit
-                QuickSliceProfileTransaction.Result.PRINT_PROFILE_MISSING -> {
-                    Toast.makeText(context, R.string.QuickSliceProfileMissing, Toast.LENGTH_LONG).show()
-                    return@setOnClickListener
-                }
-                QuickSliceProfileTransaction.Result.SAVE_FAILED -> {
+        val options = QuickSliceDialogOptions(
+            printerNames = printerNames,
+            filamentNames = filamentNames,
+            projectFilamentSummary = projectFilamentSummary,
+            qualityOptions = qualityOptions,
+            selectedPrinter = printerNames.indexOf(presets["printer"]).coerceAtLeast(0),
+            selectedFilament = filamentNames.indexOf(presets["filament"]).coerceAtLeast(0),
+            selectedQuality = 1.coerceAtMost((qualityOptions.size - 1).coerceAtLeast(0)),
+            originalLayerHeight = originalLayerHeight,
+            layerHeight = originalLayerHeight,
+            infill = currentPrint?.get("fill_density")?.replace("%", "") ?: "15",
+            supports = currentPrint?.get("support_material") == "1",
+            brim = (currentPrint?.get("brim_width")?.toDoubleOrNull() ?: 0.0) > 0.0,
+        )
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            QuickSliceDialogContent(
+                options = options,
+                onDismiss = dismiss,
+                onStart = onStart@{ selectedPrinter, selectedFilament, settings ->
+                    val selectedPrinterName = printerNames.getOrNull(selectedPrinter)
+                    val selectedFilamentName = filamentNames.getOrNull(selectedFilament)
+                    val temporary = TemporaryProjectSettings.active
+                    val printer = selectedPrinterName.takeIf { !temporary || it != presets["printer"] }
+                    val filament = selectedFilamentName.takeIf { !temporary || it != presets["filament"] }
+                    if ((printer != null || filament != null) && !SliceBeam.applyProfileSelection(printer, filament)) {
+                        Toast.makeText(context, R.string.ConfigSaveFailed, Toast.LENGTH_LONG).show()
+                        return@onStart
+                    }
+                    when (QuickSliceProfileTransaction.apply(
+                        config,
+                        QuickSliceProfileTransaction.Values(
+                            layerHeight = settings.layerHeight,
+                            infillPercent = settings.infillPercent,
+                            supports = settings.supports,
+                            brim = settings.brim,
+                        ),
+                        SliceBeam::saveConfig,
+                    )) {
+                        QuickSliceProfileTransaction.Result.SAVED -> Unit
+                        QuickSliceProfileTransaction.Result.PRINT_PROFILE_MISSING -> {
+                            Toast.makeText(context, R.string.QuickSliceProfileMissing, Toast.LENGTH_LONG).show()
+                            return@onStart
+                        }
+                        QuickSliceProfileTransaction.Result.SAVE_FAILED -> {
+                            fragment.refreshProfileStatus()
+                            Toast.makeText(context, R.string.ConfigSaveFailed, Toast.LENGTH_LONG).show()
+                            return@onStart
+                        }
+                    }
                     fragment.refreshProfileStatus()
-                    Toast.makeText(context, R.string.ConfigSaveFailed, Toast.LENGTH_LONG).show()
-                    return@setOnClickListener
+                    dismiss()
+                    fragment.startSlicing()
                 }
-            }
-            fragment.refreshProfileStatus()
-            dialog.dismiss()
-            fragment.startSlicing()
+            )
         }
     }
+}
+
+internal data class QuickSliceDialogOptions(
+    val printerNames: List<String>,
+    val filamentNames: List<String>,
+    val projectFilamentSummary: String?,
+    val qualityOptions: List<String>,
+    val selectedPrinter: Int,
+    val selectedFilament: Int,
+    val selectedQuality: Int,
+    val originalLayerHeight: String,
+    val layerHeight: String,
+    val infill: String,
+    val supports: Boolean,
+    val brim: Boolean,
+)
+
+@Composable
+internal fun QuickSliceDialogContent(
+    options: QuickSliceDialogOptions,
+    onDismiss: () -> Unit,
+    onStart: (selectedPrinter: Int, selectedFilament: Int, settings: QuickSliceProfileSettings) -> Unit,
+) {
+    var selectedPrinter by remember(options) { mutableIntStateOf(options.selectedPrinter) }
+    var selectedFilament by remember(options) { mutableIntStateOf(options.selectedFilament) }
+    var selectedQuality by remember(options) { mutableIntStateOf(options.selectedQuality) }
+    var layerHeight by remember(options) { mutableStateOf(options.layerHeight) }
+    var infill by remember(options) { mutableStateOf(options.infill) }
+    var supports by remember(options) { mutableStateOf(options.supports) }
+    var brim by remember(options) { mutableStateOf(options.brim) }
+    var invalidLayerHeight by remember(options) { mutableStateOf(false) }
+    var invalidInfill by remember(options) { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.QuickSliceTitle)) },
+        text = {
+            QuickSliceContent(
+                printerNames = options.printerNames,
+                filamentNames = options.filamentNames,
+                projectFilamentSummary = options.projectFilamentSummary,
+                qualityOptions = options.qualityOptions,
+                selectedPrinter = selectedPrinter,
+                selectedFilament = selectedFilament,
+                selectedQuality = selectedQuality,
+                onPrinterSelected = { selectedPrinter = it },
+                onFilamentSelected = { selectedFilament = it },
+                onQualitySelected = { selectedQuality = it },
+                layerHeight = layerHeight,
+                onLayerHeightChanged = { layerHeight = it; invalidLayerHeight = false },
+                infill = infill,
+                onInfillChanged = { infill = it; invalidInfill = false },
+                supports = supports,
+                onSupportsChanged = { supports = it },
+                brim = brim,
+                onBrimChanged = { brim = it },
+                invalidLayerHeight = invalidLayerHeight,
+                invalidInfill = invalidInfill,
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val result = QuickSliceProfileValues.resolve(
+                        qualityIndex = selectedQuality,
+                        originalLayerHeight = options.originalLayerHeight,
+                        enteredLayerHeight = layerHeight,
+                        enteredInfill = infill,
+                        supports = supports,
+                        brim = brim,
+                    )
+                    invalidLayerHeight = result.invalidLayerHeight
+                    invalidInfill = result.invalidInfill
+                    result.settings?.let { onStart(selectedPrinter, selectedFilament, it) }
+                },
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text(stringResource(R.string.QuickSliceStart)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        },
+    )
 }
 
 @Composable
@@ -196,7 +242,7 @@ private fun QuickSliceContent(
         OutlinedTextField(
             value = layerHeight,
             onValueChange = onLayerHeightChanged,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag("quick-slice-layer-height"),
             label = { Text(stringResource(R.string.QuickSliceLayerHeight)) },
             supportingText = if (invalidLayerHeight) ({ Text(stringResource(R.string.QuickSliceInvalidLayerHeight)) }) else null,
             isError = invalidLayerHeight,
@@ -206,7 +252,7 @@ private fun QuickSliceContent(
         OutlinedTextField(
             value = infill,
             onValueChange = onInfillChanged,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag("quick-slice-infill"),
             label = { Text(stringResource(R.string.QuickSliceInfill)) },
             supportingText = if (invalidInfill) ({ Text(stringResource(R.string.QuickSliceInvalidInfill)) }) else null,
             isError = invalidInfill,

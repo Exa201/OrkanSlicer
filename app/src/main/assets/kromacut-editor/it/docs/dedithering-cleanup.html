@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="it">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Pulizia dei vicini per colore esatto e relativi effetti su puntini, bordi, trasparenza e isole stampabili." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/it/docs/dedithering-cleanup">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Rimozione dithering e pulizia | Documentazione Kromacut" />
+        <meta property="og:description" content="Pulizia dei vicini per colore esatto e relativi effetti su puntini, bordi, trasparenza e isole stampabili." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/it/docs/dedithering-cleanup" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="it_IT" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Rimozione dithering e pulizia | Documentazione Kromacut" />
+        <meta name="twitter:description" content="Pulizia dei vicini per colore esatto e relativi effetti su puntini, bordi, trasparenza e isole stampabili." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Rimozione dithering e pulizia | Documentazione Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/dedithering-cleanup">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentazione">
+                    <a href="/it/">Vai alla pagina iniziale</a>
+                    <a href="/app">Apri Kromacut</a>
+                    <ul><li><a href="/it/docs/overview">Panoramica</a></li><li><a href="/it/docs/quick-start">Guida rapida</a></li><li><a href="/it/docs/loading-images">Caricamento delle immagini</a></li><li><a href="/it/docs/image-adjustments">Regolazioni dell’immagine</a></li><li><a href="/it/docs/reducing-colors">Riduzione dei colori</a></li><li><a href="/it/docs/dedithering-cleanup">Rimozione dithering e pulizia</a></li><li><a href="/it/docs/3d-mode">Modalità 3D</a></li><li><a href="/it/docs/auto-paint">Controlli Auto-paint</a></li><li><a href="/it/docs/calibration-theory">Teoria della calibrazione</a></li><li><a href="/it/docs/flat-paint">Flat Paint</a></li><li><a href="/it/docs/calibration-workflows">Flussi di calibrazione</a></li><li><a href="/it/docs/generating-exporting-output">Generazione ed esportazione</a></li><li><a href="/it/docs/settings-and-controls">Impostazioni e controlli</a></li><li><a href="/it/docs/troubleshooting">Risoluzione dei problemi</a></li><li><a href="/it/docs/faq">Domande frequenti</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="dedithering-and-cleanup">Rimozione dithering e pulizia</h1>
+<p><strong>Rimuovi dithering</strong> sostituisce pixel poco sostenuti localmente con colori vicini. È un passaggio separato di pulizia, non quantizzazione né simulazione di ciò che l’ugello può stampare.</p>
+<p>Usalo su retinature con colori ripetuti o immagini ridotte con puntini isolati. Funziona prima della quantizzazione se tali motivi esistono già, oppure dopo sulle regioni ridotte. Non è un filtro fotografico antirumore: pixel fotografici vicini hanno spesso colori esatti leggermente diversi.</p>
+<h2 id="how-a-pixel-is-chosen">Come viene scelto un pixel</h2>
+<p><a href="/localized/it/diagrams/36_dedither_neighbors.svg" target="_blank" rel="noopener noreferrer" aria-label="Apri illustrazione a dimensione intera: Otto pixel vicini votano per colore esatto. Il peso determina quanti devono coincidere per conservare il centro; ogni passaggio usa il risultato precedente."><img src="/localized/it/diagrams/36_dedither_neighbors.svg" alt="Otto pixel vicini votano per colore esatto. Il peso determina quanti devono coincidere per conservare il centro; ogni passaggio usa il risultato precedente." loading="lazy"></a></p>
+<p>Ogni pixel controlla gli otto vicini immediati, diagonali comprese. Se abbastanza coincidono in <strong>RGB e alfa esatti</strong>, rimane. Altrimenti adotta il colore diverso più frequente. I pareggi sono casuali, quindi impostazioni uguali possono produrre risultati diversi.</p>
+<p>Si usano solo colori vicini esistenti, compresi pixel trasparenti. Non vengono mediati in una nuova sfumatura.</p>
+<h2 id="weight">Peso</h2>
+<p><strong>Peso</strong> indica quanti vicini uguali servono per mantenere il pixel. Intervallo <strong>1–9</strong>, predefinito <strong>4</strong>.</p>
+<table><thead><tr><th>Esempio</th><th>Risultato</th></tr></thead><tbody><tr><td>Nessun vicino uguale</td><td>Cambia se esiste un altro colore, anche con peso 1.</td></tr><tr><td>Tre vicini uguali</td><td>Rimane a peso 3; può essere sostituito a peso 4.</td></tr><tr><td>Centro e otto vicini uguali</td><td>Rimane anche a peso 9 perché non ci sono vicini diversi.</td></tr></tbody></table>
+<p>Valori bassi tendono a preservare dettagli; alti rendono sostituibili più pixel. Con otto vicini, peso 9 non raggiunge mai la soglia. È un’impostazione aggressiva dei bordi, non un raggio maggiore. I pixel sul bordo hanno meno vicini.</p>
+<h2 id="passes">Passaggi</h2>
+<p><strong>Passaggi</strong> ripete la pulizia <strong>1–10</strong> volte, predefinito <strong>1</strong>. Ogni passaggio legge tutto il risultato precedente. Altri passaggi possono togliere puntini ostinati, ma anche spostare bordi, spezzare connessioni o cancellare testo piccolo.</p>
+<p>Le frecce individuali ripristinano peso 4 o passaggi 1. Il ripristino del pannello ripristina entrambi. Nessuno recupera l’immagine precedente: usa Annulla.</p>
+<h2 id="apply-and-inspect">Applicare e controllare</h2>
+<ol><li><strong>Applica</strong> prima le regolazioni attive. La pulizia legge la vista regolata; incorporarle evita che restino attive sul risultato pulito.</li><li>Parti da un passaggio. Il peso predefinito è 4; prova meno per conservare dettagli fini.</li><li><strong>Applica</strong> e controlla contorni, lettere e bordi trasparenti ad alto ingrandimento.</li><li>Annulla prima di confrontare un’altra impostazione sulla stessa immagine iniziale.</li></ol>
+<p>Clic ripetuti continuano a pulire l’immagine già pulita, non confrontano indipendentemente l’originale.</p>
+<h2 id="effect-on-the-print">Effetto sulla stampa</h2>
+<p>Eliminare pixel isolati di altro colore può togliere piccole isole, ma anche dettagli voluti. L’alfa partecipa al voto, quindi la pulizia può allargare o restringere la sagoma e aprire o chiudere fori.</p>
+<p>Lavora in <strong>pixel dell’immagine</strong>, non millimetri. Tre pixel a 0,1 mm/pixel occupano 0,3 mm prima di mesh e slicing. Non c’è un campo per il diametro dell’ugello. Usa i <a href="/it/docs/3d-mode">controlli 3D dei dettagli stampabili</a> e l’anteprima dello slicer per verificare le forme fisiche.</p>
+<h2 id="dedither-versus-height-dithering">Rimozione dithering e dithering dell’altezza</h2>
+<table><thead><tr><th>Strumento</th><th>Dove</th><th>Cosa cambia</th></tr></thead><tbody><tr><td>Rimuovi dithering</td><td>2D</td><td>Regioni di colore esatto e potenzialmente contorno trasparente della sorgente.</td></tr><tr><td>Dithering dell’altezza</td><td>Auto-paint in 3D</td><td>Schema di altezze superficiali generato per approssimare i colori.</td></tr></tbody></table>
+<p>Uno non attiva l’altro. Non applicare la pulizia se vuoi preservare pixel art o puntinismo intenzionale.</p>
+<p>Successivo: <a href="/it/docs/3d-mode">Modalità 3D</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

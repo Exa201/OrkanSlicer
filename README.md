@@ -1,6 +1,6 @@
 # OrkanSlicer for Android
 
-OrkanSlicer is an experimental Android slicer built on [OrcaSlicer Mobile](https://github.com/CodeMasterCody3D/OrcaSlicer-Mobile), [Slice Beam](https://github.com/utkabobr/SliceBeam), and the native [OrcaSlicer](https://github.com/SoftFever/OrcaSlicer) slicing engine. This is the independent `Exa201` fork. It is not an official OrcaSlicer release.
+OrkanSlicer is an experimental Android slicer built on [OrcaSlicer Mobile](https://github.com/CodeMasterCody3D/OrcaSlicer-Mobile), [Slice Beam](https://github.com/utkabobr/SliceBeam), and an Android-adapted native [OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer) slicing engine. This is the independent `Exa201` fork. It is not an official OrcaSlicer release. OrcaSlicer 2.5 Android-core integration is tracked separately and remains experimental until the native port and slicing fixtures pass validation.
 
 Download the current arm64 APK from [Releases](https://github.com/Exa201/OrkanSlicer/releases). Android 6.0 or newer and a 64-bit ARM device are required. This is an alpha build: inspect the G-code preview and printer/material assignments before starting a print.
 

@@ -46,6 +46,20 @@ class PrefsValueCodecTest {
     }
 
     @Test
+    fun emptySlotRoundTripsWithoutChangingItsIndex() {
+        val original = listOf(
+            FilamentSlot(0xFF112233.toInt(), "PLA"),
+            FilamentSlot(0xFF808080.toInt(), null),
+            FilamentSlot(0xFF445566.toInt(), "PETG"),
+        )
+
+        val restored = PrefsValueCodec.parseFilamentSlots(PrefsValueCodec.serializeFilamentSlots(original))
+
+        assertEquals(listOf("PLA", null, "PETG"), restored.map { it.type })
+        assertEquals(original.map { it.color }, restored.map { it.color })
+    }
+
+    @Test
     fun unknownThemeOrdinalsFallBackToSystem() {
         assertEquals(Prefs.ThemeMode.SYSTEM, PrefsValueCodec.themeMode(-1))
         assertEquals(Prefs.ThemeMode.LIGHT, PrefsValueCodec.themeMode(1))

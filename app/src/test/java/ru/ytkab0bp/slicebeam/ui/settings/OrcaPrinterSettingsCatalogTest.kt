@@ -1,5 +1,6 @@
 package ru.ytkab0bp.slicebeam.ui.settings
 
+import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -32,6 +33,13 @@ class OrcaPrinterSettingsCatalogTest {
         assertFalse("z_offset must not be duplicated in process", "z_offset" in processKeys)
         assertTrue("toolchange retraction belongs to printer extruders", "retract_length_toolchange" in printerKeys)
         assertTrue("toolchange retraction belongs to printer extruders", "retract_restart_extra_toolchange" in printerKeys)
+        assertTrue("chamber control support belongs to printer capability", "support_chamber_temp_control" in printerKeys)
+        assertTrue("air filtration support belongs to printer capability", "support_air_filtration" in printerKeys)
+        assertFalse("printer capabilities must not be duplicated in filament", "support_chamber_temp_control" in filamentKeys)
+        assertFalse("printer capabilities must not be duplicated in process", "support_air_filtration" in processKeys)
+        assertTrue(Slic3rConfigWrapper.PRINTER_CONFIG_KEYS.containsAll(
+            listOf("support_chamber_temp_control", "support_air_filtration"),
+        ))
     }
 
     @Test

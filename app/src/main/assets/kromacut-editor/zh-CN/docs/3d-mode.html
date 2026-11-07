@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="实体尺寸、手动颜色叠层、网格及预览控制。" />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/zh-CN/docs/3d-mode">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="3D模式 | Kromacut文档" />
+        <meta property="og:description" content="实体尺寸、手动颜色叠层、网格及预览控制。" />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/zh-CN/docs/3d-mode" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="zh_CN" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="3D模式 | Kromacut文档" />
+        <meta name="twitter:description" content="实体尺寸、手动颜色叠层、网格及预览控制。" />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>3D模式 | Kromacut文档</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/3d-mode">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/3d-mode">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/3d-mode">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/3d-mode">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/3d-mode">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/3d-mode">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/3d-mode">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/3d-mode">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/3d-mode">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/3d-mode">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/3d-mode">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/3d-mode">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/3d-mode">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="文档">
+                    <a href="/zh-CN/">返回主页</a>
+                    <a href="/app">打开Kromacut</a>
+                    <ul><li><a href="/zh-CN/docs/overview">概述</a></li><li><a href="/zh-CN/docs/quick-start">快速入门</a></li><li><a href="/zh-CN/docs/loading-images">加载图像</a></li><li><a href="/zh-CN/docs/image-adjustments">图像调整</a></li><li><a href="/zh-CN/docs/reducing-colors">减少颜色</a></li><li><a href="/zh-CN/docs/dedithering-cleanup">去抖动与清理</a></li><li><a href="/zh-CN/docs/3d-mode">3D模式</a></li><li><a href="/zh-CN/docs/calibration-theory">校准理论</a></li><li><a href="/zh-CN/docs/auto-paint">自动配色控制</a></li><li><a href="/zh-CN/docs/flat-paint">平面打印模式</a></li><li><a href="/zh-CN/docs/calibration-workflows">校准流程</a></li><li><a href="/zh-CN/docs/generating-exporting-output">生成与导出</a></li><li><a href="/zh-CN/docs/settings-and-controls">设置与控制</a></li><li><a href="/zh-CN/docs/troubleshooting">故障排查</a></li><li><a href="/zh-CN/docs/faq">常见问题</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="3d-mode">3D模式</h1>
+<p>3D模式将图像颜色转为实体层。在2D中准备图像，选择尺寸和打印方式，再点击<strong>构建3D模型</strong>。更改设置不会自动重新构建显示的模型。</p>
+<p>使用<strong>手动</strong>自行选择颜色顺序和厚度。使用<strong>自动配色</strong>预测实际耗材混色，并为图像寻找叠层。两种方式都不操作打印机：请导出模型并在切片软件中检查。</p>
+<h2 id="3d-print-settings">3D打印设置</h2>
+<table><thead><tr><th>控制</th><th>对模型的影响</th><th>检查内容</th></tr></thead><tbody><tr><td><strong>像素尺寸（XY）</strong></td><td>两个水平方向每图像像素对应的毫米数。</td><td><strong>模型</strong>标记在构建前估计实体宽度、高度和深度。</td></tr><tr><td><strong>层高</strong></td><td>高度与换料使用的常规垂直步长。</td><td>与切片软件一致。薄层提供更细的高度选择，而非更窄的挤出线。</td></tr><tr><td><strong>首层高度</strong></td><td>打印板上方的第一步高度。</td><td>单独匹配此值。首种颜色至少达到常规层高和首层高度中较大者。</td></tr><tr><td><strong>有效线宽</strong></td><td>用于自动配色可打印细节检查和高度抖动的挤出宽度。</td><td>与切片软件的预期线宽匹配，而非喷嘴直径或像素尺寸。它不改变打印机配置。</td></tr><tr><td><strong>平滑网格</strong></td><td>将像素阶梯边界变为平滑连续轮廓。</td><td>改变导出几何体，不只是光照。不会添加图像细节或熨平表面。</td></tr><tr><td><strong>重置</strong></td><td>恢复0.1 mm/像素、0.12 mm常规层、0.2 mm首层、0.42 mm有效线宽及关闭平滑。</td><td>同时将手动厚度重置为最小值，并保留当前颜色顺序。</td></tr></tbody></table>
+<h3 id="pixel-size-is-not-nozzle-size">像素尺寸不是喷嘴尺寸</h3>
+<p>宽1,000像素的图像在<strong>0.1 mm/像素</strong>下产生约<strong>100 mm</strong>宽的模型。在<strong>0.2 mm/像素</strong>下，使用完全相同图像像素，宽度变为约<strong>200 mm</strong>。透明外边距不计入模型边界。</p>
+<p><a href="/localized/zh-CN/diagrams/10_physical_size.svg" target="_blank" rel="noopener noreferrer" aria-label="全尺寸打开插图：增大像素尺寸会让同一图像网格实体更大；调整图像尺寸则改变像素数量。"><img src="/localized/zh-CN/diagrams/10_physical_size.svg" alt="增大像素尺寸会让同一图像网格实体更大；调整图像尺寸则改变像素数量。" loading="lazy"></a></p>
+<p><em>示意图。XY尺寸、图像分辨率和挤出宽度是独立控制项。</em></p>
+<p>若使用2,000图像像素仍保持100 mm宽，请设为<strong>0.05 mm/像素</strong>。更多像素可描述更细边缘，但打印机仍有挤出宽度限制。在<strong>3D打印设置</strong>中设置<strong>有效线宽</strong>，再用自动配色的<a href="/zh-CN/docs/auto-paint#printable-detail">可打印细节预览</a>检查该限制。</p>
+<p>增大像素尺寸不减少像素数，也不会天然降低网格生成成本。若要减轻构建，请在<a href="/zh-CN/docs/loading-images">2D模式</a>中调整尺寸、裁剪或简化调色板。</p>
+<h3 id="effective-line-width">有效线宽</h3>
+<p>将切片软件的预期挤出宽度复制到<strong>有效线宽</strong>。范围为0.1至2 mm。重置<strong>3D打印设置</strong>会将其与其他默认值一同恢复为0.42 mm。编辑此字段不改变打印机配置。</p>
+<p>自动配色使用此宽度进行宽度警告预览、可选孤立色点清理及高度抖动块尺寸计算。检查警告或略去孤立色点的控制仍位于<a href="/zh-CN/docs/auto-paint#printable-detail">自动配色</a>。警告不表示特征会被移除或无法打印。</p>
+<h3 id="layer-heights-and-valid-boundaries">层高与有效边界</h3>
+<p>采用<strong>0.20 mm首层</strong>及<strong>0.08 mm常规层</strong>时，层顶面位于0.20、0.28、0.36、0.44 mm，而不是0.08、0.16、0.24、0.32 mm。Kromacut将颜色厚度调整到此网格。</p>
+<p>改变<strong>层高</strong>会将手动厚度重置为新常规步长，再应用首色最小值。改变<strong>首层高度</strong>会将首色重置为新最小值。请在调节滑块前设置这些值；之后若有更改，重新检查计划。</p>
+<p>字段接受较宽的应用范围：像素尺寸0.01–10 mm/像素、层高0.01–10 mm、首层高度0–10 mm。这些是输入限制，不是推荐打印机设置；首色仍会调整到实体最小值。请使用喷嘴、材料和切片软件支持的值。更细高度改变自动配色的可用配方，不会自动使已有校准兼容。</p>
+<h2 id="manual-mode">手动模式</h2>
+<p><strong>颜色层段厚度</strong>列出非透明的<strong>图像颜色</strong>。每行含拖动手柄、色样、厚度滑块及毫米读数。该值是颜色连续段的厚度，不是绝对顶面高度。一个连续段可跨越多个切片层。</p>
+<p><a href="/localized/zh-CN/diagrams/11_manual_layers.svg" target="_blank" rel="noopener noreferrer" aria-label="全尺寸打开插图：三个手动连续段形成累计高度；增厚下方连续段会抬高每个后续表面。"><img src="/localized/zh-CN/diagrams/11_manual_layers.svg" alt="三个手动连续段形成累计高度；增厚下方连续段会抬高每个后续表面。" loading="lazy"></a></p>
+<p><em>截面示意。后续颜色表面下方包含前面的连续段。</em></p>
+<p>例如，常规层高0.08 mm时，将黑色设为<strong>0.20 mm</strong>、红色<strong>0.16 mm</strong>、白色<strong>0.08 mm</strong>。黑色区域停在0.20 mm，红色0.36 mm，白色0.44 mm。红色从切片第2层开始，白色从第4层开始。打印前请确认生成说明及切片软件的解释。</p>
+<h3 id="reorder-colors">重新排列颜色</h3>
+<p>按打印顺序从上到下拖动各行。最上行从打印板开始。后续行只在图像需要的位置打印到前面行之上，形成阶梯浮雕。移动颜色会改变衬底材料、表面高度及换料顺序。移到首位的行会在需要时提高到首层最小值。</p>
+<p>手动预览和导出使用图像颜色，不使用自动配色HD模型。即使手动预览显示红色，黑色上的薄红层也可能比色样更暗。请据此选择材料和厚度。</p>
+<h3 id="adjust-and-reset-thicknesses">调整与重置厚度</h3>
+<p>拖动滑块并松开以提交。后续连续段按<strong>层高</strong>递增。首段从最小值开始，再增加常规步长。增厚下方连续段会抬高所有后续表面并移动换料位置，而不只影响下方颜色仍可见的区域。</p>
+<p><strong>颜色层段厚度</strong>重置按亮度从暗到亮排序，并分配最小厚度。它不同于<strong>3D打印设置</strong>重置，后者也改变实体打印参数，但保留顺序。</p>
+<p>手动控制和换料说明支持<strong>64色</strong>。更大调色板请在2D减少颜色。完全透明像素表示无材料，而不是白色衬底。除非图像将其连接，否则不相连的不透明孤岛仍是独立部件。</p>
+<h2 id="smooth-meshing">平滑网格</h2>
+<p>关闭平滑时，轮廓遵循方形像素网格。开启时，将连续边界平滑为焊接几何体。差异会导出，不是预览滤镜。</p>
+<p>平滑预览和导出模型的轮廓。中度保留原有的平滑效果。重新构建后应用。</p>
+<table><thead><tr><th>强度</th><th>用途</th></tr></thead><tbody><tr><td><strong>无</strong></td><td>像素画、精确的方格边缘或最快生成。</td></tr><tr><td><strong>轻度</strong></td><td>轻微平滑锯齿状角点。</td></tr><tr><td><strong>中度</strong></td><td>与原来启用平滑时的效果相同。</td></tr><tr><td><strong>强度</strong></td><td>进一步平滑轮廓和残留的阶梯状边缘，保持与中度相同的位移上限。</td></tr></tbody></table>
+<p>顶点位移保持在源像素的一半以内。重新构建模型并检查切片预览。旧的开启/关闭设置对应中度/无。</p>
+<p><a href="/localized/zh-CN/diagrams/12_smooth_boundaries.svg" target="_blank" rel="noopener noreferrer" aria-label="全尺寸打开插图：在同一源网格上比较像素阶梯和平滑的斜向轮廓。"><img src="/localized/zh-CN/diagrams/12_smooth_boundaries.svg" alt="在同一源网格上比较像素阶梯和平滑的斜向轮廓。" loading="lazy"></a></p>
+<p><em>轮廓示意比较，不是切片模拟。</em></p>
+<p>曲线或斜线轮廓看起来过于阶梯化时使用。保留有意像素画或精确网格边缘时关闭。两者都无法修复小到不可打印的细节，也不会凭空增加源分辨率。</p>
+<p>平滑网格也可用于<a href="/zh-CN/docs/flat-paint">平面打印模式</a>。两种朝向都保持平板表面和颜色间的共享边界；选择强度后重新构建即可应用。</p>
+<h2 id="auto-paint">自动配色</h2>
+<p>自动配色接受实际耗材颜色和<strong>遮盖距离（HD）</strong>，预测混色，并将图像颜色映射到可打印高度。全部耗材、匹配、细节及置信度控制请参阅<a href="/zh-CN/docs/auto-paint">自动配色控制</a>。</p>
+<h2 id="calibrating-filament-hiding-distance">校准耗材遮盖距离</h2>
+<p>耗材列表下方的<strong>校准</strong>打开<strong>遮盖距离</strong>、<strong>配色校样</strong>及<strong>叠层校准矩阵</strong>。打印与记录结果请参阅<a href="/zh-CN/docs/calibration-workflows">校准流程</a>，光学模型请参阅<a href="/zh-CN/docs/calibration-theory">校准理论</a>。</p>
+<h2 id="filament-profiles">耗材配置</h2>
+<p>配置保存命名耗材组合及兼容证据。未保存编辑不会自动写回选中配置。参阅<a href="/zh-CN/docs/auto-paint#filament-profiles">耗材与配置</a>及<a href="/zh-CN/docs/settings-and-controls#filament-profile-files">配置文件</a>。</p>
+<h3 id="templates">模板</h3>
+<p>模板是只读供应商参考集合，不是您手中耗材卷的测量。加载、调整、校准后，<strong>另存为新配置</strong>。参阅<a href="/zh-CN/docs/auto-paint#templates">模板</a>。</p>
+<h2 id="max-height">最大高度</h2>
+<p>上限在有效层边界缩短自动配色过渡，但不能移除不透明基础层。请阅读<a href="/zh-CN/docs/auto-paint#max-height">最大高度</a>，包括平面打印承载层的注意事项。</p>
+<h2 id="printable-detail">可打印细节</h2>
+<p>在<strong>3D打印设置</strong>中设置<strong>有效线宽</strong>，再在自动配色中用<strong>打开预览</strong>检查细窄源颜色区域。<strong>略去孤立色点</strong>可选地替换仅用于微小封闭色点的颜色，同时保留细线和相连细节。警告及实际略去像素数分开显示。参阅<a href="/zh-CN/docs/auto-paint#printable-detail">可打印细节</a>。</p>
+<h2 id="enhanced-color-matching">增强颜色匹配</h2>
+<p>搜索带重复、独立颜色要求或空间高度抖动的材料顺序。这些选择在颜色覆盖、厚度、换料及计算量间取舍。参阅<a href="/zh-CN/docs/auto-paint#enhanced-color-matching">增强颜色匹配</a>。</p>
+<h2 id="flat-paint">平面打印模式</h2>
+<p>制作多材料平板而非阶梯浮雕，可使用正面朝下的透明承载层，或无承载层正面朝上。观察方向和对象分配很重要，导出前请阅读<a href="/zh-CN/docs/flat-paint">平面打印模式</a>。</p>
+<h2 id="optimizer-settings">优化器设置</h2>
+<p><strong>算法</strong>、<strong>区域优先级</strong>、<strong>过渡细节</strong>及<strong>种子</strong>调整匹配，不调整打印机速度。参阅<a href="/zh-CN/docs/auto-paint#optimizer-settings">优化器设置</a>。</p>
+<h2 id="transition-zones-and-confidence">过渡区域与置信度</h2>
+<p>区域描述实体连续段；置信度描述证据和模型限制，不是测得的打印准确度。参阅<a href="/zh-CN/docs/auto-paint#transition-zones-and-confidence">解读结果</a>。</p>
+<h2 id="palette-proof">配色校样</h2>
+<p>将打印试样与选定图像颜色比较，记录哪些候选匹配。参阅<a href="/zh-CN/docs/calibration-workflows#palette-proof-compare-artwork-colors">校准流程</a>。</p>
+<h2 id="stack-matrix">叠层校准矩阵</h2>
+<p>拍摄已保存配方板，验证对齐，并保存兼容叠层的测量颜色。参阅<a href="/zh-CN/docs/calibration-workflows#stack-matrix-photograph-known-recipes">校准流程</a>。</p>
+<h2 id="preview-controls">预览控制</h2>
+<p>用鼠标主键拖动旋转，滚轮缩放，副键拖动平移。相机移动不会改变实体尺寸。</p>
+<table><thead><tr><th>工具栏控制</th><th>用途</th><th>对打印的影响</th></tr></thead><tbody><tr><td><strong>准确颜色</strong></td><td>不使用场景照明或电影色调映射，比较选中色样。</td><td>仅预览。仍取决于模型和显示器，不是校准验证。</td></tr><tr><td><strong>着色</strong></td><td>检查有照明的浮雕和形状。</td><td>仅预览；光照改变表观颜色。</td></tr><tr><td><strong>透明</strong></td><td>查看重叠层。</td><td>仅预览，不会使耗材透明。</td></tr><tr><td><strong>线框</strong></td><td>检查按层着色的特征边缘。</td><td>仅预览，不是挤出路径。</td></tr><tr><td><strong>预览颜色</strong></td><td>切换自动配色模拟混色与实体耗材颜色。</td><td>仅预览。导出保留实际材料分配。</td></tr><tr><td><strong>相机切换</strong></td><td>透视深度或无透视缩短的正交对齐。</td><td>仅预览，保留相机位置。</td></tr><tr><td><strong>撤销 / 重做</strong></td><td>遍历共享图像编辑历史。</td><td>不是3D字段或耗材编辑的撤销栈。图像改变后需重新构建。</td></tr><tr><td><strong>下载</strong></td><td>导出已构建STL或3MF。</td><td>使用上次构建模型，而非未应用的侧栏设置。</td></tr></tbody></table>
+<p>视图模式及模拟/实体选择会被记住。<strong>预览颜色</strong>只在已构建的自动配色模型中出现。</p>
+<h2 id="layer-preview">层预览</h2>
+<p>拖动底部条的下限及上限控制点可隔离一个高度范围。位置吸附到层网格。悬停材料段可查看起始或换料信息。</p>
+<p><a href="/localized/zh-CN/diagrams/19_preview_only.svg" target="_blank" rel="noopener noreferrer" aria-label="全尺寸打开插图：截止控制点为检查隐藏层，但导出仍包含完整模型。"><img src="/localized/zh-CN/diagrams/19_preview_only.svg" alt="截止控制点为检查隐藏层，但导出仍包含完整模型。" loading="lazy"></a></p>
+<p><em>示意图。屏幕上隐藏层绝不会将其从导出删除。</em></p>
+<p>平面打印使用普通轨道，因为一个打印层可含多种材料。将默认正面朝下布局旋转到下方以查看图案。</p>
+<p>自动配色计算失败可能留下之前成功的构建可见。不要将其视为新设置成功的证明。存在构建快照时，打印说明使用该快照。解决错误，重新构建，然后检查并导出。</p>
+<p>下一步：<a href="/zh-CN/docs/auto-paint">自动配色控制</a>、<a href="/zh-CN/docs/flat-paint">平面打印模式</a>或<a href="/zh-CN/docs/generating-exporting-output">生成与导出</a>。</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

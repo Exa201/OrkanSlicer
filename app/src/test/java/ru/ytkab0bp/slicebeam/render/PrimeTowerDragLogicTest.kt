@@ -5,6 +5,73 @@ import org.junit.Test
 
 class PrimeTowerDragLogicTest {
     @Test
+    fun automaticPositionAvoidsModelsAndStaysInsideTheBed() {
+        val map = PrimeTowerPlacementMap(
+            bedMinX = 0.0,
+            bedMinY = 0.0,
+            bedMaxX = 200.0,
+            bedMaxY = 200.0,
+            obstacles = listOf(PrimeTowerObstacle(0.0, 0.0, 70.0, 70.0)),
+        )
+
+        val position = requireNotNull(PrimeTowerDragLogic.findFreePosition(map, 35.0, 35.0))
+
+        assertEquals(true, PrimeTowerDragLogic.isPositionFree(map, position.x, position.y, 35.0, 35.0))
+        assertEquals(true, position.x >= 0.0 && position.y >= 0.0)
+        assertEquals(true, position.x + 35.0 <= 200.0 && position.y + 35.0 <= 200.0)
+        // The suggestion should move away from the first free grid point at the
+        // origin and use a more open area that is easier to inspect on the plate.
+        assertEquals(true, position.x > 70.0 && position.y > 70.0)
+    }
+
+    @Test
+    fun placementStatusSeparatesModelOverlapFromOutsideBed() {
+        val map = PrimeTowerPlacementMap(
+            bedMinX = 0.0,
+            bedMinY = 0.0,
+            bedMaxX = 100.0,
+            bedMaxY = 100.0,
+            obstacles = listOf(PrimeTowerObstacle(20.0, 20.0, 60.0, 60.0)),
+        )
+
+        assertEquals(true, PrimeTowerDragLogic.isPositionWithinBed(map, 25.0, 25.0, 20.0, 20.0))
+        assertEquals(1, PrimeTowerDragLogic.overlappingObstacleCount(map, 25.0, 25.0, 20.0, 20.0))
+        assertEquals(false, PrimeTowerDragLogic.isPositionWithinBed(map, 90.0, 90.0, 20.0, 20.0))
+        assertEquals(0, PrimeTowerDragLogic.overlappingObstacleCount(map, 90.0, 90.0, 20.0, 20.0))
+    }
+
+    @Test
+    fun automaticPositionReturnsNullWhenModelsCoverTheWholeBed() {
+        val map = PrimeTowerPlacementMap(
+            bedMinX = 0.0,
+            bedMinY = 0.0,
+            bedMaxX = 80.0,
+            bedMaxY = 80.0,
+            obstacles = listOf(PrimeTowerObstacle(-10.0, -10.0, 90.0, 90.0)),
+        )
+
+        assertEquals(null, PrimeTowerDragLogic.findFreePosition(map, 35.0, 35.0))
+    }
+
+    @Test
+    fun printerBedShapeBuildsPreviewBoundsAndRejectsFootprintsOutsideNonRectangularBed() {
+        val map = requireNotNull(PrimeTowerDragLogic.fromBedShape("0x0,100x0,80x100,20x100"))
+
+        assertEquals(0.0, map.bedMinX, 0.0001)
+        assertEquals(100.0, map.bedMaxX, 0.0001)
+        assertEquals(false, PrimeTowerDragLogic.isPositionFree(map, 2.0, 50.0, 10.0, 10.0))
+        assertEquals(true, PrimeTowerDragLogic.isPositionFree(map, 25.0, 50.0, 10.0, 10.0))
+        val automatic = requireNotNull(PrimeTowerDragLogic.findFreePosition(map, 10.0, 10.0))
+        assertEquals(true, PrimeTowerDragLogic.isPositionFree(map, automatic.x, automatic.y, 10.0, 10.0))
+    }
+
+    @Test
+    fun malformedOrDegeneratePrinterBedShapeDoesNotOfferUnsafePlacement() {
+        assertEquals(null, PrimeTowerDragLogic.fromBedShape("not-a-bed"))
+        assertEquals(null, PrimeTowerDragLogic.fromBedShape("0x0,100x0,200x0"))
+    }
+
+    @Test
     fun towerHasPhoneFriendlyTouchMarginAroundVisibleFootprint() {
         assertEquals(
             true,

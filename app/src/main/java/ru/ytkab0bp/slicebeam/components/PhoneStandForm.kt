@@ -89,7 +89,7 @@ internal fun PhoneStandFormContent(
     onValuesChanged: (PhoneStandFormValues) -> Unit,
     onGenerate: (PhoneStandFormValues) -> Unit,
 ) {
-    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * .82f
+    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * .68f
     Column(
         modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).padding(horizontal = 18.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),

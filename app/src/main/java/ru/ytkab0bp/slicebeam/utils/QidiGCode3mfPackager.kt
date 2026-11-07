@@ -6,6 +6,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStreamReader
+import java.security.DigestOutputStream
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.text.SimpleDateFormat
@@ -21,6 +22,15 @@ object QidiGCode3mfPackager {
     private const val PLATE = 1
     private const val MAX_THUMBNAIL_BYTES = 4 * 1024 * 1024
     private const val MAX_FILAMENTS = 16
+    private const val MAX_PROJECT_SETTINGS = 4096
+    private val semicolonListSettings = setOf(
+        "extruder_colour", "filament_colour", "filament_colour_type", "filament_ids", "filament_map",
+        "filament_multi_colour", "filament_settings_id", "filament_type", "filament_vendor",
+    )
+    private val scalarCommaSettings = setOf(
+        "before_layer_change_gcode", "change_extrusion_role_gcode", "change_filament_gcode",
+        "layer_change_gcode", "machine_end_gcode", "machine_start_gcode", "printing_by_object_gcode",
+    )
     private val settingLine = Regex("^;\\s*([^=]+?)\\s*=\\s*(.*?)\\s*$")
     private val layerLine = Regex("(?i)^;\\s*total layer number\\s*:\\s*(\\d+)\\s*$")
     private val objectLine = Regex("(?i)^EXCLUDE_OBJECT_DEFINE\\s+NAME=([^\\s]+).*?POLYGON=(.*)$")
@@ -36,6 +46,9 @@ object QidiGCode3mfPackager {
         val filamentCount: Int,
         val thumbnailBytes: Int,
     )
+
+    class InvalidGCodeException(val validation: GCodeIntegrityValidator.Result) :
+        IllegalArgumentException(validation.details)
 
     private data class ObjectBounds(val name: String, val minX: Double, val minY: Double, val maxX: Double, val maxY: Double) {
         val area: Double get() = ((maxX - minX) * (maxY - minY)).coerceAtLeast(0.0)
@@ -55,6 +68,11 @@ object QidiGCode3mfPackager {
         val filamentMaps: List<String>,
         val sequence: List<Int>,
         val objects: List<ObjectBounds>,
+    )
+
+    private data class ParsedMetadata(
+        val print: PrintMetadata,
+        val integrity: GCodeIntegrityValidator.Result,
     )
 
     @JvmStatic
@@ -91,7 +109,9 @@ object QidiGCode3mfPackager {
     ): PackageSummary {
         require(isQidiQ2(printer)) { "This package format is only enabled for QIDI Q2 printers." }
         require(sourceGcode.isFile && sourceGcode.length() > 0L) { "The sliced G-code file is missing." }
-        val metadata = readMetadata(sourceGcode, filamentSlots)
+        val parsed = readMetadata(sourceGcode, filamentSlots)
+        if (!parsed.integrity.isValid()) throw InvalidGCodeException(parsed.integrity)
+        val metadata = parsed.print
         require(metadata.layers > 0) { "The sliced file does not declare a valid layer count." }
         val thumbnail = previewPng?.takeIf(::isPng) ?: readGcodeThumbnail(sourceGcode)
             ?: throw IllegalArgumentException("The QIDI Q2 print package needs a model preview image.")
@@ -102,7 +122,9 @@ object QidiGCode3mfPackager {
         val settingsJson = settingsJson(metadata, printer)
         val summaryXml = sliceInfoXml(metadata, printer, clientVersion)
         val modelSettingsXml = modelSettingsXml(metadata)
-        val md5 = digest(sourceGcode)
+        val thumbnailBlock = createGcodeThumbnailBlock(thumbnail)
+        val md5Digest = MessageDigest.getInstance("MD5")
+        var gcodeMd5 = ""
         try {
             ZipOutputStream(FileOutputStream(destination)).use { zip ->
                 writeText(zip, "[Content_Types].xml", contentTypesXml)
@@ -114,17 +136,21 @@ object QidiGCode3mfPackager {
                 writeBytes(zip, "Metadata/pick_$PLATE.png", thumbnail)
                 writeText(zip, "Metadata/plate_$PLATE.json", plateJson(metadata))
                 writeText(zip, "Metadata/project_settings.config", settingsJson)
-                writeText(zip, "Metadata/plate_$PLATE.gcode.md5", md5)
                 zip.putNextEntry(ZipEntry(packageGcodePath))
-                FileInputStream(sourceGcode).use { input -> input.copyTo(zip, 128 * 1024) }
+                val digestingZip = DigestOutputStream(zip, md5Digest)
+                digestingZip.write(thumbnailBlock)
+                FileInputStream(sourceGcode).use { input -> input.copyTo(digestingZip, 128 * 1024) }
+                digestingZip.flush()
                 zip.closeEntry()
+                gcodeMd5 = md5Digest.digest().joinToString("") { "%02X".format(Locale.ROOT, it) }
+                writeText(zip, "Metadata/plate_$PLATE.gcode.md5", gcodeMd5)
                 writeText(zip, "Metadata/_rels/model_settings.config.rels", modelSettingsRelationshipsXml(packageGcodePath))
                 writeText(zip, "Metadata/model_settings.config", modelSettingsXml)
                 writeText(zip, "Metadata/cut_information.xml", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<objects/>\n")
                 writeText(zip, "Metadata/slice_info.config", summaryXml)
                 writeText(zip, "Metadata/filament_sequence.json", sequenceJson(metadata))
             }
-            verify(destination, md5, thumbnail)
+            verify(destination, gcodeMd5, thumbnail)
         } catch (error: Exception) {
             destination.delete()
             throw error
@@ -200,7 +226,7 @@ object QidiGCode3mfPackager {
         }
     }
 
-    private fun readMetadata(file: File, slots: List<FilamentSlot>): PrintMetadata {
+    private fun readMetadata(file: File, slots: List<FilamentSlot>): ParsedMetadata {
         val settings = LinkedHashMap<String, String>()
         val objects = LinkedHashMap<String, ObjectBounds>()
         val sequence = ArrayList<Int>()
@@ -209,10 +235,12 @@ object QidiGCode3mfPackager {
         var firstLayer = 0.0
         var maxTool = 0
         var inThumbnail = false
-        var thumbnailSeen = false
+        val validator = GCodeIntegrityValidator.StreamingValidator()
+        var remainingMinutes = 0
         BufferedReader(InputStreamReader(FileInputStream(file), StandardCharsets.UTF_8), 64 * 1024).use { reader ->
             while (true) {
                 val line = reader.readLine() ?: break
+                validator.acceptLine(line)
                 if (inThumbnail) {
                     if (line.trim().startsWith("; thumbnail end", ignoreCase = true)) {
                         inThumbnail = false
@@ -221,7 +249,6 @@ object QidiGCode3mfPackager {
                 }
                 val thumb = thumbnailBegin.matchEntire(line.trim())
                 if (thumb != null) {
-                    thumbnailSeen = true
                     inThumbnail = true
                     continue
                 }
@@ -229,11 +256,21 @@ object QidiGCode3mfPackager {
                 if (layer != null) layers = layer.groupValues[1].toIntOrNull() ?: layers
                 val normalized = line.trim()
                 val pair = settingLine.matchEntire(normalized)
-                if (pair != null && settings.size < 256) {
-                    settings[pair.groupValues[1].trim()] = pair.groupValues[2].trim().trim('"')
+                if (pair != null) {
+                    val key = pair.groupValues[1].trim()
+                    if (settings.size >= MAX_PROJECT_SETTINGS && key !in settings) {
+                        throw IllegalArgumentException("The sliced file contains too many project settings to package safely.")
+                    }
+                    settings[key] = pair.groupValues[2].trim().trim('"')
                 }
                 when {
                     normalized.startsWith("; estimated printing time", ignoreCase = true) -> seconds = parseDuration(normalized.substringAfter('='))
+                    normalized.startsWith("M73 ", ignoreCase = true) -> {
+                        val match = remainingTimeLine.find(normalized)
+                        val percent = match?.groupValues?.getOrNull(1)?.toIntOrNull()
+                        val minutes = match?.groupValues?.getOrNull(2)?.toIntOrNull()
+                        if (percent != null && percent <= 1 && minutes != null) remainingMinutes = maxOf(remainingMinutes, minutes)
+                    }
                     normalized.startsWith("; first layer time", ignoreCase = true) -> firstLayer = number.find(normalized.substringAfter('='))?.value?.toDoubleOrNull() ?: firstLayer
                     normalized.startsWith("; first_layer_time =", ignoreCase = true) -> firstLayer = number.find(normalized.substringAfter('='))?.value?.toDoubleOrNull() ?: firstLayer
                     normalized.startsWith("; filament used [mm] =", ignoreCase = true) -> settings["filament used [mm]"] = normalized.substringAfter('=').trim()
@@ -263,8 +300,8 @@ object QidiGCode3mfPackager {
                 }
             }
         }
-        if (thumbnailSeen && settings["thumbnail_count"].isNullOrEmpty()) settings["thumbnail_count"] = "1"
-        if (seconds == 0) seconds = parseM73Remaining(file)
+        if (settings["thumbnail_count"].isNullOrEmpty()) settings["thumbnail_count"] = "1"
+        if (seconds == 0) seconds = remainingMinutes.coerceAtMost(Int.MAX_VALUE / 60) * 60
         if (layers == 0) layers = settings["total layer number"]?.toIntOrNull() ?: 0
 
         val toolCount = maxOf(maxTool + 1, csv(settings["filament_type"]).size, csv(settings["filament_colour"]).size, 1)
@@ -292,10 +329,24 @@ object QidiGCode3mfPackager {
         val maps = csv(settings["filament_map"]).padTo(toolCount, "1")
         val nozzle = csv(settings["nozzle_diameter"]).firstOrNull()?.toDoubleOrNull()?.takeIf { it > 0 && it.isFinite() } ?: 0.4
         if (sequence.isEmpty()) sequence.addAll((1..toolCount).toList())
-        return PrintMetadata(
+        val metadata = PrintMetadata(
             settings, layers, seconds, firstLayer, nozzle, materials, colors, usedMeters,
             usedGrams, filamentIds, maps, sequence, objects.values.toList(),
         )
+        return ParsedMetadata(metadata, validator.finish())
+    }
+
+    private fun createGcodeThumbnailBlock(png: ByteArray): ByteArray {
+        val width = pngUInt32(png, 16).toInt()
+        val height = pngUInt32(png, 20).toInt()
+        require(width in 1..4096 && height in 1..4096) { "The QIDI preview has invalid dimensions." }
+        val encoded = java.util.Base64.getEncoder().encodeToString(png)
+        return buildString(encoded.length + 128) {
+            append("; thumbnail begin ").append(width).append('x').append(height).append(' ')
+                .append(encoded.length).append('\n')
+            encoded.chunked(76).forEach { append("; ").append(it).append('\n') }
+            append("; thumbnail end\n")
+        }.toByteArray(StandardCharsets.US_ASCII)
     }
 
     private fun readGcodeThumbnail(file: File): ByteArray? {
@@ -332,20 +383,6 @@ object QidiGCode3mfPackager {
             }
             return best
         }
-    }
-
-    private fun parseM73Remaining(file: File): Int {
-        var remainingMinutes: Int? = null
-        BufferedReader(InputStreamReader(FileInputStream(file), StandardCharsets.US_ASCII), 32 * 1024).use { reader ->
-            while (true) {
-                val line = reader.readLine() ?: break
-                val match = remainingTimeLine.find(line.trim()) ?: continue
-                val percent = match.groupValues[1].toIntOrNull() ?: continue
-                val minutes = match.groupValues[2].toIntOrNull() ?: continue
-                if (percent <= 1) remainingMinutes = maxOf(remainingMinutes ?: 0, minutes)
-            }
-        }
-        return (remainingMinutes ?: 0).coerceAtMost(Int.MAX_VALUE / 60) * 60
     }
 
     private fun parseDuration(value: String): Int {
@@ -445,6 +482,8 @@ object QidiGCode3mfPackager {
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
  <Relationship Target="/3D/3dmodel.model" Id="rel-1" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>
  <Relationship Target="/Metadata/plate_1.png" Id="rel-2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail"/>
+ <Relationship Target="/Metadata/plate_1.png" Id="rel-4" Type="http://schemas.qiditech.com/package/2021/cover-thumbnail-middle"/>
+ <Relationship Target="/Metadata/plate_1.png" Id="rel-5" Type="http://schemas.qiditech.com/package/2021/cover-thumbnail-small"/>
 </Relationships>
 """
 
@@ -559,14 +598,49 @@ $filaments
     }
 
     private fun settingsJson(metadata: PrintMetadata, printer: ConfigObject): String {
-        val values = LinkedHashMap<String, String>()
-        listOf("layer_height", "curr_bed_type", "filament_map", "filament_colour", "filament_type", "filament_ids", "nozzle_diameter", "timelapse_type")
-            .forEach { key -> metadata.settings[key]?.let { values[key] = it } }
+        // QIDI Studio uses this file to populate the print-job details. Keep the
+        // full sliced profile (including speeds, layer heights, temperatures and
+        // filament data), rather than the former small subset that hid most data.
+        val values = LinkedHashMap<String, Any>()
+        metadata.settings.forEach { (key, rawValue) -> values[key] = projectSettingValue(key, rawValue) }
         values["printer_model"] = printer.get("printer_model") ?: "Q2"
         values["gcode_flavor"] = "klipper"
         return values.entries.joinToString(prefix = "{\n", postfix = "\n}\n", separator = ",\n") { (key, value) ->
-            "  ${jsonQuote(key)}: ${jsonQuote(value)}"
+            val jsonValue = if (value is List<*>) {
+                value.joinToString(prefix = "[", postfix = "]") { jsonQuote(it?.toString().orEmpty()) }
+            } else {
+                jsonQuote(value.toString())
+            }
+            "  ${jsonQuote(key)}: $jsonValue"
         }
+    }
+
+    private fun projectSettingValue(key: String, rawValue: String): Any {
+        val normalizedKey = key.lowercase(Locale.ROOT)
+        val separator = when {
+            normalizedKey in semicolonListSettings && rawValue.contains(';') -> ';'
+            normalizedKey !in scalarCommaSettings && rawValue.contains(',') -> ','
+            else -> return rawValue
+        }
+        return splitSettingList(rawValue, separator)
+    }
+
+    private fun splitSettingList(rawValue: String, separator: Char): List<String> {
+        val values = ArrayList<String>()
+        val current = StringBuilder()
+        var quoted = false
+        var escaped = false
+        for (character in rawValue) {
+            when {
+                escaped -> { current.append(character); escaped = false }
+                character == '\\' && quoted -> { current.append(character); escaped = true }
+                character == '"' -> { current.append(character); quoted = !quoted }
+                character == separator && !quoted -> { values.add(current.toString().trim().trim('"')); current.setLength(0) }
+                else -> current.append(character)
+            }
+        }
+        values.add(current.toString().trim().trim('"'))
+        return values
     }
 
     private fun sequenceJson(metadata: PrintMetadata): String {

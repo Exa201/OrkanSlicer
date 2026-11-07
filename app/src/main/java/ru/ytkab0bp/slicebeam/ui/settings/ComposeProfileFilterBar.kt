@@ -33,6 +33,7 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -66,9 +67,13 @@ fun ProfileFilterBar(
     val showFilters = expanded ?: filtersExpanded
     val stacked = ProfileSettingsMenuLayoutPolicy.usesStackedFilterControls(
         LocalConfiguration.current.screenWidthDp,
-        LocalDensity.current.fontScale,
+        ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current,
     )
     val favoritesDescription = stringResource(R.string.ProfileSettingsFavoritesToggle)
+    val favoritesStateDescription = stringResource(
+        if (favoritesOnly) R.string.ProfileSettingsFavoritesOnlyEnabled
+        else R.string.ProfileSettingsFavoritesOnlyDisabled,
+    )
 
     val search: @Composable (Modifier) -> Unit = { modifier ->
         ProfileSearchField(
@@ -102,6 +107,7 @@ fun ProfileFilterBar(
                 .size(52.dp)
                 .semantics {
                     contentDescription = favoritesDescription
+                    stateDescription = favoritesStateDescription
                 },
         ) {
             Text(

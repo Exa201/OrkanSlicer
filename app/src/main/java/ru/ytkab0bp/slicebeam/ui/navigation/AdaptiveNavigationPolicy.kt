@@ -3,8 +3,33 @@ package ru.ytkab0bp.slicebeam.ui.navigation
 /** Chooses compact bottom navigation or an expanded rail from the current app-window width. */
 object AdaptiveNavigationPolicy {
     const val EXPANDED_WIDTH_DP = 600
-    const val NAVIGATION_RAIL_WIDTH_DP = 64
+    const val NAVIGATION_RAIL_WIDTH_DP = 80
+    const val LARGE_TEXT_NAVIGATION_RAIL_WIDTH_DP = 96
+    const val COMPACT_BOTTOM_LABEL_WIDTH_DP = 440
     const val NAVIGATION_BAR_HEIGHT_DP = 56
+    const val COMPACT_LABEL_FONT_SCALE = 1.15f
+
+    @JvmStatic
+    fun usesCompactLabels(fontScale: Float): Boolean = fontScale >= COMPACT_LABEL_FONT_SCALE
+
+    /** Shortens labels before destinations wrap in a phone-width window. */
+    @JvmStatic
+    fun usesCompactBottomLabels(windowWidthDp: Int, fontScale: Float): Boolean =
+        usesCompactLabels(fontScale) || (windowWidthDp in 1 until COMPACT_BOTTOM_LABEL_WIDTH_DP)
+
+    /** Compact labels keep each destination legible in a single row on phones. */
+    @JvmStatic
+    fun usesCompactWorkspaceLabels(windowWidthDp: Int, fontScale: Float, isPortrait: Boolean): Boolean =
+        !isPortrait || usesCompactBottomLabels(windowWidthDp, fontScale)
+
+    @JvmStatic
+    @Suppress("UNUSED_PARAMETER")
+    fun navigationBarHeightDp(fontScale: Float, itemCount: Int): Int = NAVIGATION_BAR_HEIGHT_DP
+
+    /** Wider rail space preserves system text scaling and readable destination names. */
+    @JvmStatic
+    fun navigationRailWidthDp(fontScale: Float): Int =
+        if (fontScale >= 1.2f) LARGE_TEXT_NAVIGATION_RAIL_WIDTH_DP else NAVIGATION_RAIL_WIDTH_DP
 
     @JvmStatic
     fun usesBottomNavigation(windowWidthDp: Int, isPortrait: Boolean): Boolean =
@@ -21,4 +46,25 @@ object AdaptiveNavigationPolicy {
         val portraitWindow = isPortraitWindow(windowWidthDp, windowHeightDp, isPortrait)
         return portraitWindow && usesBottomNavigation(windowWidthDp, portraitWindow)
     }
+}
+
+/** Reserves the plate viewport by keeping portrait action menus collapsed until requested. */
+object WorkspaceToolPanelPolicy {
+    const val COMPACT_MENU_HEIGHT_DP = 68
+    const val TWO_ROW_MENU_HEIGHT_DP = 140
+    const val LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP = 160
+
+    @JvmStatic
+    fun menuHeightDp(needsTwoRows: Boolean, fontScale: Float, additionalChromeDp: Int = 0): Int {
+        val base = if (!needsTwoRows) {
+            if (fontScale >= 1.3f) 88 else COMPACT_MENU_HEIGHT_DP
+        } else {
+            if (fontScale >= 1.3f) 176 else if (fontScale >= 1.15f) LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP else TWO_ROW_MENU_HEIGHT_DP
+        }
+        return base + additionalChromeDp.coerceAtLeast(0)
+    }
+
+    @JvmStatic
+    fun reservedHeightDp(isPortrait: Boolean, expanded: Boolean, menuHeightDp: Int): Int =
+        if (isPortrait && expanded) menuHeightDp.coerceAtLeast(0) else 0
 }

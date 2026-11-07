@@ -1,18 +1,12 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
-import android.text.InputType
 import android.view.View
-import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.FrameLayout
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.render.GLRenderer
-import ru.ytkab0bp.slicebeam.utils.ViewUtils
-import java.util.concurrent.atomic.AtomicInteger
+import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import java.util.function.Consumer
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -24,38 +18,26 @@ internal class TransformMenuItems(
     private val showRotationMenu: Consumer<View>,
     private val showScaleMenu: Consumer<View>,
     private val showCutMenu: Consumer<View>,
-    private val onItemsChanged: () -> Unit,
+    private val onItemsChanged: () -> Unit = {},
 ) {
-    private var flattenEnabled = false
+    private val selectionObserver = ModelMenuSelectionObserver(fragment, onItemsChanged)
 
     fun createItems(): List<BedComposeMenuAction> {
-        val renderer = fragment.glView!!.renderer
-        val availability = modelSelectionAvailability(renderer.model != null, renderer.selectedObject)
+        selectionObserver.readIfNeeded()
+        val selection = selectionObserver.state.value
+        val availability = modelSelectionAvailability(selection.modelLoaded, selection.selectedObject)
         return listOf(
-            BedComposeMenuAction(R.string.WorkspaceObjects, R.drawable.square_stack_up_outline_28, {
-                FileMenuObjectActions(fragment).showObjectsDialog(it)
-            }, enabled = (renderer.model?.objectsCount ?: 0) > 0),
-            BedComposeMenuAction(R.string.ModelColorSlotsAction, R.drawable.print_filament_sync_24, {
-                fragment.showModelColorSlots()
-            }, enabled = (renderer.model?.objectsCount ?: 0) > 0),
-            selectionAction(R.string.ObjectActionDuplicate, R.drawable.folder_simple_plus_outline_28, availability) {
-                fragment.glView!!.duplicateSelectedModel { fragment.updateModel() }
+            selectionAction(R.string.ModelContextResetRotation, R.drawable.menu_orientation_rotation_28, availability) {
+                // Resolve the active object only after the operation reaches the GL queue.
+                fragment.resetModelRotation {
+                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextResetRotationDone))
+                }
             },
-            BedComposeMenuAction(R.string.MenuFileMoveToPlate, R.drawable.square_stack_up_outline_28, {
-                FileMenuObjectActions(fragment).showMoveToPlateDialog(it)
-            }, enabled = availability.hasSelectedObject && fragment.plateCount > 1),
-            selectionAction(R.string.ModelContextDelete, R.drawable.delete_outline_android_28, availability) { anchor ->
-                BeamAlertDialogBuilder(anchor.context)
-                    .setTitle(R.string.ModelContextDelete)
-                    .setMessage(R.string.ModelDeleteConfirm)
-                    .setPositiveButton(R.string.ModelContextDelete) { _, _ ->
-                        fragment.glView!!.deleteSelectedModel(fragment::updateModel)
-                    }
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show()
-            },
-            selectionAction(R.string.ObjectActionMore, R.drawable.settings_outline_28, availability) {
-                fragment.showSelectedModelContextMenu()
+            selectionAction(R.string.ModelContextResetScale, R.drawable.arrow_up_right_corner_outline_24, availability) {
+                // Resolve the active object only after the operation reaches the GL queue.
+                fragment.resetModelScale {
+                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextResetScaleDone))
+                }
             },
             BedComposeMenuAction(R.string.ModelUndo, R.drawable.arrow_left_outline_28, {
                 fragment.undoModelEdit()
@@ -63,47 +45,6 @@ internal class TransformMenuItems(
             BedComposeMenuAction(R.string.ModelRedo, R.drawable.refresh_outline_28, {
                 fragment.redoModelEdit()
             }),
-            BedComposeMenuAction(
-                R.string.MenuArrangeAllObjects,
-                R.drawable.grid_layout_outline_28,
-                {
-                    fragment.glView!!.arrange()
-                    fragment.glView!!.queueEvent {
-                        if (renderer.invalidateFlattenMode()) fragment.glView!!.requestRender()
-                    }
-                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationArrangeFinished))
-                },
-                enabled = availability.canArrange,
-            ),
-            BedComposeMenuAction(
-                R.string.MenuOrientAllObjects,
-                R.drawable.menu_orientation_auto_28,
-                {
-                    fragment.glView!!.queueEvent {
-                        val current = renderer.model ?: return@queueEvent
-                        if (renderer.invalidateFlattenMode()) fragment.glView!!.requestRender()
-                        for (index in 0 until current.objectsCount) {
-                            current.autoOrient(index)
-                            renderer.invalidateGlModel(index)
-                        }
-                        fragment.glView!!.requestRender()
-                        ViewUtils.postOnMainThread {
-                            fragment.updateModel()
-                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientAllObjectsDone))
-                        }
-                    }
-                },
-                enabled = availability.canArrange,
-            ),
-            selectionAction(R.string.MenuOrientationAutoOrient, R.drawable.menu_orientation_auto_28, availability) {
-                val index = renderer.selectedObject
-                if (index != -1) {
-                    renderer.model!!.autoOrient(index)
-                    renderer.invalidateGlModel(index)
-                    fragment.glView!!.requestRender()
-                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationAutoOrientDone))
-                }
-            },
             selectionAction(R.string.MenuToolbarMove, R.drawable.menu_orientation_position_28, availability) {
                 showPositionMenu.accept(it)
             },
@@ -114,24 +55,8 @@ internal class TransformMenuItems(
                 showScaleMenu.accept(it)
             },
             selectionAction(R.string.ModelSimplify, R.drawable.sliders_outline_28, availability, ::showSimplifyDialog),
-            BedComposeMenuAction(
-                R.string.MenuOrientationFlatten,
-                R.drawable.menu_orientation_flatten_28,
-                {
-                    flattenEnabled = !flattenEnabled
-                    renderer.setInFlattenMode(flattenEnabled)
-                    fragment.glView!!.requestRender()
-                    onItemsChanged()
-                },
-                selected = flattenEnabled,
-                toggleable = true,
-                enabled = availability.hasSelectedObject,
-            ),
             selectionAction(R.string.MenuTransformCut, R.drawable.menu_transform_cut_or_mirror_28, availability) {
                 showCutMenu.accept(it)
-            },
-            selectionAction(R.string.MenuToolbarSplit, R.drawable.menu_transform_cut_or_mirror_28, availability) {
-                fragment.splitSelectedObject()
             },
             selectionAction(R.string.MenuToolbarVariableLayerHeight, R.drawable.sliders_outline_28, availability) {
                 fragment.enterVariableLayerHeightMode()
@@ -149,17 +74,7 @@ internal class TransformMenuItems(
         )
     }
 
-    fun onObjectsChanged() {
-        flattenEnabled = false
-    }
-
-    fun onSelectionChanged() {
-        flattenEnabled = false
-    }
-
-    fun onFlattenModeReset() {
-        flattenEnabled = false
-    }
+    fun invalidateSelectionState() = selectionObserver.invalidate()
 
     private fun selectionAction(
         titleRes: Int,
@@ -175,66 +90,72 @@ internal class TransformMenuItems(
 
     private fun paintAction(titleRes: Int, mode: Int, availability: ModelSelectionAvailability) =
         selectionAction(titleRes, R.drawable.paint_roller_outline_28, availability) {
-            val objectIndex = fragment.glView!!.renderer.selectedObject
-            if (objectIndex != -1) fragment.enterPaintMode(objectIndex, mode)
+            fragment.enterPaintModeForCurrentSelection(mode)
         }
 
     private fun showSimplifyDialog(view: View) {
-        val triangles = fragment.selectedTriangleCount
-        if (triangles <= 4) return
         val context = view.context
-        val ratios = floatArrayOf(0.75f, 0.50f, 0.25f)
-        val targetCounts = ratios.map { max(4, (triangles * it).roundToInt()) }
-        val choices = arrayOf<CharSequence>(
-            context.resources.getQuantityString(R.plurals.ModelSimplifyLight, targetCounts[0], targetCounts[0]),
-            context.resources.getQuantityString(R.plurals.ModelSimplifyMedium, targetCounts[1], targetCounts[1]),
-            context.resources.getQuantityString(R.plurals.ModelSimplifyStrong, targetCounts[2], targetCounts[2]),
-            context.getString(R.string.ModelSimplifyCustom),
-        )
-        val selected = AtomicInteger(1)
-        BeamAlertDialogBuilder(context)
-            .setTitle(R.string.ModelSimplify)
-            .setMessage(context.resources.getQuantityString(R.plurals.ModelSimplifyCurrent, triangles, triangles))
-            .setSingleChoiceItems(choices, selected.get()) { _, which -> selected.set(which) }
-            .setPositiveButton(R.string.ModelSimplifyStart) { _, _ ->
-                val choice = selected.get()
-                if (choice < ratios.size) {
-                    fragment.simplifySelectedObject(ratios[choice])
-                } else {
-                    showCustomSimplifyDialog(view, triangles)
-                }
+        fragment.captureSelectedObjectForSimplification { snapshot, triangles ->
+            if (triangles <= 4) return@captureSelectedObjectForSimplification
+            val ratios = floatArrayOf(0.75f, 0.50f, 0.25f)
+            val targetCounts = ratios.map { max(4, (triangles * it).roundToInt()) }
+            val choices = listOf(
+                context.resources.getQuantityString(R.plurals.ModelSimplifyLight, targetCounts[0], targetCounts[0]),
+                context.resources.getQuantityString(R.plurals.ModelSimplifyMedium, targetCounts[1], targetCounts[1]),
+                context.resources.getQuantityString(R.plurals.ModelSimplifyStrong, targetCounts[2], targetCounts[2]),
+                context.getString(R.string.ModelSimplifyCustom),
+            )
+            fragment.showWorkspaceComposeDialog { dismiss ->
+                ModelSimplifyChoiceDialog(
+                    title = context.getString(R.string.ModelSimplify),
+                    currentTriangles = context.resources.getQuantityString(R.plurals.ModelSimplifyCurrent, triangles, triangles),
+                    choices = choices,
+                    startLabel = context.getString(R.string.ModelSimplifyStart),
+                    cancelLabel = context.getString(android.R.string.cancel),
+                    onDismiss = dismiss,
+                    onStart = { choice ->
+                        dismiss()
+                        if (choice < ratios.size) {
+                            fragment.simplifySelectedObject(snapshot, ratios[choice])
+                        } else {
+                            showCustomSimplifyDialog(view, snapshot, triangles)
+                        }
+                    },
+                )
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        }
     }
 
-    private fun showCustomSimplifyDialog(view: View, triangles: Int) {
-        val input = EditText(view.context).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER
-            setText(max(4, triangles / 2).toString())
-            setSelectAllOnFocus(true)
-        }
-        val padding = ViewUtils.dp(24)
-        val container = FrameLayout(view.context).apply {
-            setPadding(padding, 0, padding, 0)
-            addView(
-                input,
-                FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                ),
+    private fun showCustomSimplifyDialog(view: View, snapshot: ModelSelectionSnapshot, triangles: Int) {
+        val context = view.context
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelSimplifyCustomDialog(
+                title = context.getString(R.string.ModelSimplifyCustom),
+                hint = context.getString(R.string.ModelSimplifyCustomHint),
+                initialTriangleCount = triangles,
+                minimumTriangleCount = 4,
+                maximumTriangleCount = triangles - 1,
+                startLabel = context.getString(R.string.ModelSimplifyStart),
+                cancelLabel = context.getString(android.R.string.cancel),
+                onDismiss = dismiss,
+                onStart = { target ->
+                    dismiss()
+                    fragment.simplifySelectedObject(snapshot, target.toFloat() / triangles.toFloat())
+                },
             )
         }
-        BeamAlertDialogBuilder(view.context)
-            .setTitle(R.string.ModelSimplifyCustom)
-            .setMessage(R.string.ModelSimplifyCustomHint)
-            .setView(container)
-            .setPositiveButton(R.string.ModelSimplifyStart) { _, _ ->
-                val target = (input.text.toString().toIntOrNull() ?: triangles / 2)
-                    .coerceIn(4, triangles - 1)
-                fragment.simplifySelectedObject(target.toFloat() / triangles.toFloat())
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
     }
 }
+
+/** Shared callbacks let the selected-object editor collect transforms without a second action host. */
+internal fun createTransformMenuItems(
+    fragment: BedFragment,
+    onItemsChanged: () -> Unit = {},
+): TransformMenuItems = TransformMenuItems(
+    fragment,
+    Consumer<View> { fragment.showWorkspaceComposeTool(OrientationPositionMenu(fragment)) },
+    Consumer<View> { fragment.showWorkspaceComposeTool(OrientationRotationMenu(fragment)) },
+    Consumer<View> { fragment.showWorkspaceComposeTool(TransformScaleMenu(fragment)) },
+    Consumer<View> { fragment.showWorkspaceComposeTool(TransformCutMenu(fragment)) },
+    onItemsChanged,
+)

@@ -4,6 +4,7 @@ import android.util.Log
 import org.json.JSONObject
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.config.Kobra3V2ProfileMigration
 import ru.ytkab0bp.slicebeam.config.ProfileConfigSchemaMigrator
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.IOUtils
@@ -49,7 +50,26 @@ open class LoadSlic3rConfigTask : BootTask(Runnable {
 
         private fun ensureKobra3V2Available() {
             val config = SliceBeam.CONFIG ?: return
-            if (config.findPrinter(KOBRA_3_V2_TITLE) != null) return
+            val existing = config.findPrinter(KOBRA_3_V2_TITLE)
+            var changed = false
+            val previousStartCodes = mutableListOf<Pair<ConfigObject, String>>()
+            config.printerConfigs.forEach { printer ->
+                if (!Kobra3V2ProfileMigration.isKobra3V2Profile(printer.title, printer.get("printer_model"))) return@forEach
+                val oldStartGcode = printer.get("machine_start_gcode").orEmpty()
+                val migratedStartGcode = Kobra3V2ProfileMigration.removeLegacyPressureAdvance(oldStartGcode)
+                if (migratedStartGcode != oldStartGcode) {
+                    previousStartCodes += printer to oldStartGcode
+                    printer.put("machine_start_gcode", migratedStartGcode)
+                    changed = true
+                }
+            }
+            if (changed && !SliceBeam.saveConfig()) {
+                previousStartCodes.forEach { (printer, startGcode) -> printer.put("machine_start_gcode", startGcode) }
+                Log.w("LoadSlic3rConfigTask", "Could not save the Kobra 3 V2 Pressure Advance profile migration")
+                return
+            }
+            if (changed) Log.i("LoadSlic3rConfigTask", "Removed fixed M900 K0.051 overrides from stored Kobra 3 V2 printer profiles")
+            if (existing != null) return
             try {
                 val profile = SliceBeam.requireInstance().getAssets()
                 profile.open("orca_profiles/Anycubic.ini").use { anycubicIni ->

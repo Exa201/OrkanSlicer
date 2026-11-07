@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="色調・色スライダーの働き、目標色への影響、プレビューを画像に適用するタイミング。" />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/ja/docs/image-adjustments">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="画像調整 | Kromacutドキュメント" />
+        <meta property="og:description" content="色調・色スライダーの働き、目標色への影響、プレビューを画像に適用するタイミング。" />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/ja/docs/image-adjustments" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="ja_JP" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="画像調整 | Kromacutドキュメント" />
+        <meta name="twitter:description" content="色調・色スライダーの働き、目標色への影響、プレビューを画像に適用するタイミング。" />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>画像調整 | Kromacutドキュメント</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/image-adjustments">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/image-adjustments">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/image-adjustments">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/image-adjustments">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/image-adjustments">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/image-adjustments">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/image-adjustments">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/image-adjustments">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/image-adjustments">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/image-adjustments">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/image-adjustments">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/image-adjustments">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/image-adjustments">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="ドキュメント">
+                    <a href="/ja/">ホームへ戻る</a>
+                    <a href="/app">Kromacutを開く</a>
+                    <ul><li><a href="/ja/docs/overview">概要</a></li><li><a href="/ja/docs/quick-start">クイックスタート</a></li><li><a href="/ja/docs/loading-images">画像の読み込み</a></li><li><a href="/ja/docs/image-adjustments">画像調整</a></li><li><a href="/ja/docs/reducing-colors">減色</a></li><li><a href="/ja/docs/dedithering-cleanup">ディザ除去とクリーンアップ</a></li><li><a href="/ja/docs/3d-mode">3Dモード</a></li><li><a href="/ja/docs/calibration-theory">校正の理論</a></li><li><a href="/ja/docs/auto-paint">自動ペイントの操作</a></li><li><a href="/ja/docs/flat-paint">フラット印刷</a></li><li><a href="/ja/docs/calibration-workflows">校正の手順</a></li><li><a href="/ja/docs/generating-exporting-output">モデル生成と書き出し</a></li><li><a href="/ja/docs/settings-and-controls">設定と操作</a></li><li><a href="/ja/docs/troubleshooting">トラブルシューティング</a></li><li><a href="/ja/docs/faq">よくある質問</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="image-adjustments">画像調整</h1>
+<p>調整は減色前の目標画像を変えます。フィラメントの校正、遮蔽距離の変更、表示色が実際に印刷可能であることの保証ではありません。</p>
+<p>スライダーを動かすと効果をプレビューできます。操作が終わると表示が更新されます。初期値はすべてゼロです。個別のリセット矢印は1つのスライダーを、パネルのリセットは全スライダーを戻します。</p>
+<h2 id="tone-and-color-controls">色調と色の操作</h2>
+<p><a href="/localized/ja/diagrams/32_adjustment_controls.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：12の調整操作すべてについて、マイナス、中立、プラスの例を示します。"><img src="/localized/ja/diagrams/32_adjustment_controls.svg" alt="12の調整操作すべてについて、マイナス、中立、プラスの例を示します。" loading="lazy"></a></p>
+<p><em>これらは変化方向の模式例であり、校正済みの印刷予測ではありません。効果は元画像と他の有効な調整に依存します。</em></p>
+<h3 id="tone">色調</h3>
+<table><thead><tr><th>スライダー</th><th>範囲</th><th>マイナス値</th><th>プラス値</th><th>印刷準備への影響</th></tr></thead><tbody><tr><td>露出</td><td>−3〜+3段、刻み0.01</td><td>RGB値を暗くします。</td><td>明るくします。+1でチャンネル値が倍になり、上限で切り詰めます。</td><td>目標の色調全体を動かします。描画済み画像の調整なので、失われたRAW情報は復元できません。</td></tr><tr><td>コントラスト</td><td>−100%〜+100%</td><td>色調を中間の灰色に近づけます。−100%では他の調整前に中間灰色になります。</td><td>中間灰色から離し、黒/白で切り詰めます。</td><td>大きな領域を分離できますが、微妙な暗部や明部を平坦にする場合があります。</td></tr><tr><td>ハイライト</td><td>−100%〜+100%</td><td>明るい領域を暗くします。</td><td>明るい領域を明るくします。</td><td>パレット候補の明るい色調を変えます。存在しない細部は復元できません。</td></tr><tr><td>シャドウ</td><td>−100%〜+100%</td><td>暗部を暗くします。</td><td>暗部を明るくします。</td><td>減色前に既存の暗部の差を見えやすくできます。</td></tr><tr><td>白レベル</td><td>−100%〜+100%</td><td>最も明るい領域を暗くします。</td><td>最も明るい領域を明るくします。</td><td>白に近い目標色を分離または統合します。ホワイトバランス設定ではありません。</td></tr><tr><td>黒レベル</td><td>−100%〜+100%</td><td>最も暗い領域を暗くします。</td><td>最も暗い領域を明るくします。</td><td>黒に近い目標色を変えます。値を倍率で変えるため、純黒は黒のままです。</td></tr></tbody></table>
+<p>ハイライト/シャドウは白レベル/黒レベルより広い範囲を対象とします。範囲は重なり、とても暗いピクセルは黒レベルとシャドウの両方に反応します。色調範囲は露出、コントラスト、色温度/色かぶり補正、HSL調整の後で評価するため、操作は相互に影響します。</p>
+<h3 id="color-and-local-detail">色と局所的な細部</h3>
+<table><thead><tr><th>スライダー</th><th>範囲</th><th>マイナス値</th><th>プラス値</th><th>印刷準備への影響</th></tr></thead><tbody><tr><td>彩度</td><td>−100%〜+100%</td><td>鮮やかさを減らし、−100%で無彩色にします。</td><td>鮮やかさを増やします。</td><td>画像の色差を変えますが、実物フィラメントの色域は変えません。</td></tr><tr><td>自然な彩度</td><td>−100%〜+100%</td><td>比較的低彩度の色をより強く下げます。</td><td>比較的低彩度の色をより強く上げます。</td><td>彩度より一律でない処理ですが、肌色を認識するものではありません。純粋な灰色は灰色のままです。</td></tr><tr><td>色相</td><td>−180°〜+180°</td><td>色相を一方向に回します。</td><td>反対方向に回します。</td><td>画像全体を変色します。1つの完全一致色には色見本編集を使います。</td></tr><tr><td>色温度</td><td>−100〜+100</td><td>寒色寄り：赤を減らし青を増やします。</td><td>暖色寄り：赤を増やし青を減らします。</td><td>概算の色かぶり調整であり、<strong>ケルビンではありません</strong>。</td></tr><tr><td>色かぶり補正</td><td>−100〜+100</td><td>緑を加えます。</td><td>赤/青を増やし緑を減らしてマゼンタを加えます。</td><td>色かぶりを補正または追加します。実測のカメラプロファイルではありません。</td></tr><tr><td>明瞭度</td><td>−100〜+100</td><td>局所コントラストを弱めます。</td><td>局所コントラストと輪郭を強調します。</td><td>減色が必要な輪郭色やハローを作る場合があります。細部の復元や細線の拡幅はしません。</td></tr></tbody></table>
+<p>露出と色相以外は整数刻みです。アルファは変わりません。減色のアルファ処理は異なり、半透明ピクセルを完全に不透明にします。</p>
+<h2 id="preview-versus-apply">プレビューと適用の違い</h2>
+<p><a href="/localized/ja/diagrams/33_adjustment_bake.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：元画像からライブプレビューを作ります。適用はその見え方を画像に反映してスライダーをリセットし、その後の減色、PNG書き出し、3Dは適用済みピクセルを使います。"><img src="/localized/ja/diagrams/33_adjustment_bake.svg" alt="元画像からライブプレビューを作ります。適用はその見え方を画像に反映してスライダーをリセットし、その後の減色、PNG書き出し、3Dは適用済みピクセルを使います。" loading="lazy"></a></p>
+<p><strong>適用</strong>は現在の見え方を元の作業画像に反映し、スライダーをゼロに戻し、画像履歴に1段階を追加します。減色、モデル作成、印刷設定の変更は行いません。</p>
+<p>この違いは重要です。</p>
+<ul><li><strong>減色、画像のサイズ変更、画像のダウンロード、3D生成は元の作業画像を使い</strong>、未適用のプレビュー調整は使いません。</li><li><strong>画像の色</strong>は元のピクセルを表すため、ライブ調整に合わせて色見本は変わりません。</li><li>修正ツールは元画像を編集し、有効な調整がその上に再びかかります。</li><li>ディザ除去は調整後の画像を読み取ります。処理済み結果に調整が重ならないよう先に適用してください。</li></ul>
+<p>確実な順序は<strong>調整をプレビュー → 調整を適用 → 減色 → 確認/クリーンアップ → 3D作成</strong>です。可能なら切り抜きとサイズ変更はその前に行います。</p>
+<h2 id="reset-and-undo-are-different">リセットと元に戻すは別</h2>
+<p>リセットはライブ調整を除きますが、適用済みの画像編集は取り消しません。適用後にスライダーがゼロなのは正常です。以前の効果はすでに画像に含まれています。以前の画像に戻すには<strong>元に戻す</strong>を使います。</p>
+<p>適用を繰り返すと編集済み画像をさらに編集するため、白飛び・黒つぶれや色調の細部の損失が蓄積する場合があります。別案を比較するときは先に元に戻してください。</p>
+<p>次へ：<a href="/ja/docs/reducing-colors">減色</a>。</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

@@ -168,6 +168,9 @@ abstract class NavigationDelegate {
 
     fun getCurrentFragment(): Fragment = fragmentStack.get(currentSlot)!!.peek()
 
+    /** Returns the retained top screen for a navigation slot without changing the active slot. */
+    fun getFragmentForSlot(slot: Int): Fragment? = fragmentStack.get(slot)?.peek()
+
     fun destroyCurrent(): Boolean {
         val stack = fragmentStack.get(currentSlot) ?: return false
         val activeContainer = container ?: return false

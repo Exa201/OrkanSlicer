@@ -4,12 +4,14 @@ import android.content.Intent
 import android.net.Uri
 import android.text.TextUtils
 import android.widget.Toast
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
+import ru.ytkab0bp.slicebeam.components.PrinterConnectionCard
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.config.BedSurfaceTemperaturePolicy
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
-import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.utils.PrinterWebOriginPolicy
 
 /** Printer-profile screen; the Orca settings remain defined by the shared native schema. */
@@ -31,53 +33,19 @@ class PrinterConfigFragment : ProfileListFragment() {
         SliceBeam.requireConfig().printerConfigs.map { it as ProfileListItem }
 
     override fun getConfigItems(): List<ProfileOptionElement> {
-        val items = ArrayList(OrcaPrinterSettingsBuilder.build(this))
-        val context = getContext() ?: return items
-        items.add(
-            ProfileOptionElement(
-                ProfileActionItem(
-                    context.getString(R.string.PrinterOpenWebButton),
-                    context.getString(R.string.PrinterOpenWebDescription),
-                    Runnable { openPrinterWebUi() },
-                ),
-            ),
+        return OrcaPrinterSettingsBuilder.build(this)
+    }
+
+    @Composable
+    override fun ProfileHeaderContent(modifier: Modifier) {
+        PrinterConnectionCard(
+            modifier = modifier,
+            configuredHost = currentConfig?.get("print_host"),
+            onOpenWeb = ::openPrinterWebUi,
         )
-        items.add(
-            ProfileOptionElement(
-                ProfileActionItem(
-                    context.getString(R.string.MmuSyncButton),
-                    context.getString(R.string.MmuSyncDescription),
-                    Runnable { syncAceFromPrinterSettings() },
-                ),
-            ).setVisibleInAdvanced(),
-        )
-        return items
     }
 
     fun getConfiguredExtruderCount(): Int = currentConfig?.extruderCount ?: 0
-
-    private fun syncAceFromPrinterSettings() {
-        val selected = currentConfig?.let { ConfigObject(it) } ?: return
-        ProfileSettingsRepository.applyPendingFor(getProfileListType(), selected)
-        MmuFilamentSync.synchronizeAll(selected) { updated, error ->
-            val context = getContext()
-            if (context != null) {
-                if (error != null) {
-                    BeamAlertDialogBuilder(context)
-                        .setTitle(R.string.MmuSyncFailed)
-                        .setMessage(error)
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show()
-                } else {
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.MmuSyncSuccess, updated),
-                        Toast.LENGTH_LONG,
-                    ).show()
-                }
-            }
-        }
-    }
 
     private fun openPrinterWebUi() {
         val selected = currentConfig?.let { ConfigObject(it) } ?: return
@@ -170,6 +138,12 @@ class PrinterConfigFragment : ProfileListFragment() {
             ?: SliceBeam.requireConfig().printerConfigs.firstOrNull()
             ?: ConfigObject.createCustomPrinterProfile()
         currentConfig = ConfigObject(printer)
+        if (currentConfig?.get("curr_bed_type").isNullOrBlank()) {
+            currentConfig?.put(
+                "curr_bed_type",
+                BedSurfaceTemperaturePolicy.printerDefaultValue(printer.get("default_bed_type")) ?: "High Temp Plate",
+            )
+        }
     }
 
     override fun getCurrentConfig(): ConfigObject? = currentConfig

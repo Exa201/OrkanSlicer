@@ -7,6 +7,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DevicePerformancePolicyTest {
+    @Test fun touchCoordinatesFollowTheActualGlSurfaceRatherThanDeviceRamPolicy() {
+        assertEquals(500f, DevicePerformancePolicy.mapTouchCoordinate(500f, 1000, 1000))
+        assertEquals(350f, DevicePerformancePolicy.mapTouchCoordinate(500f, 1000, 700))
+        assertEquals(500f, DevicePerformancePolicy.mapTouchCoordinate(500f, 0, 700))
+    }
+
     @Test fun weakDevicesUseFewerPixelsAndShorterInitialPreview() {
         assertEquals(0.7f, DevicePerformancePolicy.defaultRenderScale(true))
         assertEquals(25, DevicePerformancePolicy.initialLayerBlockSize(true))

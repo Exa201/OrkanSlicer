@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt-PT">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Todos os controlos de tom e cor, o efeito nas cores-alvo e quando incorporar a pré-visualização na imagem." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/pt-PT/docs/image-adjustments">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Ajustes de imagem | Documentação Kromacut" />
+        <meta property="og:description" content="Todos os controlos de tom e cor, o efeito nas cores-alvo e quando incorporar a pré-visualização na imagem." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/pt-PT/docs/image-adjustments" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="pt_PT" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Ajustes de imagem | Documentação Kromacut" />
+        <meta name="twitter:description" content="Todos os controlos de tom e cor, o efeito nas cores-alvo e quando incorporar a pré-visualização na imagem." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Ajustes de imagem | Documentação Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/image-adjustments">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/image-adjustments">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/image-adjustments">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/image-adjustments">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/image-adjustments">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/image-adjustments">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/image-adjustments">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/image-adjustments">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/image-adjustments">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/image-adjustments">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/image-adjustments">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/image-adjustments">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/image-adjustments">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentação">
+                    <a href="/pt-PT/">Ir para a página inicial</a>
+                    <a href="/app">Abrir Kromacut</a>
+                    <ul><li><a href="/pt-PT/docs/overview">Visão geral</a></li><li><a href="/pt-PT/docs/quick-start">Início rápido</a></li><li><a href="/pt-PT/docs/loading-images">Carregar imagens</a></li><li><a href="/pt-PT/docs/image-adjustments">Ajustes de imagem</a></li><li><a href="/pt-PT/docs/reducing-colors">Redução de cores</a></li><li><a href="/pt-PT/docs/dedithering-cleanup">Remoção de pontilhamento e limpeza</a></li><li><a href="/pt-PT/docs/3d-mode">Modo 3D</a></li><li><a href="/pt-PT/docs/auto-paint">Controlos de pintura automática</a></li><li><a href="/pt-PT/docs/calibration-theory">Teoria da calibração</a></li><li><a href="/pt-PT/docs/flat-paint">Pintura plana</a></li><li><a href="/pt-PT/docs/calibration-workflows">Fluxos de calibração</a></li><li><a href="/pt-PT/docs/generating-exporting-output">Geração e exportação</a></li><li><a href="/pt-PT/docs/settings-and-controls">Definições e controlos</a></li><li><a href="/pt-PT/docs/troubleshooting">Resolução de problemas</a></li><li><a href="/pt-PT/docs/faq">Perguntas frequentes</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="image-adjustments">Ajustes de imagem</h1>
+<p>Os ajustes mudam a imagem-alvo antes da redução de cores. Não calibram filamento, alteram HD nem garantem que uma cor mostrada seja fisicamente imprimível.</p>
+<p>Mova um controlo para pré-visualizar; a vista atualiza quando termina a interação. Todos começam a zero. Setas individuais repõem um controlo; a reposição do painel repõe todos.</p>
+<h2 id="tone-and-color-controls">Controlos de tom e cor</h2>
+<p><a href="/localized/pt-PT/diagrams/32_adjustment_controls.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: Exemplos ilustrativos negativos, neutros e positivos para os doze ajustes."><img src="/localized/pt-PT/diagrams/32_adjustment_controls.svg" alt="Exemplos ilustrativos negativos, neutros e positivos para os doze ajustes." loading="lazy"></a></p>
+<p><em>São tendências esquemáticas, não previsões calibradas. Os efeitos dependem da origem e dos outros ajustes ativos.</em></p>
+<h3 id="tone">Tom</h3>
+<table><thead><tr><th>Controlo</th><th>Intervalo</th><th>Valores negativos</th><th>Valores positivos</th><th>Consequência para preparar a impressão</th></tr></thead><tbody><tr><td>Exposição</td><td>−3 a +3 pontos, passo 0,01</td><td>Escurece valores RGB.</td><td>Clareia; +1 duplica canais até ao corte.</td><td>Desloca tons gerais. Este ajuste de imagem renderizada não recupera informação RAW cortada.</td></tr><tr><td>Contraste</td><td>−100% a +100%</td><td>Aproxima tons do cinzento médio. −100% fica cinzento médio antes de outros ajustes.</td><td>Afasta tons do cinzento, cortando em preto/branco.</td><td>Separa zonas principais, mas pode achatar sombras e luzes subtis.</td></tr><tr><td>Altas luzes</td><td>−100% a +100%</td><td>Escurece regiões claras.</td><td>Clareia regiões claras.</td><td>Muda tons claros que competem pela paleta; não recupera detalhe ausente.</td></tr><tr><td>Sombras</td><td>−100% a +100%</td><td>Escurece zonas de sombra.</td><td>Clareia zonas de sombra.</td><td>Pode revelar diferenças escuras existentes antes da redução.</td></tr><tr><td>Brancos</td><td>−100% a +100%</td><td>Escurece a gama mais clara.</td><td>Clareia a gama mais clara.</td><td>Separa ou combina alvos quase brancos. Não é equilíbrio de brancos.</td></tr><tr><td>Pretos</td><td>−100% a +100%</td><td>Escurece a gama mais escura.</td><td>Clareia a gama mais escura.</td><td>Muda alvos quase pretos; preto puro mantém-se porque os valores são multiplicados.</td></tr></tbody></table>
+<p>Altas luzes/Sombras cobrem gamas maiores do que Brancos/Pretos. Há sobreposição: um píxel muito escuro pode reagir a Pretos e Sombras. As gamas são avaliadas depois de Exposição, Contraste, Temperatura/Tonalidade e HSL, pelo que os controlos interagem.</p>
+<h3 id="color-and-local-detail">Cor e detalhe local</h3>
+<table><thead><tr><th>Controlo</th><th>Intervalo</th><th>Valores negativos</th><th>Valores positivos</th><th>Consequência para preparar a impressão</th></tr></thead><tbody><tr><td>Saturação</td><td>−100% a +100%</td><td>Reduz intensidade; −100% dessatura.</td><td>Aumenta intensidade.</td><td>Muda diferenças de cor da imagem, não a gama física do filamento.</td></tr><tr><td>Vivacidade</td><td>−100% a +100%</td><td>Reduz mais a saturação em cores relativamente pouco saturadas.</td><td>Aumenta mais a saturação nessas cores.</td><td>Menos uniforme que Saturação, mas sem reconhecer tons de pele. Cinzento puro mantém-se.</td></tr><tr><td>Matiz</td><td>−180° a +180°</td><td>Roda matizes num sentido.</td><td>Roda no outro.</td><td>Recolore toda a imagem; edite uma amostra para uma só cor exata.</td></tr><tr><td>Temperatura</td><td>−100 a +100</td><td>Mais frio: menos vermelho, mais azul.</td><td>Mais quente: mais vermelho, menos azul.</td><td>Ajuste aproximado de dominante, <strong>não em kelvin</strong>.</td></tr><tr><td>Tonalidade</td><td>−100 a +100</td><td>Acrescenta verde.</td><td>Acrescenta magenta, aumentando vermelho/azul e reduzindo verde.</td><td>Corrige ou introduz dominante; não é um perfil medido de câmara.</td></tr><tr><td>Claridade</td><td>−100 a +100</td><td>Suaviza contraste local.</td><td>Realça contraste e contornos locais.</td><td>Pode criar cores de bordo/halos que exigem quantização. Não recupera detalhe nem alarga linhas finas.</td></tr></tbody></table>
+<p>Exceto Exposição e Matiz, os controlos usam passos inteiros. O alfa não muda. A quantização tem outro comportamento: torna totalmente opacos os píxeis parcialmente transparentes.</p>
+<h2 id="preview-versus-apply">Pré-visualizar e aplicar</h2>
+<p><a href="/localized/pt-PT/diagrams/33_adjustment_bake.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: A pré-visualização deriva da origem. Aplicar incorpora o aspeto e repõe os controlos; quantização, PNG e 3D usam depois esses píxeis."><img src="/localized/pt-PT/diagrams/33_adjustment_bake.svg" alt="A pré-visualização deriva da origem. Aplicar incorpora o aspeto e repõe os controlos; quantização, PNG e 3D usam depois esses píxeis." loading="lazy"></a></p>
+<p><strong>Aplicar</strong> incorpora o aspeto na imagem subjacente, repõe os controlos a zero e cria um passo no histórico. Não reduz cores, gera o modelo nem muda definições de impressão.</p>
+<p>A distinção importa:</p>
+<ul><li><strong>Quantização, Redimensionar imagem, Transferir imagem e geração 3D usam a imagem de trabalho subjacente</strong>, não ajustes por aplicar.</li><li><strong>Cores da imagem</strong> descreve píxeis subjacentes, pelo que as amostras não seguem ajustes em direto.</li><li>Os retoques editam a imagem subjacente; ajustes ativos reaplicam-se por cima.</li><li>Remover pontilhamento lê a imagem ajustada. Incorpore primeiro para não deixar ajustes ativos sobre o resultado processado.</li></ul>
+<p>A sequência fiável é <strong>pré-visualizar ajustes → aplicar ajustes → quantizar → examinar/limpar → gerar 3D</strong>. Recorte e redimensione antes, quando possível.</p>
+<h2 id="reset-and-undo-are-different">Repor e anular são diferentes</h2>
+<p>Repor remove um ajuste em direto, não uma edição já incorporada. Após Aplicar, os controlos a zero são esperados porque o efeito já está na imagem. Use <strong>Anular</strong> para restaurar a imagem anterior.</p>
+<p>Aplicações repetidas atuam na imagem já editada, acumulando corte e perda de detalhe tonal. Anule primeiro ao comparar alternativas.</p>
+<p>Seguinte: <a href="/pt-PT/docs/reducing-colors">Redução de cores</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

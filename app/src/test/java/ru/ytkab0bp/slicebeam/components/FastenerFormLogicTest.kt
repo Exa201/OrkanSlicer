@@ -6,6 +6,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import ru.ytkab0bp.slicebeam.utils.FastenerStandards
 
 class FastenerFormLogicTest {
     @Test
@@ -34,6 +35,17 @@ class FastenerFormLogicTest {
         assertEquals("3.4", washer.second)
         assertEquals("0.8", washer.third)
         assertTrue(FastenerFormLogic.validate(washer) == null)
+    }
+
+    @Test
+    fun selectingM12UsesTheLargestStandardAndValidBoltDimensions() {
+        val m12Index = FastenerStandards.count() - 1
+        val bolt = FastenerFormLogic.selectSize(type = 0, size = m12Index)
+
+        assertEquals(12f, FastenerStandards.diameter(bolt.size), 0f)
+        assertEquals("1.75", bolt.second)
+        assertEquals("18", bolt.fourth)
+        assertNull(FastenerFormLogic.validate(bolt))
     }
 
     @Test

@@ -6,6 +6,27 @@ import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 
 class ProfileOptionDirectComposePolicyTest {
     @Test
+    fun printerApiKeyIsAlwaysTreatedAsPasswordInEveryProfileRenderPath() {
+        val apiKey = ConfigOptionDef().apply {
+            key = "printhost_apikey"
+            type = ConfigOptionDef.ConfigOptionType.STRING
+        }
+        val ordinaryHost = ConfigOptionDef().apply {
+            key = "print_host"
+            type = ConfigOptionDef.ConfigOptionType.STRING
+        }
+        val nativePassword = ConfigOptionDef().apply {
+            key = "printhost_password"
+            type = ConfigOptionDef.ConfigOptionType.STRING
+            guiType = ConfigOptionDef.GUIType.PASSWORD
+        }
+
+        assertEquals(true, ProfileOptionComposePresenter.isPasswordOption(apiKey))
+        assertEquals(false, ProfileOptionComposePresenter.isPasswordOption(ordinaryHost))
+        assertEquals(true, ProfileOptionComposePresenter.isPasswordOption(nativePassword))
+    }
+
+    @Test
     fun scalarRowsPreserveBooleanNumericAndOpenEnumRendering() {
         assertKind(ConfigOptionDef.ConfigOptionType.BOOL, expected = ProfileOptionDirectComposePolicy.Kind.BOOLEAN)
         assertKind(ConfigOptionDef.ConfigOptionType.BOOLS, expected = ProfileOptionDirectComposePolicy.Kind.BOOLEAN)

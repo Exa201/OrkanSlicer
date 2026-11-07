@@ -7,7 +7,7 @@ Stand: 14.10.2026. Diese Zuordnung dient als Prüfkarte für weitere UI-Arbeit; 
 - Kotlin ist die Android-Hauptsprache. Die Navigation und einzelne ältere Dialoge nutzen Android-Views; die Arbeitsbereichsmenüs, Profile, Druckplattenauswahl und viele weitere Screens nutzen Jetpack Compose. Der Slicer-Kern und die 3D-Geometrie bleiben nativ. OpenGL rendert die Platte in `GLView`/`GLRenderer`.
 - `BedFragment` hält das aktuelle Modell, die Plattenliste und den Renderer zusammen. `PlateTabs` zeigt die kompakte Plattenzahl und öffnet bei Bedarf die Auswahl. Nicht aktive Platten werden erst beim Anwählen aus 3MF geladen. `TemporaryProjectSettings` hält importierte 3MF-Werte projektlokal.
 - `BeamComposeTheme` übersetzt das bestehende Hell-/Dunkel- und Akzentschema in Material 3. `OrkanUiTokens` liefert gemeinsame Abstände, Mindest-Touchfläche, Icon- und Menüschriftgrößen. `BedMenuActionsContent` zeichnet die wiederverwendbaren Menüaktionen.
-- `UnfoldMenu` ist weiterhin der gemeinsame Host für spezialisierte Werkzeuge. Ein vollständiger Wechsel des UI-Frameworks würde den GL-Arbeitsbereich und bestehende Werkzeuge unnötig gefährden.
+- `UnfoldMenu` ist weiterhin der Host für noch nicht migrierte Spezialwerkzeuge. Die UI-2.0-Arbeit folgt der abgestimmten Etappenplanung in [ORKAN_UI_2_ROADMAP.md](ORKAN_UI_2_ROADMAP.md): Compose/Material 3 wird für neue und migrierte Oberflächen vereinheitlicht; GL-Arbeitsbereich, Slicer-Kern und noch benötigte View-Integrationen bleiben während der Funktionsmigration erhalten.
 
 ## Sichtbare Navigation und Funktionsorte
 

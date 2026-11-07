@@ -90,7 +90,7 @@ class MmuFilamentSync private constructor() {
                                 }
                                 val synced = FilamentPaletteSyncPolicy.replaceFromPrinter(printerGates, toolToGate)
                                 updatedSlots = synced.slots
-                                count = updatedSlots.size
+                                count = updatedSlots.count { !it.type.isNullOrBlank() }
                                 setSelectedGates(printer.title.orEmpty(), synced.gates)
                                 if (!TemporaryProjectSettings.active) setPaletteGates(printer.title.orEmpty(), synced.gates)
                             } else {
@@ -239,6 +239,15 @@ class MmuFilamentSync private constructor() {
             return mapping.optInt(tool, -1)
         }
 
+        /** Complete firmware Tn→ACE-gate map; do not truncate it to the tools used by one slice. */
+        @JvmStatic
+        fun toolToGateMap(printerTitle: String): IntArray {
+            val mapping = getSnapshot(printerTitle)?.optJSONArray("ttg_map") ?: return IntArray(0)
+            return IntArray(minOf(mapping.length(), Prefs.MAX_FILAMENT_COLORS)) { tool ->
+                mapping.optInt(tool, -1)
+            }
+        }
+
         @JvmStatic
         fun toolForGate(printerTitle: String, gate: Int): Int {
             val mapping = getSnapshot(printerTitle)?.optJSONArray("ttg_map") ?: return -1
@@ -248,11 +257,15 @@ class MmuFilamentSync private constructor() {
 
         /** Compare only gates used by this sliced job before and after the final printer refresh. */
         fun assignedGates(printerTitle: String, activeTools: IntArray): List<AssignedGate>? {
-            val count = (activeTools.maxOrNull() ?: 0) + 1
-            val selected = getSelectedGates(printerTitle, count) ?: return null
             if (getSnapshot(printerTitle) == null) return null
-            return activeTools.map { tool ->
-                val gate = selected.getOrNull(tool) ?: return null
+            val toolCount = (activeTools.maxOrNull() ?: -1) + 1
+            val gates = MmuGateAssignmentPolicy.gatesForTools(
+                activeTools,
+                getSelectedGates(printerTitle, toolCount),
+                IntArray(toolCount) { defaultGateForTool(printerTitle, it) },
+            )
+            return activeTools.mapIndexed { index, tool ->
+                val gate = gates[index]
                 val filament = gateSlot(printerTitle, gate)
                 AssignedGate(tool, gate, toolForGate(printerTitle, gate),
                     filament?.type, filament?.color)

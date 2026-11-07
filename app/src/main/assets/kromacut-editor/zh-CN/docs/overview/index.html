@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Kromacut的功能及主要工作流程如何衔接。" />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/zh-CN/docs/overview">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="概述 | Kromacut文档" />
+        <meta property="og:description" content="Kromacut的功能及主要工作流程如何衔接。" />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/zh-CN/docs/overview" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="zh_CN" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="概述 | Kromacut文档" />
+        <meta name="twitter:description" content="Kromacut的功能及主要工作流程如何衔接。" />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>概述 | Kromacut文档</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/overview">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/overview">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/overview">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/overview">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/overview">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/overview">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/overview">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/overview">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/overview">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/overview">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/overview">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/overview">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/overview">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="文档">
+                    <a href="/zh-CN/">返回主页</a>
+                    <a href="/app">打开Kromacut</a>
+                    <ul><li><a href="/zh-CN/docs/overview">概述</a></li><li><a href="/zh-CN/docs/quick-start">快速入门</a></li><li><a href="/zh-CN/docs/loading-images">加载图像</a></li><li><a href="/zh-CN/docs/image-adjustments">图像调整</a></li><li><a href="/zh-CN/docs/reducing-colors">减少颜色</a></li><li><a href="/zh-CN/docs/dedithering-cleanup">去抖动与清理</a></li><li><a href="/zh-CN/docs/3d-mode">3D模式</a></li><li><a href="/zh-CN/docs/calibration-theory">校准理论</a></li><li><a href="/zh-CN/docs/auto-paint">自动配色控制</a></li><li><a href="/zh-CN/docs/flat-paint">平面打印模式</a></li><li><a href="/zh-CN/docs/calibration-workflows">校准流程</a></li><li><a href="/zh-CN/docs/generating-exporting-output">生成与导出</a></li><li><a href="/zh-CN/docs/settings-and-controls">设置与控制</a></li><li><a href="/zh-CN/docs/troubleshooting">故障排查</a></li><li><a href="/zh-CN/docs/faq">常见问题</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="overview">概述</h1>
+<p>Kromacut将平面图像变成颜色分层叠加的3D打印作品。核心思路很简单：图像中的颜色变为实体层，而这些层的顺序和高度成为打印计划。</p>
+<p>如果您想制作HueForge风格的打印作品、彩色光刻浮雕风格的作品，或通过换料形成最终图像的分层展示品，可以使用Kromacut。</p>
+<h2 id="main-workflow">主要工作流程</h2>
+<p>多数项目遵循相同路径：</p>
+<ol><li><a href="/zh-CN/docs/loading-images">加载或导入图像</a>。</li><li><a href="/zh-CN/docs/reducing-colors">减少颜色</a>，直到预览具有可打印的调色板。</li><li>如果图像有噪点，对孤立像素进行<a href="/zh-CN/docs/dedithering-cleanup">去抖动或清理</a>。</li><li>切换到<a href="/zh-CN/docs/3d-mode">3D模式</a>，选择手动或自动配色。</li><li><a href="/zh-CN/docs/generating-exporting-output">构建并导出</a>STL或3MF文件，按打印说明操作。</li></ol>
+<h2 id="two-ways-to-paint">两种配色方式</h2>
+<p>Kromacut在3D模式中提供两种打印流程。</p>
+<table><thead><tr><th>流程</th><th>适用情况</th><th>可控制内容</th></tr></thead><tbody><tr><td>手动</td><td>希望直接控制每一种图像颜色。</td><td>颜色顺序、每种颜色的层段厚度、打印设置和换料。</td></tr><tr><td>自动配色</td><td>希望由Kromacut规划实体耗材叠层。</td><td>耗材颜色、遮盖距离值、最大高度及优化器选项。</td></tr></tbody></table>
+<p>手动模式从<strong>图像颜色</strong>面板中的颜色开始。自动配色从实际耗材及其<strong>遮盖距离（HD）</strong>开始，为图像生成可打印层。</p>
+<h2 id="what-you-see-in-the-app">应用中的内容</h2>
+<p>使用2D准备图案，使用3D规划实体层。下方指南也按此区分组织。</p>
+<h2 id="illustrated-guides">图解指南</h2>
+<p>从想完成的任务开始。每份指南解释控制项、它们的相互影响以及对实体打印的后果。图表为示意例子，并非经过校准的颜色预测。点击图示或通过键盘激活，可按完整尺寸打开。</p>
+<table><thead><tr><th>任务</th><th>指南</th></tr></thead><tbody><tr><td>设置尺寸、层高和手动颜色顺序</td><td><a href="/zh-CN/docs/3d-mode">3D模式</a></td></tr><tr><td>选择耗材、优化混色并检查可打印细节</td><td><a href="/zh-CN/docs/auto-paint">自动配色</a></td></tr><tr><td>制作正面朝上或朝下的平整多材料板</td><td><a href="/zh-CN/docs/flat-paint">平面打印模式</a></td></tr><tr><td>测量HD、比较配色校样或拍摄叠层校准矩阵</td><td><a href="/zh-CN/docs/calibration-workflows">校准流程</a></td></tr><tr><td>准备轮廓并修整像素</td><td><a href="/zh-CN/docs/loading-images">加载图像</a></td></tr><tr><td>调整色调和颜色，然后应用结果</td><td><a href="/zh-CN/docs/image-adjustments">图像调整</a></td></tr><tr><td>减少颜色并管理调色板</td><td><a href="/zh-CN/docs/reducing-colors">减少颜色</a></td></tr><tr><td>清除杂点，同时区分2D清理与高度抖动</td><td><a href="/zh-CN/docs/dedithering-cleanup">去抖动与清理</a></td></tr><tr><td>检查完成的叠层并传至切片软件</td><td><a href="/zh-CN/docs/generating-exporting-output">生成与导出</a></td></tr></tbody></table>
+<h2 id="workspace-layout">工作区布局</h2>
+<p>工作区有三个主要区域：</p>
+<ul><li>顶部包含文档、主题控制和社区链接。</li><li>左侧面板包含当前模式的控制项。</li><li><strong>2D</strong>中显示调整、去抖动、量化、自定义调色板及检测到的图像颜色。</li><li><strong>3D</strong>中显示打印设置、手动控制、自动配色控制和打印说明。</li><li>主预览显示2D图像画布或3D模型。</li></ul>
+<blockquote><p>提示：3D设置不会自动重新构建模型。更改打印设置、手动层段厚度或自动配色选项后，请点击<strong>构建3D模型</strong>。</p></blockquote>
+<h2 id="good-first-project">适合首次尝试的项目</h2>
+<p>先选一张对比度高、主体清楚且背景细节有限的图像。将其减少到4至16色。若已知道所需层顺序，可使用手动模式；若已校准耗材遮盖距离，则使用自动配色。</p>
+<hr>
+<p>下一步：<a href="/zh-CN/docs/quick-start">快速入门</a>。</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

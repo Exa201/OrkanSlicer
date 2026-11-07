@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.sp
 fun ProfileCategoryTabs(labels: List<String>, selectedIndex: Int, onSelected: (Int) -> Unit) {
     if (labels.isEmpty()) return
     // Ordinary phone widths use one scrollable row; large accessibility text can wrap.
-    val stacked = LocalDensity.current.fontScale >= 1.35f
+    val stacked = ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current >= 1.35f
     if (stacked) {
         Column(
             modifier = Modifier.widthIn(max = 1200.dp).fillMaxWidth(),

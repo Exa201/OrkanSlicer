@@ -20,6 +20,18 @@ class ConverterStorage private constructor() {
         private const val PREF_TREE = "converter_storage_tree_uri"
         private const val PREF_FIRST_PROMPT = "converter_storage_first_prompt"
 
+        internal fun hasWritablePersistableGrant(flags: Int): Boolean =
+            flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION != 0
+
+        internal fun isPermissionFailure(error: Throwable): Boolean {
+            var current: Throwable? = error
+            while (current != null) {
+                if (current is SecurityException) return true
+                current = current.cause
+            }
+            return false
+        }
+
         @JvmStatic
         fun getRoot(): Uri? {
             val saved = Prefs.getPrefs()?.getString(PREF_TREE, null)
@@ -28,6 +40,25 @@ class ConverterStorage private constructor() {
 
         @JvmStatic
         fun hasRoot(): Boolean = getRoot() != null
+
+        /** Forget a tree whose persisted grant has been revoked by Android or its provider. */
+        @JvmStatic
+        fun clearRoot(context: Context) {
+            val root = getRoot()
+            Prefs.getPrefs()?.edit()?.remove(PREF_TREE)?.apply()
+            if (root != null) {
+                try {
+                    context.contentResolver.releasePersistableUriPermission(
+                        root,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                    )
+                } catch (_: SecurityException) {
+                    // The grant may already have been revoked; clearing the stale preference is enough.
+                } catch (_: IllegalArgumentException) {
+                    // A provider can reject release for a URI that is no longer persisted.
+                }
+            }
+        }
 
         @JvmStatic
         fun markAndShouldPromptFirstLaunch(): Boolean {
@@ -55,7 +86,10 @@ class ConverterStorage private constructor() {
             val tree = result?.data ?: return
             val resultFlags = result.flags
             val canRead = resultFlags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0
-            val canWrite = resultFlags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION != 0
+            val canWrite = hasWritablePersistableGrant(resultFlags)
+            if (!canWrite) {
+                throw SecurityException("Der ausgewählte Ordner wurde nicht mit Schreibzugriff freigegeben.")
+            }
             if (canRead && canWrite) {
                 activity.contentResolver.takePersistableUriPermission(
                     tree,

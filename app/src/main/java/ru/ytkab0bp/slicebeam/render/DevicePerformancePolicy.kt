@@ -4,6 +4,10 @@ package ru.ytkab0bp.slicebeam.render
 object DevicePerformancePolicy {
     fun defaultRenderScale(lowRamDevice: Boolean): Float = if (lowRamDevice) 0.7f else 1f
 
+    /** Convert View pixels to the actual GL surface coordinate space. */
+    fun mapTouchCoordinate(inputPx: Float, viewSizePx: Int, surfaceSizePx: Int): Float =
+        if (viewSizePx > 0 && surfaceSizePx > 0) inputPx * surfaceSizePx / viewSizePx else inputPx
+
     fun useSimpleInactivePlatePreview(performanceMode: Boolean, lowRamDevice: Boolean): Boolean =
         performanceMode || lowRamDevice
 

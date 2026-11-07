@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="段状のレリーフ、裏向きの透明キャリア、表向きの露出した板。" />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/ja/docs/flat-paint">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="フラット印刷 | Kromacutドキュメント" />
+        <meta property="og:description" content="段状のレリーフ、裏向きの透明キャリア、表向きの露出した板。" />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/ja/docs/flat-paint" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="ja_JP" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="フラット印刷 | Kromacutドキュメント" />
+        <meta name="twitter:description" content="段状のレリーフ、裏向きの透明キャリア、表向きの露出した板。" />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>フラット印刷 | Kromacutドキュメント</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/flat-paint">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/flat-paint">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/flat-paint">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/flat-paint">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/flat-paint">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/flat-paint">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/flat-paint">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/flat-paint">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/flat-paint">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/flat-paint">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/flat-paint">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/flat-paint">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/flat-paint">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="ドキュメント">
+                    <a href="/ja/">ホームへ戻る</a>
+                    <a href="/app">Kromacutを開く</a>
+                    <ul><li><a href="/ja/docs/overview">概要</a></li><li><a href="/ja/docs/quick-start">クイックスタート</a></li><li><a href="/ja/docs/loading-images">画像の読み込み</a></li><li><a href="/ja/docs/image-adjustments">画像調整</a></li><li><a href="/ja/docs/reducing-colors">減色</a></li><li><a href="/ja/docs/dedithering-cleanup">ディザ除去とクリーンアップ</a></li><li><a href="/ja/docs/3d-mode">3Dモード</a></li><li><a href="/ja/docs/calibration-theory">校正の理論</a></li><li><a href="/ja/docs/auto-paint">自動ペイントの操作</a></li><li><a href="/ja/docs/flat-paint">フラット印刷</a></li><li><a href="/ja/docs/calibration-workflows">校正の手順</a></li><li><a href="/ja/docs/generating-exporting-output">モデル生成と書き出し</a></li><li><a href="/ja/docs/settings-and-controls">設定と操作</a></li><li><a href="/ja/docs/troubleshooting">トラブルシューティング</a></li><li><a href="/ja/docs/faq">よくある質問</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="flat-paint">フラット印刷</h1>
+<p><strong>フラット印刷</strong>は、標準または高度な色合わせで使える自動ペイントの配置です。段状のレリーフではなく、厚みが一定の板を作ります。印刷する各層がモデルの占有領域全体を覆い、同じ層の隣り合う場所に異なる材料を使う場合があります。</p>
+<p>対応するスライサーと、AMS、CFS、ツールチェンジャーなどの多材料方式を使ってください。1つの高さでの手動フィラメント交換では、その層に複数材料を横に並べて配置できません。</p>
+<p><a href="/localized/ja/diagrams/17_flat_paint_orientation.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：通常のレリーフ、裏向きの透明キャリア付きフラット印刷、キャリアなしの表向きフラット印刷を断面で比較します。"><img src="/localized/ja/diagrams/17_flat_paint_orientation.svg" alt="通常のレリーフ、裏向きの透明キャリア付きフラット印刷、キャリアなしの表向きフラット印刷を断面で比較します。" loading="lazy"></a></p>
+<p><em>概念的な断面図です。色は材料、ラベルは観察する面を表します。</em></p>
+<p>作成の進捗はメッシュパーツ単位で数えられ、印刷レイヤー数ではありません。複数の色パーツが1つのレイヤーを共有することがあります。「モデル」バッジには、物理レイヤー数（使用する場合は透明キャリアを含む）が表示されます。レイヤープレビューは板を物理レイヤー1枚ずつ切り取り、両方のハンドルで結合された土台と色の領域も切り取ります。エクスポートには常に完全なモデルが含まれます。「3Dモデルを作成」は設定が変わっていなくても常にモデルを再生成し、レイヤー範囲全体と初期のカメラビューを復元します。</p>
+<p>作成に失敗すると、Kromacutは未完成のモデルを削除し、プレビューにエラーを表示します。「3Dモデルを作成」を押して再試行してください。作成が成功すると、モデルの寸法とレイヤープレビューが再び表示されます。</p>
+<h2 id="default-face-down-with-clear-carrier">既定：透明キャリア付きの裏向き</h2>
+<p><strong>フラット印刷</strong>を有効にし、<strong>表向き、透明層なし</strong>はオフのままにします。</p>
+<ol><li>透明キャリアが最初に印刷され、プレートに接する滑らかな観察面になります。そのオブジェクトに透明フィラメントを割り当てます。</li><li>絵柄の柱は下から見るために通常の材料順を反転します。低い柱の背後を土台材料が埋めます。</li><li><strong>3MF</strong>を書き出し、その向きを保持します。絵柄はすでに左右反転済みなので、スライサーで再度反転しないでください。</li><li>印刷後に部品を裏返し、キャリア越しに観察します。</li></ol>
+<p>スライサーで背面から見ると文字が反転して見える場合があります。意図した観察面を確認してください。Kromacutのプレビューで下側に回り込むとその面を確認できます。</p>
+<p>キャリアは追加の形状であり、実物の透明フィラメントが必要です。画面上の透明度はフィラメントの透明性やビルドプレートの仕上がりを測るものではありません。自動ペイントの<strong>最大高さ</strong>だけでなく、<strong>モデル</strong>バッジとスライサーで全体の厚みを確認してください。</p>
+<h2 id="face-up-no-clear-layer">表向き、透明層なし</h2>
+<p>この切り替えを有効にすると透明キャリアを除去します。</p>
+<ul><li>各柱は通常の下から上への材料順を保ちます。</li><li>土台材料が低い柱の下を埋め、見える色を平らな上面にそろえます。</li><li>キャリアのオブジェクトも透明フィラメントも不要です。</li><li>書き出したとおり表向きで印刷し、反転せず、裏返さずに露出した上面を見ます。</li></ul>
+<p>これらの配置は形状が異なります。切り替えを変えたら再び<strong>3Dモデルを作成</strong>してください。古い書き出しを裏返しても配置は変換されません。</p>
+<h2 id="compare-the-workflows">方式を比較する</h2>
+<table><thead><tr><th>方式</th><th>観察面</th><th>形状</th><th>スライサーでの割り当て</th></tr></thead><tbody><tr><td>通常の自動ペイント</td><td>段状の上面</td><td>低い柱が早く終了する。</td><td>高さごとの物理材料の連続区間。</td></tr><tr><td>フラット印刷、既定</td><td>透明キャリア越しの底面</td><td>左右反転・材料順反転した柱の背後に土台。</td><td>フィラメントごとのオブジェクトとキャリア。</td></tr><tr><td>フラット印刷、表向き</td><td>露出した平らな上面</td><td>通常の順番で、低い柱の下に土台。</td><td>フィラメントごとのオブジェクト。キャリアなし。</td></tr></tbody></table>
+<p><strong>滑らかなメッシュ</strong>はフラット印刷の両方の向きで使用できます。強度を選び、再作成してください。板の平らな面、層高、材料の積層順を保ちながら、外側の輪郭と色の共有境界を滑らかにします。斜めの角の接触は小さな共有接合で閉じ、重なりを防ぎます。印刷手順と3MFには作成時の強度が記録されます。</p>
+<h2 id="export-and-check">書き出して確認する</h2>
+<p><strong>3MF</strong>のみ利用できます。無色のSTLでは意味のある材料配置が失われ、単なる板になるためです。オブジェクトは予測された混色ごとではなく、実際のフィラメントごとにまとめられます。</p>
+<ol><li>通常層と初層の高さをKromacutに合わせます。</li><li>縮尺と書き出し時の向きを保ち、追加の左右反転をしません。</li><li>既定のキャリア用の透明フィラメントも含め、全オブジェクトに正しく割り当てます。</li><li>スライサーで各層を確認し、隣り合う領域と完全な板を確認します。</li><li>意図した観察面から文字の向きを確認し、交換と印刷時間を確認します。</li></ol>
+<p><strong>印刷手順</strong>では手動交換リストの代わりに、配置に合った多材料の案内が表示されます。<strong>層プレビュー</strong>は1層に複数材料があるため単色のトラックになります。表示範囲の制限は引き続き確認用で、全体の書き出しには影響しません。</p>
+<h2 id="cost-and-detail-tradeoffs">コストと細部のトレードオフ</h2>
+<p>表面が平らだからといって印刷が単純とは限りません。全層で占有領域を埋めるため、レリーフより材料と形状の負荷が増えます。薄い層、高い積層、<strong>高さディザ</strong>は小さな領域や移動を増やし、作成、書き出し、スライスを遅くする場合があります。</p>
+<p>Kromacutは負荷の大きいフラット印刷の作成前に警告します。<strong>それでも作成</strong>はその処理負荷を受け入れるものであり、プリンターへの適合を保証しません。材料や仕上がりが未検証なら小さな試料で試してください。フラット印刷は意図した光学的な柱の配置を保ちますが、校正済み材料と一致する印刷条件に依存します。</p>
+<p>次へ：<a href="/ja/docs/generating-exporting-output">モデル生成と書き出し</a>。</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

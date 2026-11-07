@@ -52,7 +52,6 @@ object OrcaFilamentSettingsBuilder {
     }
 
     private fun localizedGroup(context: Context, source: String): String {
-        if (source == "General bed") return context.getString(R.string.FilamentBedGeneral)
         @Suppress("DEPRECATION")
         val language = context.resources.configuration.locale.language
         return OrcaProfileGroupLocalizer.filamentGroup(source, language)

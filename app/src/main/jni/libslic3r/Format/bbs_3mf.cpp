@@ -3819,7 +3819,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             m_curr_object->geometry.custom_supports.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_SUPPORTS_ATTR));
             m_curr_object->geometry.custom_seam.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_SEAM_ATTR));
-            m_curr_object->geometry.mmu_segmentation.push_back(bbs_get_attribute_value_string(attributes, num_attributes, MMU_SEGMENTATION_ATTR));
+            std::string mmu_painting = bbs_get_attribute_value_string(attributes, num_attributes, MMU_SEGMENTATION_ATTR);
+            if (mmu_painting.empty())
+                mmu_painting = bbs_get_attribute_value_string(attributes, num_attributes, "slic3rpe:mmu_segmentation");
+            m_curr_object->geometry.mmu_segmentation.push_back(std::move(mmu_painting));
             m_curr_object->geometry.fuzzy_skin.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_FUZZY_SKIN_ATTR));
             // BBS
             m_curr_object->geometry.face_properties.push_back(bbs_get_attribute_value_string(attributes, num_attributes, FACE_PROPERTY_ATTR));
@@ -5532,7 +5535,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             current_object->geometry.custom_supports.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_SUPPORTS_ATTR));
             current_object->geometry.custom_seam.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_SEAM_ATTR));
-            current_object->geometry.mmu_segmentation.push_back(bbs_get_attribute_value_string(attributes, num_attributes, MMU_SEGMENTATION_ATTR));
+            std::string mmu_painting = bbs_get_attribute_value_string(attributes, num_attributes, MMU_SEGMENTATION_ATTR);
+            if (mmu_painting.empty())
+                mmu_painting = bbs_get_attribute_value_string(attributes, num_attributes, "slic3rpe:mmu_segmentation");
+            current_object->geometry.mmu_segmentation.push_back(std::move(mmu_painting));
             current_object->geometry.fuzzy_skin.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_FUZZY_SKIN_ATTR));
             // BBS
             current_object->geometry.face_properties.push_back(bbs_get_attribute_value_string(attributes, num_attributes, FACE_PROPERTY_ATTR));

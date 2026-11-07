@@ -8,14 +8,6 @@ import org.junit.Test
 
 class PrintConfigToolsLogicTest {
     @Test
-    fun filamentSyncRequiresAConfiguredPrinterHost() {
-        assertFalse(PrintConfigToolsLogic.canSyncFilaments(null))
-        assertFalse(PrintConfigToolsLogic.canSyncFilaments(""))
-        assertFalse(PrintConfigToolsLogic.canSyncFilaments("   "))
-        assertTrue(PrintConfigToolsLogic.canSyncFilaments("http://printer.local"))
-    }
-
-    @Test
     fun emptyFlushMatrixUsesZeroDiagonalAndStandardPurgeElsewhere() {
         val matrix = PrintConfigToolsLogic.flushMatrix(null, slotCount = 1, maxSlots = 16)
         assertEquals(2, matrix.side)
@@ -52,6 +44,15 @@ class PrintConfigToolsLogicTest {
         assertEquals(1, defaults.plateCount)
         assertEquals(listOf("15"), defaults.x)
         assertEquals(listOf("15"), defaults.y)
+    }
+
+    @Test
+    fun towerPositionsIncludeTheActivePlateEvenWhenItsCoordinateUsesInheritedDefault() {
+        val positions = PrintConfigToolsLogic.towerPositions("10", "20", requiredPlateCount = 4)
+
+        assertEquals(4, positions.plateCount)
+        assertEquals(listOf("10", "10", "10", "10"), positions.x)
+        assertEquals(listOf("20", "20", "20", "20"), positions.y)
     }
 
     @Test

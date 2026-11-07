@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -341,7 +342,9 @@ private fun ProfileSettingsRowsContent(
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize().profileListFade(listState, overlayAlpha),
+            modifier = Modifier.fillMaxSize()
+                .testTag("profile-settings-options-list")
+                .profileListFade(listState, overlayAlpha),
         ) {
             itemsIndexed(rows, key = { _, entry ->
                 ProfileSettingsRowSaveableKey.create(entry.index, entry.value)
@@ -399,9 +402,13 @@ private fun ProfileSettingsRow(
         bottomEnd = if (decoration.endsSection) 28.dp else 0.dp,
         bottomStart = if (decoration.endsSection) 28.dp else 0.dp,
     )
+    val rowTestTag = wrapper.optionEl?.optionDef?.key
+        ?.takeIf { it.isNotBlank() }
+        ?.let { "profile-option-key-$it" }
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (rowTestTag != null) Modifier.testTag(rowTestTag) else Modifier)
             .padding(top = if (decoration.startsSection) 8.dp else 0.dp)
             .background(backgroundColor, shape),
     ) {

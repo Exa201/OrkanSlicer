@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-PT">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="A ótica e a matemática da calibração por distância de ocultação, prova de paleta e matriz de empilhamentos." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/pt-PT/docs/calibration-theory">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Teoria da calibração | Documentação Kromacut" />
+        <meta property="og:description" content="A ótica e a matemática da calibração por distância de ocultação, prova de paleta e matriz de empilhamentos." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/pt-PT/docs/calibration-theory" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="pt_PT" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Teoria da calibração | Documentação Kromacut" />
+        <meta name="twitter:description" content="A ótica e a matemática da calibração por distância de ocultação, prova de paleta e matriz de empilhamentos." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Teoria da calibração | Documentação Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/calibration-theory">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/calibration-theory">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/calibration-theory">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/calibration-theory">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/calibration-theory">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/calibration-theory">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/calibration-theory">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/calibration-theory">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/calibration-theory">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/calibration-theory">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/calibration-theory">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/calibration-theory">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/calibration-theory">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentação">
+                    <a href="/pt-PT/">Ir para a página inicial</a>
+                    <a href="/app">Abrir Kromacut</a>
+                    <ul><li><a href="/pt-PT/docs/overview">Visão geral</a></li><li><a href="/pt-PT/docs/quick-start">Início rápido</a></li><li><a href="/pt-PT/docs/loading-images">Carregar imagens</a></li><li><a href="/pt-PT/docs/image-adjustments">Ajustes de imagem</a></li><li><a href="/pt-PT/docs/reducing-colors">Redução de cores</a></li><li><a href="/pt-PT/docs/dedithering-cleanup">Remoção de pontilhamento e limpeza</a></li><li><a href="/pt-PT/docs/3d-mode">Modo 3D</a></li><li><a href="/pt-PT/docs/auto-paint">Controlos de pintura automática</a></li><li><a href="/pt-PT/docs/calibration-theory">Teoria da calibração</a></li><li><a href="/pt-PT/docs/flat-paint">Pintura plana</a></li><li><a href="/pt-PT/docs/calibration-workflows">Fluxos de calibração</a></li><li><a href="/pt-PT/docs/generating-exporting-output">Geração e exportação</a></li><li><a href="/pt-PT/docs/settings-and-controls">Definições e controlos</a></li><li><a href="/pt-PT/docs/troubleshooting">Resolução de problemas</a></li><li><a href="/pt-PT/docs/faq">Perguntas frequentes</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="calibration-theory">Teoria da calibração</h1>
+<p>O Kromacut tem três ferramentas complementares. <strong>Distância de ocultação</strong> mede a opacidade física de cada filamento. <strong>Prova de paleta</strong> pede que classifique alguns candidatos impressos para cores importantes num trabalho. <strong>Matriz de empilhamentos</strong> fotografa muitas receitas conhecidas e regista cores observadas. Todas alimentam o mesmo modelo automático, mas respondem a perguntas distintas.</p>
+<p>Para controlos passo a passo, gravação e compatibilidade, consulte <a href="/pt-PT/docs/calibration-workflows">Fluxos de calibração</a>. Para o resto da área de impressão, consulte <a href="/pt-PT/docs/3d-mode">Modo 3D</a>.</p>
+<h2 id="why-thin-layers-blend">Porque se misturam camadas finas</h2>
+<p>A impressão é vista com luz frontal: entra pelo topo, atravessa filamento, reflete-se em baixo e sai novamente. Uma camada fina só oculta parcialmente o que está por baixo, pelo que se vê uma mistura da cor própria e da cor transmitida. A pintura automática usa essa transparência residual para criar cores intermédias com poucos filamentos, daí a importância da HD exata.</p>
+<p><a href="/localized/pt-PT/diagrams/06_frontlit_hiding_distance.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: Camadas finas sobre preto ocultam-no só em parte; cada camada multiplica a transparência residual até se atingir a cor opaca do filamento."><img src="/localized/pt-PT/diagrams/06_frontlit_hiding_distance.svg" alt="Camadas finas sobre preto ocultam-no só em parte; cada camada multiplica a transparência residual até se atingir a cor opaca do filamento." loading="lazy"></a></p>
+<p>O Kromacut modela a transmissão com Beer-Lambert. Uma espessura <code>d</code> transmite</p>
+<pre><code>T = 10^(−d / HD)</code></pre>
+<p>da cor inferior. Cada camada multiplica essa transmissão, atingindo opacidade geometricamente. A taxa é propriedade do material: preto denso oculta numa fração de milímetro, branco translúcido pode exigir dez vezes mais. Essa taxa é a distância de ocultação.</p>
+<p>A distância de transmissão em fichas ou ensaios TD retroiluminados descreve luz a atravessar o filamento <em>uma vez</em>, como numa litofania. A observação frontal atravessa duas vezes e lê contra reflexão; uma TD convencional é cerca de dez vezes a HD. O Kromacut aceita TD através do botão de conversão, mas guarda e simula com HD.</p>
+<h2 id="the-wedge">A cunha</h2>
+<p>Medir cor por câmara é pouco fiável: há correções automáticas, ecrãs diferentes e luz variável. A cunha evita julgar cores isoladas. Cada peça imprime casas de 1 a N camadas sobre uma base, com <strong>faixa de referência</strong> do mesmo filamento totalmente opaca ao lado e patilha a marcar a ponta de uma camada.</p>
+<p><a href="/localized/pt-PT/diagrams/07_calibration_wedge.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: A cunha: casas numeradas de espessura crescente junto a faixa opaca; indica-se a primeira casa idêntica à faixa."><img src="/localized/pt-PT/diagrams/07_calibration_wedge.svg" alt="A cunha: casas numeradas de espessura crescente junto a faixa opaca; indica-se a primeira casa idêntica à faixa." loading="lazy"></a></p>
+<p>Indique a <strong>primeira casa que parece idêntica à faixa ao lado</strong>. A faixa é a cor opaca do filamento a milímetros sob a mesma luz, mantendo a comparação entre salas, ecrãs e impressões. Casas finas mostram a base; numa certa casa a diferença cai abaixo do discernível, e esse número é a medição.</p>
+<h2 id="from-a-read-to-a-hiding-distance">Da leitura à distância de ocultação</h2>
+<p>A casa marca a espessura em que a transmissão caiu abaixo de uma <strong>diferença apenas percetível (JND)</strong>: a menor diferença visível, cerca de 2 ΔE00 em observação quotidiana.</p>
+<p>O Kromacut resolve ao contrário. Para a cor do filamento sobre a base calcula <code>T*</code>, a transmissão que coloca a mistura a exatamente uma JND da cor opaca. Depende só das duas cores e da JND, sem constante de opacidade afinada manualmente. A leitura dá <code>d* = casa × altura de camada</code>, e a inversão resulta em:</p>
+<pre><code>HD = −d* / log10(T*)</code></pre>
+<p><a href="/localized/pt-PT/diagrams/08_opacity_solve.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: Ao empilhar, a diferença casa-faixa diminui; a leitura fixa a passagem por uma JND e a inversão da lei dá a HD."><img src="/localized/pt-PT/diagrams/08_opacity_solve.svg" alt="Ao empilhar, a diferença casa-faixa diminui; a leitura fixa a passagem por uma JND e a inversão da lei dá a HD." loading="lazy"></a></p>
+<p>O contraste da base importa: preto sobre preto nunca difere da faixa uma JND inteira, logo nada há a medir. O assistente deteta e atribui base clara a filamentos escuros.</p>
+<h2 id="palette-proof-evidence">Evidências da prova de paleta</h2>
+<p>A prova compara prefixos reais com cores da imagem atual. Guarda receita física, previsão HD original, alvo pedido e todas as respostas. Uma folha fornece assim dois tipos de evidência sem fingir que cada escolha é uma medida exata.</p>
+<p><strong>Melhor disponível</strong> apoia a receita selecionada e rejeita alternativas próximas do alvo sem forçar igualdade de cor. <strong>Próxima</strong> acrescenta correção local parcial. <strong>Exata</strong> acrescenta a correção mais forte e preserva o sufixo opaco exato testado como referência direta. Todas as casas empatadas selecionadas recebem apoio. <strong>Nenhum</strong> rejeita candidatos plausíveis próximos sem inventar direção de correção.</p>
+<p>Os efeitos são locais no espaço de receitas e de cores. As camadas recentes e opticamente dominantes contam mais; mover o mesmo filamento noutro local recente dá correspondência menor. A evidência desvanece também quando a cor simulada ou alvo se afasta da avaliada. Receitas semelhantes que perdem repetidamente perto de verdes reforçam um aviso local para empilhamentos verdes próximos, deixando uma receita vermelha sem relação intacta.</p>
+<p>Correções Próxima e Exata alimentam as mesmas cores Lab da pontuação e vista final. Apoio e rejeição acrescentam preferência limitada sensível ao alvo, podendo desempatar valores próximos sem superar erro real ou referências exatas. O ajuste global de luminosidade/croma é separado e tem de passar validação com dados reservados. Evidências locais e referências Exata podem continuar úteis sem ajuste global ativo, e todos os parâmetros derivados são reconstruídos deterministicamente das avaliações brutas guardadas.</p>
+<h2 id="stack-matrix-calibration">Calibração por matriz de empilhamentos</h2>
+<p>A matriz começa como medição tipo LUT, não outra resolução de cunha. Novas placas amostram receitas úteis de comprimentos diferentes até uma espessura física máxima, mantendo a altura normal em cada camada colorida. Um máximo de 0,40 mm a 0,04 mm permite dez camadas de cor. A fundação é uma só camada à altura inicial efetiva, não uma placa dimensionada por opacidade. Com primeira camada de 0,10 mm, o exemplo mede 0,50 mm e onze camadas.</p>
+<p>Receitas curtas assentam em camadas extra do mesmo suporte dentro da zona colorida para todos os topos terminarem no mesmo Z sem exceder o limite. O suporte extra regista-se separado da receita útil. Uma fundação fina não é garantidamente opaca: use filamento opaco e fundo fotográfico plano e consistente. O suporte impresso deve ocultar realmente o substrato antes de tratar o acrescentado como neutro. Placas antigas preservam fundações e mapas originais.</p>
+<p>O espaço de receitas cresce exponencialmente, por isso o planeamento usa um conjunto determinístico limitado de sequências puras, transições ordenadas e receitas exploratórias mais longas nas profundidades permitidas. HD guardadas preveem cores. Matrizes compatíveis concluídas fornecem cobertura medida e registo de receitas anteriores. A seleção favorece lacunas de cor, espessuras/transições inéditas e exploração informada por apoio fraco ou erros anteriores. As pontuações são heurísticas, não intervalos calibrados de incerteza. Algumas referências repetem-se intencionalmente para consistência; planos não impressos e fotos incompatíveis/não aceites não fecham lacunas.</p>
+<p>O orçamento de trocas inclui referências de canto e limita uso de materiais camada a camada. Não estima tempo nem purga, e o laminador pode acrescentar trocas. Um máximo maior pode custar mais mesmo com poucas casas. Novas placas agrupam receitas semelhantes para regiões contínuas e menos fragmentação; rearranjar casas não reduz materiais por camada. Placas antigas mantêm seleção exaustiva de profundidade fixa ou gama HD original e continuam a contribuir sem reescrita.</p>
+<p>A matriz imprime de face para cima, com fundação, primeira camada e receitas na ordem física normal. Quatro receitas de canto definem orientação e perspetiva. Fotografe sob luz frontal difusa. O Kromacut estima a placa e permite arrastar quatro pegas numeradas para centros de marcadores com mira ampliada. Uma grelha exata projetada e vista retificada mostram erros de perspetiva, inclinação e enviesamento antes de amostrar uma zona central recuada nas coordenadas projetivas próprias de cada casa. Este recuo evita bordos mesmo quando a perspetiva estreita um lado. Alinhamento manual ou pouco fiável exige confirmação explícita; confiança e revisão ficam guardadas. A amostragem bruta é a predefinição conservadora. A correção opcional de marcadores estima ganho de luz por canal das quatro receitas conhecidas, podendo reduzir dominante mas também ocultar uma diferença real dependente da luz.</p>
+<p>Uma matriz concluída guarda cores sRGB previstas e fotografadas junto a receitas físicas imutáveis no perfil. Todas as matrizes compatíveis reajustam conjuntamente um modelo físico efetivo sem tocar amostras guardadas, calibração HD ou medidas brutas. O ajuste trata esses valores como pressupostos regularizados e usa cada amostra ponderada para estimar HD efetiva por canal RGB, cor opaca efetiva, expoente não linear de transmissão para sequências contíguas e interação ordenada entre filamento visível e substrato. Com pouca evidência mantém os pressupostos; o modelo ajustado só é usado com amostras suficientes e melhoria de ΔE reservado sem piorar a cauda de erro. Uma interação ajustada vale até à maior sequência contígua medida desse par. Espessura adicional não medida continua da cor apoiada para a amostra nominal com o pressuposto HD/cunha adequado ao substrato; não muda toda a sequência para outra previsão nem extrapola indefinidamente o expoente. O mesmo cálculo de prefixos alimenta pontuação, comparação e vista, incluindo empilhamentos comprimidos/alinhados.</p>
+<p>O ajuste compara cores simuladas com sRGB fotografado por erro robusto, mantendo mistura física em luz linear. Assim diferenças em canais escuros têm peso suficiente. Penalizações prévias são médias por família de parâmetros nos materiais realmente presentes no treino; adicionar bobinas sem uso não enfraquece nem desativa o ajuste. A validação continua a decidir o uso. Melhor concordância em receitas conhecidas não prova exatidão para pares nunca medidos.</p>
+<p>As matrizes também permanecem LUT empíricas dispersas no Lab previsto e receitas, pelo que uma placa nova esparsa não apaga anteriores. O Kromacut pondera cada placa por confiança de alinhamento revista, cobertura, recência e concordância robusta com receitas medidas por pelo menos duas outras placas. Uma ou duas observações mantêm concordância neutra por falta de evidência para identificar um valor atípico. Uma receita exata de profundidade fixa combina diretamente observações Lab. Uma ausente combina interpolações determinísticas de distância inversa de Lab fotografado próximo, pesando mais a ordem das camadas superiores dominantes. Só se interpola dentro da cobertura Lab prevista local e de uma vizinhança limitada de receitas; fora usa-se o modelo físico conjunto. Sem evidência compatível regressa a Beer-Lambert/HD guardado. Pontuação e vista partilham a previsão. Referências Exata têm prioridade, e casas de matriz são observações, não alvos desejados; imprimir uma matriz ampla não faz o otimizador perseguir todas as cores amostradas.</p>
+<h2 id="prediction-uncertainty">Incerteza de previsão</h2>
+<p>Dentro da cobertura local, as correções interpoladas regressam suavemente ao modelo à medida que o apoio se esgota. Receitas exatas fotografadas mantêm as cores. Igualar só o material superior não basta: a fundação completa deve corresponder, ou o suporte alternativo ser suficientemente opaco e equivalente com a mesma interação imediata.</p>
+<p>Para receita idêntica medida, pode estimar-se transferência para outro suporte profundo se o substrato imediato for o mesmo material e cores finais simuladas diferirem no máximo 1 ΔE00. A fundação inicial deve cumprir o limiar opaco segundo o ajuste atual ou o HD guardado; os diagnósticos registam qual apoiou a espessura. Uma impressão existente pode conservar o pressuposto que justificou a base quando um ajuste posterior muda o limiar. Transfere-se a correção com confiança reduzida e etiqueta <strong>interpolada</strong>, pois a equivalência é inferida, não medida independentemente. Esta exceção não permite interpolação geral sobre outro suporte.</p>
+<p>Acrescentar o mesmo filamento terminal pode prolongar a correção de um prefixo medido. A influência atenua-se através da sequência original e desaparece em, no máximo, uma espessura extra de receita de matriz. Também se chama interpolada. Não prevê prefixos mais finos de uma medida posterior, e acrescentar outro material termina a continuação. Medições diretas e provas aplicáveis mantêm prioridade. Os diagnósticos identificam amostras e se houve transferência de suporte ou continuação em espessura.</p>
+<p>Cada prefixo recebe confiança junto ao Lab previsto, mantendo quatro entradas visíveis em vez de certeza inexplicada:</p>
+<ul><li><strong>Distância à medição:</strong> distância de cor prevista e de receita física à medição compatível mais próxima.</li><li><strong>Concordância local:</strong> se vizinhos descrevem uma correção consistente entre simulado e fotografado.</li><li><strong>Erro de validação:</strong> a LUT prevê cada receita sem a sua própria amostra, usando seleção e atenuação iguais às reais. É verificação condicional com modelo ótico fixo, não estimativa independente integral. Separadamente, o ajuste ótico é refeito e testado em matrizes inteiras reservadas ou grupos de interações receita/substrato se só houver uma.</li><li><strong>Método de previsão:</strong> uma observação física exata começa com mais apoio que interpolação, ajuste ou simulação Beer-Lambert pura.</li></ul>
+<p>O otimizador acrescenta no máximo cinco pontos equivalentes ΔE a correspondência totalmente incerta. Basta para uma aproximação apoiada vencer um cinzento especulativo aparentemente perfeito, mas é limitado para não dominar grandes erros visíveis. Referências Exata mantêm prioridade e Preservar separação avalia viabilidade com ΔE00 bruto, não custo ajustado ao risco. Paletas, camadas finais e mapeamentos guardados retêm o mesmo objeto de confiança, evitando pressupostos diferentes entre procura e renderização.</p>
+<p>A calibração fotográfica é sensível a câmara, exposição, reflexos, equilíbrio de brancos e luz. A cunha sem câmara continua preferida para HD. Use matriz para muitas receitas empíricas sob condições controladas e prova quando importam poucas cores de uma imagem.</p>
+<h2 id="per-channel-hiding-distances">Distâncias de ocultação por canal</h2>
+<p>Filamentos não absorvem vermelho, verde e azul igualmente — laranja transmite vermelho mas bloqueia azul —, logo uma HD escalar é aproximada. O Kromacut mistura com três HD por canal:</p>
+<ul><li><strong>Uma leitura de base (Rápido):</strong> mede HD escalar. Diferenças RGB continuam estimativa prudente pela amostra, ancorada para o canal mais luminoso corresponder à medição.</li><li><strong>Bases adicionais (Preciso):</strong> cada base testa a curva de modo diferente. Ajusta-se uma intensidade limitada de seletividade e o escalar apenas quanto os intervalos quantizados exigem. Não se afirma que dois limiares visuais meçam independentemente três HD espectrais.</li></ul>
+<p>A curva afinada aplica-se diretamente a bases comparadas na cunha. Numa base não testada mantém-se Rápido, em vez de extrapolar forte mudança de matiz. Pode acrescentar bases quando conveniente, mas três ou quatro não são obrigatórias. HD totalmente independentes, transmissão não linear e interações específicas reservam-se a matrizes com validação e apoio de espessura.</p>
+<p>A leitura opcional de fusão regista o último degrau adjacente ainda diferente. Valida a curva em vez de acrescentar parâmetro livre: grande discrepância reduz confiança e aparece em diagnósticos.</p>
+<h2 id="the-session-jnd-fit">Ajuste de JND da sessão</h2>
+<p>A JND predefinida de 2 ΔE00 é uma constante visual, mas observador e iluminação podem desviar-se. Com leituras multibase suficientemente informativas e independentes pode ajustar-se uma JND comum entre 1 e 3. Só se mantém se claramente identificável e melhor que a predefinição; leituras quantizadas são frequentemente ambíguas com HD escalar, mantendo então corretamente a constante.</p>
+<h2 id="confidence">Confiança</h2>
+<p>Cada calibração tem uma pontuação de quão bem a medição ficou definida:</p>
+<ul><li>Leituras nos extremos (casa 1 ou última) reduzem confiança: a opacidade real pode estar fora da gama. Imprima cunha mais longa ou camadas mais finas e recalibre.</li><li>Leituras multibase discordantes mesmo no melhor ajuste reduzem confiança e deixam nota do desacordo.</li><li>A confiança diminui após seis meses, pois filamentos envelhecem e bobinas mudam.</li></ul>
+<p>Filamentos não calibrados recebem menor pontuação conforme a plausibilidade da HD estimada.</p>
+<h2 id="what-changes-after-calibrating">O que muda após calibrar</h2>
+<p>HD por canal alimentam <strong>cores</strong> previstas e <strong>espessura</strong> das transições. Calibrar pode alterar alturas e trocas, não só a vista.</p>
+<p>A calibração pertence ao material medido: liga-se à cor da amostra, editar a cor desativa-a e recalibrar substitui a medida anterior em vez de fazer média.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="同一色の近傍に基づく除去と、点、輪郭、透明度、孤立した印刷領域への影響。" />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/ja/docs/dedithering-cleanup">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="ディザ除去とクリーンアップ | Kromacutドキュメント" />
+        <meta property="og:description" content="同一色の近傍に基づく除去と、点、輪郭、透明度、孤立した印刷領域への影響。" />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/ja/docs/dedithering-cleanup" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="ja_JP" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="ディザ除去とクリーンアップ | Kromacutドキュメント" />
+        <meta name="twitter:description" content="同一色の近傍に基づく除去と、点、輪郭、透明度、孤立した印刷領域への影響。" />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>ディザ除去とクリーンアップ | Kromacutドキュメント</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/dedithering-cleanup">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="ドキュメント">
+                    <a href="/ja/">ホームへ戻る</a>
+                    <a href="/app">Kromacutを開く</a>
+                    <ul><li><a href="/ja/docs/overview">概要</a></li><li><a href="/ja/docs/quick-start">クイックスタート</a></li><li><a href="/ja/docs/loading-images">画像の読み込み</a></li><li><a href="/ja/docs/image-adjustments">画像調整</a></li><li><a href="/ja/docs/reducing-colors">減色</a></li><li><a href="/ja/docs/dedithering-cleanup">ディザ除去とクリーンアップ</a></li><li><a href="/ja/docs/3d-mode">3Dモード</a></li><li><a href="/ja/docs/calibration-theory">校正の理論</a></li><li><a href="/ja/docs/auto-paint">自動ペイントの操作</a></li><li><a href="/ja/docs/flat-paint">フラット印刷</a></li><li><a href="/ja/docs/calibration-workflows">校正の手順</a></li><li><a href="/ja/docs/generating-exporting-output">モデル生成と書き出し</a></li><li><a href="/ja/docs/settings-and-controls">設定と操作</a></li><li><a href="/ja/docs/troubleshooting">トラブルシューティング</a></li><li><a href="/ja/docs/faq">よくある質問</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="dedithering-and-cleanup">ディザ除去とクリーンアップ</h1>
+<p><strong>ディザ除去</strong>は、近くに同色の支持がないピクセルを周囲の色に置き換えます。独立した画像クリーンアップ処理であり、減色アルゴリズムでも、ノズルが印刷できる形状のシミュレーションでもありません。</p>
+<p>同じ色が繰り返すディザ模様や、孤立した点のある減色画像に使います。元画像にそのような模様があれば減色前にも使えますし、減色後の領域にも使えます。写真用のノイズ低減フィルターではありません。写真では隣接ピクセルも厳密には少しずつ異なる色であることが多いためです。</p>
+<h2 id="how-a-pixel-is-chosen">ピクセルの選択方法</h2>
+<p><a href="/localized/ja/diagrams/36_dedither_neighbors.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：周囲8ピクセルが完全一致の色で投票します。重みは中央を残すために必要な同色近傍数を決め、繰り返し処理は直前の結果を使います。"><img src="/localized/ja/diagrams/36_dedither_neighbors.svg" alt="周囲8ピクセルが完全一致の色で投票します。重みは中央を残すために必要な同色近傍数を決め、繰り返し処理は直前の結果を使います。" loading="lazy"></a></p>
+<p>各ピクセルは斜めを含む直近の8近傍を調べます。<strong>RGBとアルファが完全一致</strong>する近傍が十分あれば、そのまま残ります。足りなければ、異なる近傍色のうち最も多いものに置き換わります。同数の場合はランダムに選ぶため、設定が同じでも毎回同じ結果になるとは限りません。</p>
+<p>透明ピクセルを含め、すでに存在する近傍色だけを使います。平均して新しい色を作ることはありません。</p>
+<h2 id="weight">重み</h2>
+<p><strong>重み</strong>は元のピクセルを残すために必要な同色近傍数です。範囲は<strong>1〜9</strong>、既定値は<strong>4</strong>です。</p>
+<table><thead><tr><th>例</th><th>結果</th></tr></thead><tbody><tr><td>同色の近傍がない</td><td>別の近傍色があれば、重み1でも変わります。</td></tr><tr><td>同色の近傍が3つ</td><td>重み3では残り、重み4では置換対象になります。</td></tr><tr><td>中央と8近傍すべてが同色</td><td>別の近傍色がないため、重み9でも残ります。</td></tr></tbody></table>
+<p>低い値では細部が残りやすく、高い値では置換対象のピクセルが増えます。近傍は8つしかないので、重み9では保持の閾値に達しません。これは強い境界処理であり、半径を広げる設定ではありません。画像端のピクセルでは近傍数がさらに少なくなります。</p>
+<h2 id="passes">回数</h2>
+<p><strong>回数</strong>はクリーンアップを<strong>1〜10</strong>回繰り返し、既定値は<strong>1</strong>です。各回は直前の完成した結果を読み取ります。回数を増やすとしつこい点を除去できますが、輪郭を動かしたり、細い接続を切ったり、小さな文字を消したりすることもあります。</p>
+<p>各項目のリセット矢印は重み4または回数1に戻します。パネルのリセットは両方を戻します。どちらも以前の画像は復元しません。画像を戻すには「元に戻す」を使います。</p>
+<h2 id="apply-and-inspect">適用して確認する</h2>
+<ol><li>先に有効な画像調整を<strong>適用</strong>します。ディザ除去は調整後の表示を読み取るため、先に画像に反映すると処理済み結果にライブ調整が重なるのを防げます。</li><li>1回から始めます。重みの既定値は4です。細い形状が重要なら低い値を試します。</li><li><strong>適用</strong>をクリックし、大きくズームして輪郭、文字、透明な境界を確認します。</li><li>同じ開始画像で別の設定と比較する前に元に戻します。</li></ol>
+<p>「適用」を繰り返しクリックすると、処理済み画像をさらに処理します。元画像に対する独立した比較にはなりません。</p>
+<h2 id="effect-on-the-print">印刷への影響</h2>
+<p>孤立した異色ピクセルを除くと小さな色の島を消せますが、必要な細部も失う場合があります。アルファも投票に含まれるため、ディザ除去は輪郭を広げたり縮めたり、穴を開けたり閉じたりできます。</p>
+<p>処理単位はmmではなく<strong>画像のピクセル</strong>です。0.1 mm/pxで3ピクセルの形状は、その後のメッシュやスライサーの処理前には0.3 mm幅です。ディザ除去にはノズル径の入力がありません。<a href="/ja/docs/3d-mode">3Dの印刷可能な細部の操作</a>とスライサーのプレビューで物理的な形状を確認してください。</p>
+<h2 id="dedither-versus-height-dithering">ディザ除去と高さディザの違い</h2>
+<table><thead><tr><th>ツール</th><th>場所</th><th>変わるもの</th></tr></thead><tbody><tr><td>ディザ除去</td><td>2D</td><td>完全一致の色領域と、場合によっては元画像の透明な輪郭。</td></tr><tr><td>高さディザ</td><td>3Dの自動ペイント</td><td>目標色に近づけるために生成される表面高さの模様。</td></tr></tbody></table>
+<p>片方を使っても、もう片方は有効になりません。意図的なピクセルアートや点描を保持する場合は、ディザ除去を適用しないでください。</p>
+<p>次へ：<a href="/ja/docs/3d-mode">3Dモード</a>。</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

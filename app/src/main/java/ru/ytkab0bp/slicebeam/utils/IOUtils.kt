@@ -21,7 +21,13 @@ import java.util.concurrent.Executors
 class IOUtils {
     companion object {
     @JvmField
-    var IO_POOL: ExecutorService = Executors.newCachedThreadPool()
+    // Generators and slicing can hold large model/bitmap objects. Keep concurrent native
+    // work bounded so a burst of user actions cannot create an unbounded number of threads.
+    var IO_POOL: ExecutorService = Executors.newFixedThreadPool(
+        Runtime.getRuntime().availableProcessors().coerceIn(2, 3),
+    ) { task ->
+        Thread(task, "OrkanSlicer-IO").apply { priority = Thread.NORM_PRIORITY - 1 }
+    }
 
     @JvmStatic
     fun getDisplayName(uri: Uri?): String? {

@@ -1,8 +1,6 @@
 package ru.ytkab0bp.slicebeam.components
 
-import android.content.Context
 import android.graphics.Color as AndroidColor
-import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,19 +30,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
+import ru.ytkab0bp.slicebeam.MainActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
+import ru.ytkab0bp.slicebeam.config.BedSurfaceTemperaturePolicy
 import ru.ytkab0bp.slicebeam.slic3r.Model
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
@@ -58,12 +57,18 @@ object PreSliceFilamentDialog {
     fun interface Callback {
         /** Zero-based slot indices, or -1 to preserve that object's imported part/paint colors. */
         fun onSelected(slotIndices: IntArray)
+
+        /** Remaps imported one-based source T IDs to one-based application filament IDs. */
+        fun onSourceColorsSelected(slotIndices: IntArray, sourceTools: IntArray, targetSlots: IntArray) {
+            onSelected(slotIndices)
+        }
     }
 
     @JvmStatic
-    fun show(context: Context, model: Model?, callback: Callback,
+    fun show(fragment: BedFragment, model: Model?, callback: Callback,
              positiveLabel: Int = R.string.PreSliceStart,
              titleLabel: Int = R.string.PreSliceSlotTitle) {
+        val context = fragment.getContext() ?: return
         val slots = Prefs.getFilamentSlots().ifEmpty {
             listOf(FilamentSlot(AndroidColor.DKGRAY, "PLA")).also(Prefs::setFilamentSlots)
         }
@@ -77,13 +82,14 @@ object PreSliceFilamentDialog {
             .distinct().sorted().map { it - 1 }.toIntArray()
         val sliceTemperatures = runCatching {
             val snapshot = SliceBeam.buildCurrentConfigObject(model?.requiredFilamentCount ?: -1)
+            val bedTemperatureKeys = BedSurfaceTemperaturePolicy.keysFor(snapshot["curr_bed_type"])
             usedTools.map { tool ->
                 fun value(key: String): String {
                     val values = snapshot[key].orEmpty().split(',').map(String::trim)
                     return (values.getOrNull(tool) ?: values.lastOrNull()).orEmpty().ifBlank { "?" }
                 }
                 context.getString(R.string.PreSliceTemperatureRow, tool,
-                    value("hot_plate_temp_initial_layer"), value("hot_plate_temp"),
+                    value(bedTemperatureKeys.firstLayer), value(bedTemperatureKeys.otherLayers),
                     value("nozzle_temperature_initial_layer"), value("nozzle_temperature"))
             }
         }.getOrDefault(emptyList())
@@ -93,26 +99,32 @@ object PreSliceFilamentDialog {
         val printer = config?.let { current -> current.presets?.get("printer")?.let(current::findPrinter) }
         val printerTitle = printer?.title.orEmpty()
         val physicalGates = if (printer != null && supportsPhysicalSlots(printer))
-            MmuFilamentAssignmentDialog.availableGates(printerTitle, true) else IntArray(0)
+            MmuFilamentAssignments.availableGates(printerTitle, true) else IntArray(0)
         val colorMapping = mutableStateOf(if (physicalGates.isNotEmpty())
-            MmuFilamentAssignmentDialog.initialMapping(printerTitle, maxOf(slots.size, model?.requiredFilamentCount ?: 1), physicalGates).toList()
+            MmuFilamentAssignments.initialMapping(printerTitle, maxOf(slots.size, model?.requiredFilamentCount ?: 1), physicalGates).toList()
             else emptyList())
         val onePhysicalGate = mutableIntStateOf(colorMapping.value.firstOrNull() ?: physicalGates.firstOrNull() ?: 0)
         // A project may use only T1, while its palette still contains T0 and T1.
         // Never flatten an imported 3MF merely because it has one object/color.
         val preserveColors = mutableStateOf(hasPartColors)
+        val mapModelColors = mutableStateOf(false)
+        val sourceColorMapping = mutableStateOf(usedTools.map { it.coerceIn(0, slots.lastIndex) })
         val selectedSlots = mutableStateOf(initialSlots.toList())
         val useOneSlot = mutableStateOf(assignmentsMatch)
         val allSlotIndex = mutableIntStateOf(initialSlots.firstOrNull() ?: 0)
+        val editTemperatures: (() -> Unit)? = if (sliceTemperatures.isNotEmpty() && context is MainActivity) {
+            {
+                (context.navigationDelegate as? ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate)
+                    ?.switchToSlot(3)
+            }
+        } else null
 
-        val composeView = ComposeView(context).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            )
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            setContent {
-                BeamComposeTheme {
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            PreSliceFilamentDialogContent(
+                titleLabel = titleLabel,
+                positiveLabel = positiveLabel,
+                onDismiss = dismiss,
+                content = {
                     PreSliceFilamentContent(
                         model = model,
                         slots = slots,
@@ -126,6 +138,10 @@ object PreSliceFilamentDialog {
                         hasPartColors = hasPartColors,
                         preserveColors = preserveColors.value,
                         onPreserveColorsChange = { preserveColors.value = it },
+                        mapModelColors = mapModelColors.value,
+                        onMapModelColorsChange = { mapModelColors.value = it },
+                        sourceColorMapping = sourceColorMapping.value,
+                        onSourceColorMappingChange = { sourceColorMapping.value = it },
                         printerTitle = printerTitle,
                         physicalGates = physicalGates,
                         colorMapping = colorMapping.value,
@@ -134,54 +150,104 @@ object PreSliceFilamentDialog {
                         onColorMappingChange = { colorMapping.value = it },
                         onePhysicalGate = onePhysicalGate.intValue,
                         onOnePhysicalGateChange = { onePhysicalGate.intValue = it },
+                        onEditTemperatures = editTemperatures?.let { action -> { dismiss(); action() } },
                     )
-                }
-            }
-        }
-        val dialog = BeamAlertDialogBuilder(context)
-            .setTitle(titleLabel)
-            .setView(composeView)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(positiveLabel, null)
-            .apply {
-                if (sliceTemperatures.isNotEmpty() && context is ru.ytkab0bp.slicebeam.MainActivity) {
-                    setNeutralButton(R.string.PreSliceEditTemperatures) { _, _ ->
-                        (context.navigationDelegate as? ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate)
-                            ?.switchToSlot(3)
+                },
+                onConfirm = { requestMismatchWarning ->
+                    val oneSource = if (useOneSlot.value && !preserveColors.value && physicalGates.isNotEmpty()) {
+                        val physical = MmuFilamentSync.gateSlot(printerTitle, onePhysicalGate.intValue)
+                        val candidates = slots.mapIndexed { index, slot ->
+                            MmuColorAssignmentPolicy.Slot(index, slot.color, slot.type)
+                        }
+                        MmuColorAssignmentPolicy.suggest(
+                            physical?.color, physical?.type, allSlotIndex.intValue, candidates,
+                        )
+                    } else allSlotIndex.intValue
+                    val result = PreSliceFilamentAssignments.resolve(
+                        selectedSlots.value.toIntArray(), oneSource, useOneSlot.value,
+                        preserveColors.value || mapModelColors.value,
+                    )
+                    val gates = colorMapping.value.toMutableList()
+                    val remappingColors = mapModelColors.value
+                    val activeTools = when {
+                        remappingColors -> sourceColorMapping.value.distinct()
+                        preserveColors.value -> usedTools.toList()
+                        else -> listOf(oneSource)
                     }
-                }
-            }
-            .show()
-
-        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val oneSource = if (useOneSlot.value && !preserveColors.value && physicalGates.isNotEmpty()) {
-                val physical = MmuFilamentSync.gateSlot(printerTitle, onePhysicalGate.intValue)
-                val candidates = slots.mapIndexed { index, slot -> MmuColorAssignmentPolicy.Slot(index, slot.color, slot.type) }
-                MmuColorAssignmentPolicy.suggest(physical?.color, physical?.type, allSlotIndex.intValue, candidates)
-            } else allSlotIndex.intValue
-            val result = PreSliceFilamentAssignments.resolve(selectedSlots.value.toIntArray(),
-                oneSource, useOneSlot.value, preserveColors.value)
-            val gates = colorMapping.value.toMutableList()
-            val activeTools = if (preserveColors.value) usedTools.toList() else listOf(oneSource)
-            if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value)) {
-                if (!preserveColors.value) gates[oneSource] = onePhysicalGate.intValue
-            }
-            val finish = {
-                if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value))
-                    MmuFilamentSync.setSelectedGates(printerTitle, gates.toIntArray())
-                dialog.dismiss()
-                callback.onSelected(result)
-            }
-            if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value) &&
-                MmuFilamentAssignmentDialog.hasMaterialMismatch(printerTitle, gates, activeTools)) {
-                BeamAlertDialogBuilder(context)
-                    .setTitle(R.string.PreSliceMaterialMismatchTitle)
-                    .setMessage(R.string.PreSliceMaterialMismatchConfirm)
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .setPositiveButton(R.string.PreSliceMaterialMismatchContinue) { _, _ -> finish() }
-                    .show()
-            } else finish()
+                    // Reusing one physical spool for several logical model colors is valid.
+                    // The upload preparation stage verifies that the shared tools have
+                    // compatible material and temperatures before routing their G-code.
+                    if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value) && !preserveColors.value) {
+                        gates[oneSource] = onePhysicalGate.intValue
+                    }
+                    val finish = {
+                        if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value || remappingColors)) {
+                            MmuFilamentSync.setSelectedGates(printerTitle, gates.toIntArray())
+                        }
+                        dismiss()
+                        if (remappingColors) {
+                            callback.onSourceColorsSelected(
+                                result,
+                                usedTools.map { it + 1 }.toIntArray(),
+                                sourceColorMapping.value.map { it + 1 }.toIntArray(),
+                            )
+                        } else callback.onSelected(result)
+                    }
+                    if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value || remappingColors) &&
+                        MmuFilamentAssignments.hasMaterialMismatch(printerTitle, gates, activeTools)) {
+                        requestMismatchWarning(finish)
+                    } else finish()
+                },
+            )
         }
+    }
+}
+
+@Composable
+private fun PreSliceFilamentDialogContent(
+    titleLabel: Int,
+    positiveLabel: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (requestMismatchWarning: ((() -> Unit) -> Unit)) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    var continueAfterMismatch by androidx.compose.runtime.remember { mutableStateOf<(() -> Unit)?>(null) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(titleLabel), modifier = Modifier.testTag("pre-slice-title")) },
+        text = { content() },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm { action -> continueAfterMismatch = action }
+                },
+                modifier = Modifier.heightIn(min = 48.dp).testTag("pre-slice-confirm"),
+            ) { Text(stringResource(positiveLabel)) }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.heightIn(min = 48.dp).testTag("pre-slice-cancel"),
+            ) { Text(stringResource(android.R.string.cancel)) }
+        },
+    )
+    continueAfterMismatch?.let { finish ->
+        AlertDialog(
+            onDismissRequest = { continueAfterMismatch = null },
+            title = { Text(stringResource(R.string.PreSliceMaterialMismatchTitle)) },
+            text = { Text(stringResource(R.string.PreSliceMaterialMismatchConfirm)) },
+            confirmButton = {
+                TextButton(
+                    onClick = { continueAfterMismatch = null; finish() },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text(stringResource(R.string.PreSliceMaterialMismatchContinue)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { continueAfterMismatch = null }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+        )
     }
 }
 
@@ -218,6 +284,10 @@ private fun PreSliceFilamentContent(
     hasPartColors: Boolean,
     preserveColors: Boolean,
     onPreserveColorsChange: (Boolean) -> Unit,
+    mapModelColors: Boolean,
+    onMapModelColorsChange: (Boolean) -> Unit,
+    sourceColorMapping: List<Int>,
+    onSourceColorMappingChange: (List<Int>) -> Unit,
     printerTitle: String,
     physicalGates: IntArray,
     colorMapping: List<Int>,
@@ -226,6 +296,7 @@ private fun PreSliceFilamentContent(
     onColorMappingChange: (List<Int>) -> Unit,
     onePhysicalGate: Int,
     onOnePhysicalGateChange: (Int) -> Unit,
+    onEditTemperatures: (() -> Unit)?,
 ) {
     // Leave space for the dialog title and both action rows, including large font scales.
     val maxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.56f
@@ -233,6 +304,7 @@ private fun PreSliceFilamentContent(
     val primaryColor = MaterialTheme.colorScheme.onSurface
     val shape = RoundedCornerShape(12.dp)
     var choosingObject by androidx.compose.runtime.remember { mutableIntStateOf(-1) }
+    var choosingSourceTool by androidx.compose.runtime.remember { mutableIntStateOf(-1) }
 
     Column(
         modifier = Modifier
@@ -252,19 +324,24 @@ private fun PreSliceFilamentContent(
             AssignmentModeRow(
                 text = stringResource(R.string.PreSliceKeepModelColors),
                 selected = preserveColors,
-                onClick = { onPreserveColorsChange(true) },
+                onClick = { onMapModelColorsChange(false); onPreserveColorsChange(true) },
+            )
+            AssignmentModeRow(
+                text = stringResource(R.string.PreSliceRemapModelColors),
+                selected = mapModelColors,
+                onClick = { onPreserveColorsChange(false); onUseOneSlotChange(false); onMapModelColorsChange(true) },
             )
         }
         AssignmentModeRow(
             text = stringResource(R.string.PreSliceAllObjectsMode),
-            selected = useOneSlot && !preserveColors,
-            onClick = { onPreserveColorsChange(false); onUseOneSlotChange(true) },
+            selected = useOneSlot && !preserveColors && !mapModelColors,
+            onClick = { onPreserveColorsChange(false); onMapModelColorsChange(false); onUseOneSlotChange(true) },
         )
         if (objectCount > 1) {
             AssignmentModeRow(
                 text = stringResource(R.string.PreSliceIndividualMode),
-                selected = !useOneSlot && !preserveColors,
-                onClick = { onPreserveColorsChange(false); onUseOneSlotChange(false) },
+                selected = !useOneSlot && !preserveColors && !mapModelColors,
+                onClick = { onPreserveColorsChange(false); onMapModelColorsChange(false); onUseOneSlotChange(false) },
             )
         }
 
@@ -277,7 +354,7 @@ private fun PreSliceFilamentContent(
             if (physicalGates.isNotEmpty()) {
                 MmuAssignmentContent(printerTitle, colorMapping.size, physicalGates, slots, colorMapping,
                     usedTools = usedTools, showHelp = false, onMappingChange = onColorMappingChange)
-                if (MmuFilamentAssignmentDialog.hasMaterialMismatch(printerTitle, colorMapping,
+                if (MmuFilamentAssignments.hasMaterialMismatch(printerTitle, colorMapping,
                         usedTools.toList())) Text(
                     stringResource(R.string.PreSliceMaterialMismatchHint),
                     color = MaterialTheme.colorScheme.error, fontSize = 13.sp,
@@ -318,6 +395,34 @@ private fun PreSliceFilamentContent(
                 )
             }
             }
+        } else if (mapModelColors) {
+            Text(stringResource(R.string.PreSliceRemapModelColorsHelp), color = secondaryColor, fontSize = 13.sp)
+            usedTools.forEachIndexed { sourceIndex, sourceTool ->
+                val sourceSlot = slots.getOrNull(sourceTool) ?: slots.first()
+                val targetIndex = sourceColorMapping.getOrElse(sourceIndex) { sourceTool.coerceIn(0, slots.lastIndex) }
+                    .coerceIn(0, slots.lastIndex)
+                val targetSlot = slots[targetIndex]
+                SlotAssignmentRow(
+                    label = stringResource(
+                        R.string.PreSliceSourceColorMapping,
+                        sourceTool + 1,
+                        sourceSlot.type.orEmpty().ifBlank { stringResource(R.string.FilamentType) },
+                        targetIndex + 1,
+                        targetSlot.type.orEmpty().ifBlank { stringResource(R.string.FilamentType) },
+                    ),
+                    color = targetSlot.color,
+                    selected = false,
+                    modifier = Modifier.clip(shape).testTag("pre-slice-source-tool-$sourceTool")
+                        .clickable(role = Role.Button) { choosingSourceTool = sourceIndex },
+                    textColor = primaryColor,
+                    showRadio = false,
+                )
+            }
+            if (physicalGates.isNotEmpty()) {
+                MmuAssignmentContent(printerTitle, colorMapping.size, physicalGates, slots, colorMapping,
+                    usedTools = sourceColorMapping.map { it.coerceIn(0, slots.lastIndex) }.distinct().toIntArray(),
+                    showHelp = false, onMappingChange = onColorMappingChange)
+            }
         } else {
             Text(
                 stringResource(R.string.PreSliceIndividualHelp),
@@ -341,10 +446,16 @@ private fun PreSliceFilamentContent(
                     selected = false,
                     modifier = Modifier
                         .clip(shape)
+                        .testTag("pre-slice-object-slot-$objectIndex")
                         .clickable(role = Role.Button) { choosingObject = objectIndex },
                     textColor = primaryColor,
                     showRadio = false,
                 )
+            }
+        }
+        onEditTemperatures?.let { editTemperatures ->
+            TextButton(onClick = editTemperatures, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.PreSliceEditTemperatures))
             }
         }
     }
@@ -367,7 +478,9 @@ private fun PreSliceFilamentContent(
                             label = formatSlot(slot, index),
                             color = slot.color,
                             selected = selectedSlots.getOrElse(objectIndex) { 0 } == index,
-                            modifier = Modifier.clip(shape).clickable(role = Role.RadioButton) {
+                            modifier = Modifier.clip(shape)
+                                .testTag("pre-slice-object-$objectIndex-filament-$index")
+                                .clickable(role = Role.RadioButton) {
                                 onSelectedSlotsChange(selectedSlots.toMutableList().also { it[objectIndex] = index })
                                 choosingObject = -1
                             },
@@ -388,6 +501,49 @@ private fun PreSliceFilamentContent(
                 }
             },
         )
+    }
+
+    if (choosingSourceTool >= 0) {
+        val sourceIndex = choosingSourceTool
+        val sourceTool = usedTools.getOrNull(sourceIndex)
+        if (sourceTool != null) {
+            AlertDialog(
+                onDismissRequest = { choosingSourceTool = -1 },
+                title = { Text(stringResource(R.string.PreSliceChooseSourceColorSlot, sourceTool + 1)) },
+                text = {
+                    Column(
+                        modifier = Modifier.heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.55f)
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        slots.forEachIndexed { slotIndex, slot ->
+                            SlotAssignmentRow(
+                                label = formatSlot(slot, slotIndex),
+                                color = slot.color,
+                                selected = sourceColorMapping.getOrElse(sourceIndex) { sourceTool } == slotIndex,
+                                modifier = Modifier.clip(shape)
+                                    .testTag("pre-slice-source-$sourceTool-slot-$slotIndex")
+                                    .clickable(role = Role.RadioButton) {
+                                        onSourceColorMappingChange(sourceColorMapping.toMutableList().also {
+                                            it[sourceIndex] = slotIndex
+                                        })
+                                        choosingSourceTool = -1
+                                    },
+                                textColor = if (sourceColorMapping.getOrElse(sourceIndex) { sourceTool } == slotIndex) {
+                                    MaterialTheme.colorScheme.primary
+                                } else primaryColor,
+                                showRadio = true,
+                            )
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { choosingSourceTool = -1 }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                },
+            )
+        }
     }
 }
 

@@ -195,7 +195,7 @@ Model Model::read_from_step(const std::string&                                  
     bool result = false;
     bool is_cb_cancel = false;
     Step::Step_Status status;
-    Step step_file(input_file, stepFn);
+    Step step_file(input_file, stepFn, stepIsUtf8Fn);
     status = step_file.load();
     if(status != Step::Step_Status::LOAD_SUCCESS) {
         goto _finished;
@@ -318,12 +318,16 @@ Model Model::read_from_file(const std::string&                                  
     else if (boost::algorithm::iends_with(input_file, ".amf"))
         //BBS: is_xxx is used for is_inches when load amf
         result = load_amf(input_file.c_str(), config, config_substitutions, &model, is_xxx);
-    else if (boost::algorithm::iends_with(input_file, ".3mf"))
-        //BBS: add part plate related logic
-        // BBS: backup & restore
-        //FIXME options & LoadStrategy::CheckVersion ?
-        //BBS: is_xxx is used for is_bbs_3mf when load 3mf
-        result = load_bbs_3mf(input_file.c_str(), config, config_substitutions, &model, plate_data, project_presets, is_xxx, nullptr, file_version, proFn, options, project, plate_id);
+    else if (boost::algorithm::iends_with(input_file, ".3mf")) {
+        // Route files carrying Slic3r per-volume metadata through the matching
+        // importer. The BBS importer treats legacy store_3mf output as a flattened
+        // mesh and drops per-volume filament assignments on reload.
+        PrusaFileParser prusa_file_parser;
+        if (prusa_file_parser.check_3mf_from_prusa(input_file))
+            result = load_3mf(input_file.c_str(), *config, *config_substitutions, &model, true);
+        else
+            result = load_bbs_3mf(input_file.c_str(), config, config_substitutions, &model, plate_data, project_presets, is_xxx, nullptr, file_version, proFn, options, project, plate_id);
+    }
 #ifdef __APPLE__
     else if (boost::algorithm::iends_with(input_file, ".usd") || boost::algorithm::iends_with(input_file, ".usda") ||
              boost::algorithm::iends_with(input_file, ".usdc") || boost::algorithm::iends_with(input_file, ".usdz") ||
@@ -1281,6 +1285,13 @@ ModelVolume* ModelObject::add_volume(const ModelVolume &other, ModelVolumeType t
     return v;
 }
 
+std::unique_ptr<ModelVolume> ModelObject::prepare_volume_copy(const ModelVolume &other)
+{
+    std::unique_ptr<ModelVolume> volume(new ModelVolume(this, other));
+    volume->cut_info = other.cut_info;
+    return volume;
+}
+
 ModelVolume* ModelObject::add_volume(const ModelVolume &other, TriangleMesh &&mesh)
 {
     ModelVolume* v = new ModelVolume(this, other, std::move(mesh));
@@ -1703,6 +1714,60 @@ Polygon ModelObject::convex_hull_2d(const Transform3d& trafo_instance) const
     return hull;*/
     return Geometry::convex_hull(std::move(pts));
 #endif
+}
+
+ExPolygon ModelObject::arrange_footprint_2d(const Transform3d& trafo_instance, ExPolygons *exact_parts) const
+{
+    // Use the projected mesh outline for ordinary closed parts so concave openings are not
+    // incorrectly treated as occupied by the convex hull. Keep this bounded because imports
+    // arrange synchronously on Android's GL thread; unusual meshes fall back to the safe hull.
+    // Allow detailed but valid imported meshes to retain their real concavities. Catan-like
+    // miniature parts commonly exceed 50k facets; falling back to their convex hull blocks
+    // visible openings and makes bed-fill report no space. Keep projection bounded for phones;
+    // open, repaired, or non-manifold meshes still use the conservative hull so Clipper never
+    // receives unreliable outlines.
+    constexpr size_t MAX_PROJECTION_FACETS = 50000;
+    size_t facet_count = 0;
+    Polygons projected;
+    for (const ModelVolume *volume : this->volumes) {
+        if (!volume->is_model_part())
+            continue;
+        const TriangleMesh &mesh = volume->mesh();
+        if (mesh.empty())
+            return {};
+        facet_count += mesh.facets_count();
+        if (facet_count > MAX_PROJECTION_FACETS)
+            return {};
+        // Clipper's union of projected triangles is unsafe for open/non-manifold STL meshes:
+        // malformed or coincident edge loops can crash native code during arrange. The caller
+        // falls back to a conservative convex hull for these exceptional meshes; keep exact
+        // concave projections for repaired, manifold meshes.
+        if (mesh.stats().open_edges > 0 || mesh.stats().repaired() ||
+            its_num_open_edges(mesh.its) > 0)
+            return {};
+
+        Polygons volume_projection = project_mesh(
+            mesh.its, trafo_instance * volume->get_matrix(), []() {});
+        projected.insert(projected.end(),
+            std::make_move_iterator(volume_projection.begin()),
+            std::make_move_iterator(volume_projection.end()));
+    }
+
+    if (projected.empty())
+        return {};
+    ExPolygons islands = union_ex(projected);
+    if (islands.empty())
+        return {};
+    if (exact_parts)
+        *exact_parts = islands;
+    if (islands.size() == 1)
+        return std::move(islands.front());
+    // A synthetic polygon joining disconnected solids is not guaranteed to have a robust
+    // offset contour. libnest2d offsets every item while packing, and malformed STL islands
+    // can make Clipper crash there. Keep the exact islands in exact_parts so the bounded
+    // post-pack gap-fill can still use the real geometry; let the main packer use the safe
+    // convex hull for a compound item.
+    return {};
 }
 
 void ModelObject::center_around_origin(bool include_modifiers)
@@ -3376,7 +3441,10 @@ void ModelInstance::get_arrange_polygon(void *ap, const Slic3r::DynamicPrintConf
     Geometry::Transformation t(m_transformation);
     t.set_offset(get_offset().z() * Vec3d::UnitZ());
     t.set_rotation(rotation);
-    Polygon p = get_object()->convex_hull_2d(t.get_matrix());
+    ExPolygons physical_parts;
+    ExPolygon footprint = get_object()->arrange_footprint_2d(t.get_matrix(), &physical_parts);
+    if (footprint.contour.empty())
+        footprint = ExPolygon{get_object()->convex_hull_2d(t.get_matrix())};
 
 //    if (!p.points.empty()) {
 //        Polygons pp{p};
@@ -3385,7 +3453,8 @@ void ModelInstance::get_arrange_polygon(void *ap, const Slic3r::DynamicPrintConf
 //    }
 
     arrangement::ArrangePolygon& ret = *(arrangement::ArrangePolygon*)ap;
-    ret.poly.contour = std::move(p);
+    ret.poly = std::move(footprint);
+    ret.physical_parts = std::move(physical_parts);
     ret.translation  = Vec2crd{scaled(get_offset(X)), scaled(get_offset(Y))};
     ret.rotation     = get_rotation(Z);
 

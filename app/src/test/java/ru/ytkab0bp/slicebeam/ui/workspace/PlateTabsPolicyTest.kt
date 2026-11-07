@@ -61,4 +61,21 @@ class PlateTabsPolicyTest {
         assertEquals(PlatePickerLayout.GRID, PlatePickerLayoutPolicy.choose(4, 430, 800, 1.3f))
         assertEquals(PlatePickerLayout.GRID, PlatePickerLayoutPolicy.choose(20, 430, 800))
     }
+
+    @Test
+    fun platePickerKeepsLargeSyntheticProjectsInScrollableGrid() {
+        listOf(1, 3, 6, 10, 20).forEach { count ->
+            val layout = PlatePickerLayoutPolicy.choose(count, 411, 800)
+            if (count <= 2) assertEquals("$count plates", PlatePickerLayout.INLINE, layout)
+            else if (count <= 6) assertEquals("$count plates", PlatePickerLayout.CIRCLE, layout)
+            else assertEquals("$count plates", PlatePickerLayout.GRID, layout)
+        }
+    }
+
+    @Test
+    fun largeTextAndSmallDisplaysUseGridForMultiPlateProjects() {
+        listOf(3, 6, 10, 20).forEach { count ->
+            assertEquals(PlatePickerLayout.GRID, PlatePickerLayoutPolicy.choose(count, 320, 640, 1.5f))
+        }
+    }
 }

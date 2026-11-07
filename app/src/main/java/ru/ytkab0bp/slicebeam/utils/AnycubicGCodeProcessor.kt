@@ -11,6 +11,7 @@ import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
 import java.util.Locale
 import java.util.regex.Pattern
+import java.util.regex.Matcher
 
 /** Pure file transformation for the G-code metadata expected by Anycubic Kobra 3 firmware. */
 class AnycubicGCodeProcessor private constructor() {
@@ -27,7 +28,19 @@ class AnycubicGCodeProcessor private constructor() {
         @JvmField val hasFilamentMap: Boolean,
         @JvmField val hasToolSelection: Boolean,
         @JvmField val materials: Array<String>,
+        @JvmField val usedTools: IntArray,
+        @JvmField val firstToolAppearance: IntArray,
+        @JvmField val filamentPressureAdvance: List<String>,
+        @JvmField val customPressureAdvance: List<String>,
+        private val sourcePath: String,
+        private val sourceLength: Long,
+        private val sourceLastModified: Long,
     ) {
+        /** Cached scan data is reusable only for the exact file version it inspected. */
+        fun matchesSource(file: File): Boolean =
+            file.isFile && file.absolutePath == sourcePath && file.length() == sourceLength &&
+                file.lastModified() == sourceLastModified
+
         companion object {
             internal fun create(
                 maxTool: Int,
@@ -42,9 +55,15 @@ class AnycubicGCodeProcessor private constructor() {
                 hasFilamentMap: Boolean,
                 hasToolSelection: Boolean,
                 materials: Array<String>,
+                usedTools: IntArray,
+                firstToolAppearance: IntArray,
+                filamentPressureAdvance: List<String>,
+                customPressureAdvance: List<String>,
+                source: File,
             ) = ScanResult(maxTool, density, densities, volume, totalMass, hasReportedTotalMass,
                 computedFilamentMasses, needsMassBreakdownRewrite, hasFilamentMass, hasFilamentMap,
-                hasToolSelection, materials)
+                hasToolSelection, materials, usedTools, firstToolAppearance, filamentPressureAdvance,
+                customPressureAdvance, source.absolutePath, source.length(), source.lastModified())
         }
     }
 
@@ -62,6 +81,9 @@ class AnycubicGCodeProcessor private constructor() {
 
     companion object {
         private val LIST_SEPARATOR = Pattern.compile("[,;]")
+        private val KLIPPER_PA = Pattern.compile("^\\s*SET_PRESSURE_ADVANCE\\b.*?\\bADVANCE=([0-9]+(?:\\.[0-9]+)?)", Pattern.CASE_INSENSITIVE)
+        private val MARLIN_PA = Pattern.compile("^\\s*M900\\s+K([0-9]+(?:\\.[0-9]+)?)", Pattern.CASE_INSENSITIVE)
+        private val HEATER_TOOL_SELECTOR = Pattern.compile("(?i)(\\bM(?:104|109)\\b[^;]*?\\bT)(\\d+)(?=\\s|$)")
         private val EXTRUSION_MOVE = Pattern.compile("(?i)^G[0-3](?=\\s|$).*\\sE[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:\\s|$).*")
         private const val DEFAULT_FILAMENT_DENSITY = 1.24
 
@@ -111,8 +133,12 @@ class AnycubicGCodeProcessor private constructor() {
             var hasFilamentMass = false
             var hasFilamentMap = false
             var hasToolSelection = false
+            val usedTools = sortedSetOf<Int>()
+            val firstToolAppearance = linkedSetOf<Int>()
+            val filamentPressureAdvance = linkedSetOf<String>()
+            val customPressureAdvance = linkedSetOf<String>()
             var materials = arrayOf("PLA")
-            BufferedReader(InputStreamReader(FileInputStream(source), StandardCharsets.UTF_8)).use { reader ->
+            BufferedReader(InputStreamReader(FileInputStream(source), StandardCharsets.UTF_8), 64 * 1024).use { reader ->
                 while (true) {
                     val line = reader.readLine() ?: break
                     when {
@@ -141,6 +167,20 @@ class AnycubicGCodeProcessor private constructor() {
                     if (tool >= 0) {
                         hasToolSelection = true
                         maxTool = maxOf(maxTool, tool)
+                        usedTools.add(tool)
+                        firstToolAppearance.add(tool)
+                    }
+                    val pressureAdvance = when {
+                        startsWithCommand(line, "SET_PRESSURE_ADVANCE") ->
+                            KLIPPER_PA.matcher(line).takeIf { it.find() }?.group(1)
+                        startsWithCommand(line, "M900") ->
+                            MARLIN_PA.matcher(line).takeIf { it.find() }?.group(1)
+                        else -> null
+                    }
+                    if (pressureAdvance != null) {
+                        val target = if (line.contains("Override pressure advance value", ignoreCase = true))
+                            filamentPressureAdvance else customPressureAdvance
+                        if (target.size < 16) target.add(pressureAdvance)
                     }
                 }
             }
@@ -162,7 +202,9 @@ class AnycubicGCodeProcessor private constructor() {
             val totalMass = if (hasReportedTotalMass) reportedTotalMass else computedMasses.sum()
             return ScanResult.create(maxTool, normalizedDensities.first(), normalizedDensities, volume,
                 totalMass, hasReportedTotalMass, computedMasses, needsMassBreakdownRewrite,
-                hasFilamentMass, hasFilamentMap, hasToolSelection, materials)
+                hasFilamentMass, hasFilamentMap, hasToolSelection, materials,
+                usedTools.toIntArray(), firstToolAppearance.toIntArray(), filamentPressureAdvance.toList(),
+                customPressureAdvance.toList(), source)
         }
 
         /** Writes vendor-compatible G-code. Returns false when no header block was found. */
@@ -175,15 +217,22 @@ class AnycubicGCodeProcessor private constructor() {
                 ?: throw IllegalArgumentException("Tool routing and physical gates are required")
 
             val mass = String.format(Locale.ROOT, "%.2f", scan.totalMass)
-            val massBreakdown = scan.computedFilamentMasses.joinToString(",") {
+            val sharedPhysicalTools = remappedTools.distinct().size < remappedTools.size
+            val mappedMasses = DoubleArray((remappedTools.maxOrNull() ?: -1) + 1)
+            scan.computedFilamentMasses.forEachIndexed { sourceTool, mass ->
+                val physicalTool = remappedTools.getOrNull(sourceTool)
+                if (physicalTool != null && physicalTool in mappedMasses.indices) mappedMasses[physicalTool] += mass
+            }
+            val massBreakdown = (if (sharedPhysicalTools) mappedMasses else scan.computedFilamentMasses).joinToString(",") {
                 String.format(Locale.ROOT, "%.2f", it)
             }
+            val rewriteMassBreakdown = scan.needsMassBreakdownRewrite || sharedPhysicalTools
             val densityList = scan.densities.joinToString(",") { formatDensity(it) }
             var headerClosed = false
             var toolSelectionInserted = false
             try {
-                BufferedReader(InputStreamReader(FileInputStream(source), StandardCharsets.UTF_8)).use { reader ->
-                    BufferedWriter(OutputStreamWriter(FileOutputStream(destination, false), StandardCharsets.UTF_8)).use { writer ->
+                BufferedReader(InputStreamReader(FileInputStream(source), StandardCharsets.UTF_8), 64 * 1024).use { reader ->
+                    BufferedWriter(OutputStreamWriter(FileOutputStream(destination, false), StandardCharsets.UTF_8), 64 * 1024).use { writer ->
                         while (true) {
                             var line = reader.readLine() ?: break
                             if (line.trim().startsWith("; filament_colour_type")) continue
@@ -195,7 +244,7 @@ class AnycubicGCodeProcessor private constructor() {
                             } else if (line.startsWith("; filament_density = ")) {
                                 line = "; filament_density = $densityList"
                             } else if (line.startsWith("; total filament used [g] = ") && scan.totalMass > 0) {
-                                if (scan.needsMassBreakdownRewrite && !scan.hasFilamentMass && massBreakdown.isNotEmpty()) {
+                                if (rewriteMassBreakdown && !scan.hasFilamentMass && massBreakdown.isNotEmpty()) {
                                     writer.write("; filament used [g] = $massBreakdown\n")
                                 }
                                 if (!scan.hasReportedTotalMass) line = "; total filament used [g] = $mass"
@@ -216,13 +265,15 @@ class AnycubicGCodeProcessor private constructor() {
                                 line = GCodeToolMapper.remapToolLine(line, remappedTools)
                             } else if (GCodeToolMapper.isFilamentMapLine(line)) {
                                 line = "; filament: ${GCodeToolMapper.formatGateList(gates)}"
+                            } else {
+                                line = remapHeaterToolSelector(line, remappedTools)
                             }
                             if (line.startsWith("; filament_colour = ")) {
                                 line = "; filament_colour = ${options.colors}"
                             } else if (line.startsWith("; filament_type = ")) {
                                 line = "; filament_type = ${options.materials}"
                             } else if (line.startsWith("; filament used [g] = ") &&
-                                scan.needsMassBreakdownRewrite && massBreakdown.isNotEmpty()) {
+                                rewriteMassBreakdown && massBreakdown.isNotEmpty()) {
                                 line = "; filament used [g] = $massBreakdown"
                             }
                             // Custom start scripts may omit M106 S0. Select the physical
@@ -259,6 +310,16 @@ class AnycubicGCodeProcessor private constructor() {
             return true
         }
 
+        /** M104/M109 can name a logical tool explicitly; route it to the selected physical gate too. */
+        @JvmStatic
+        fun remapHeaterToolSelector(line: String, remappedTools: IntArray): String {
+            val matcher = HEATER_TOOL_SELECTOR.matcher(line)
+            if (!matcher.find()) return line
+            val sourceTool = matcher.group(2)?.toIntOrNull() ?: return line
+            val physicalTool = remappedTools.getOrNull(sourceTool) ?: return line
+            return matcher.replaceFirst(Matcher.quoteReplacement("${matcher.group(1)}$physicalTool"))
+        }
+
         private fun parseFirstPositiveNumber(value: String): Double {
             return try {
                 val parsed = LIST_SEPARATOR.split(value.trim()).firstOrNull()?.trim()?.toDouble() ?: 0.0
@@ -266,6 +327,12 @@ class AnycubicGCodeProcessor private constructor() {
             } catch (_: NumberFormatException) {
                 0.0
             }
+        }
+
+        private fun startsWithCommand(line: String, command: String): Boolean {
+            var start = 0
+            while (start < line.length && Character.isWhitespace(line[start])) start++
+            return line.regionMatches(start, command, 0, command.length, ignoreCase = true)
         }
 
         private fun parseNumbers(value: String): DoubleArray = LIST_SEPARATOR.split(value.trim()).map { part ->

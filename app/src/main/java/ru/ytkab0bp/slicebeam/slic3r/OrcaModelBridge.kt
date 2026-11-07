@@ -11,18 +11,39 @@ class OrcaModelLoadResult internal constructor(
     fun isSuccess(): Boolean = pointer != 0L
 }
 
-/** Narrow Kotlin boundary for loading one STL/3MF plate through the existing Orca JNI entry point. */
+/** Narrow Kotlin boundary for loading one supported model through the existing Orca JNI entry point. */
 object OrcaModelBridge {
     @JvmStatic
-    fun load(path: String, plateId: Int, progress: ImportProgressCallback? = null): OrcaModelLoadResult {
+    fun load(
+        path: String,
+        plateId: Int,
+        progress: ImportProgressCallback? = null,
+        stepOptions: StepImportOptions? = null,
+    ): OrcaModelLoadResult {
         val source = File(path)
         val validationError = validateRequest(path, plateId, source.isFile, source.canRead())
         if (validationError != null) {
             return failed(Slic3rRuntimeError(validationError), validationError)
         }
+        val isStep = StepImportOptions.isStepFile(source.name)
+        if (isStep && stepOptions == null) {
+            val message = "Für STEP/STP-Import müssen die Netzparameter angegeben werden."
+            return failed(IllegalArgumentException(message), message)
+        }
+        if (!isStep && stepOptions != null) {
+            val message = "STEP-Netzparameter dürfen nur für STEP/STP-Dateien verwendet werden."
+            return failed(IllegalArgumentException(message), message)
+        }
+        val effectiveStepOptions = stepOptions ?: StepImportOptions()
+        effectiveStepOptions.validate()?.let { return failed(IllegalArgumentException(it), it) }
 
         return try {
-            val pointer = Native.model_read_from_file(path, baseName(source.name), plateId, progress)
+            val pointer = Native.model_read_from_file(
+                path, baseName(source.name), plateId, progress,
+                effectiveStepOptions.linearDeflection,
+                effectiveStepOptions.angularDeflection,
+                effectiveStepOptions.splitCompound,
+            )
             if (pointer == 0L) {
                 val error = Slic3rRuntimeError("Der Orca-Kern hat kein Modell zurückgegeben.")
                 failed(error, errorMessage(error))
