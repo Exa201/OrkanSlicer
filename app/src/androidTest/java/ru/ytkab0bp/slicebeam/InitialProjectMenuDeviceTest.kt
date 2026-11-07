@@ -8047,6 +8047,94 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun unlinkedScaleAxesStayIndependentAfterObjectRotation() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "menu-scale-rotated-axis-test.stl")
+        val previousLinked = Prefs.isScaleLinked()
+        val previousMillimeters = Prefs.isScaleInputInMM()
+        Prefs.setScaleLinked(false)
+        Prefs.setScaleInputInMM(false)
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val model = requireNotNull(glView.renderer.model)
+                // A non-uniform starting scale plus a quarter turn makes accidental axis
+                // remapping observable in both the stored scale and rendered dimensions.
+                model.scale(0, 1.2, 0.8, 1.1)
+                model.rotate(0, 0.0, 0.0, Math.PI / 2.0)
+                glView.renderer.prepareSelectionTransformPreview()
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("rotated model should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            val original = readScaleOnGl(glView, 0)
+            assertEquals(1.2, original.x, 0.002)
+            assertEquals(0.8, original.y, 0.002)
+            assertEquals(1.1, original.z, 0.002)
+
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.MenuTransformScale)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformScale))
+                .performScrollTo().assertIsDisplayed().performClick()
+
+            fun setAxis(axis: String, percent: String) {
+                compose.onNodeWithContentDescription("$axis, $axis =", substring = true)
+                    .assertIsDisplayed().performClick()
+                compose.waitUntil(timeoutMillis = 5_000) {
+                    compose.onAllNodesWithText(activity.getString(R.string.ScaleManualPercent))
+                        .fetchSemanticsNodes().isNotEmpty()
+                }
+                val field = compose.onNodeWithText(activity.getString(R.string.ScaleManualPercent))
+                field.performTextClearance()
+                field.performTextInput(percent)
+                compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+                instrumentationWaitForGlIdle()
+            }
+
+            setAxis("Y", "150")
+            var current = readScaleOnGl(glView, 0)
+            assertEquals("unlinked Y=150% must preserve rotated model X", original.x, current.x, 0.002)
+            assertEquals("unlinked Y=150% must set only model Y", 1.5, current.y, 0.002)
+            assertEquals("unlinked Y=150% must preserve Z", original.z, current.z, 0.002)
+
+            setAxis("X", "125")
+            current = readScaleOnGl(glView, 0)
+            assertEquals("unlinked X=125% must update only model X", 1.25, current.x, 0.002)
+            assertEquals("the previous Y edit must remain intact", 1.5, current.y, 0.002)
+            assertEquals("unlinked X=125% must preserve Z", original.z, current.z, 0.002)
+
+            setAxis("Z", "140")
+            current = readScaleOnGl(glView, 0)
+            assertEquals("unlinked Z=140% must preserve X", 1.25, current.x, 0.002)
+            assertEquals("unlinked Z=140% must preserve Y", 1.5, current.y, 0.002)
+            assertEquals("unlinked Z=140% must update only model Z", 1.4, current.z, 0.002)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).z - original.z) < 0.002
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).z - 1.4) < 0.002
+            }
+
+        } finally {
+            Prefs.setScaleLinked(previousLinked)
+            Prefs.setScaleInputInMM(previousMillimeters)
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun mirrorPanelReflectsSelectedObjectOnEachAxisAndRecordsUndoRedo() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
