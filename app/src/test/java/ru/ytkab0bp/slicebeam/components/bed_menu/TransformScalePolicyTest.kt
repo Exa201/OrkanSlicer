@@ -26,6 +26,25 @@ class TransformScalePolicyTest {
     }
 
     @Test
+    fun unlinkedRulerKeepsTheOtherTwoAxesForEveryAxis() {
+        val base = TransformScaleRulerValues(100, 80, 125)
+        val offsets = TransformScalePolicy.linkOffsets(base)
+
+        assertEquals(
+            TransformScaleRulerValues(135, 80, 125),
+            TransformScalePolicy.moveRuler(base, TransformScaleAxis.X, 135, false, offsets),
+        )
+        assertEquals(
+            TransformScaleRulerValues(100, 145, 125),
+            TransformScalePolicy.moveRuler(base, TransformScaleAxis.Y, 145, false, offsets),
+        )
+        assertEquals(
+            TransformScaleRulerValues(100, 80, 95),
+            TransformScalePolicy.moveRuler(base, TransformScaleAxis.Z, 95, false, offsets),
+        )
+    }
+
+    @Test
     fun rulerDragAdvancesOnePercentPerTenDpAndSnapsAtTheSameThreshold() {
         val tenDp = TransformScalePolicy.drag(100, 0f, -20f, density = 2f)
         assertEquals(101, tenDp.value)

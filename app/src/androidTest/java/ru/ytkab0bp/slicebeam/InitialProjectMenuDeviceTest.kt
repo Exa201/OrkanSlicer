@@ -8127,6 +8127,34 @@ class InitialProjectMenuDeviceTest {
                 kotlin.math.abs(readScaleOnGl(glView, 0).z - 1.4) < 0.002
             }
 
+            val linkLabel = activity.getString(R.string.MenuTransformScaleLink)
+            compose.onNodeWithText(linkLabel).performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { Prefs.isScaleLinked() }
+            setAxis("Y", "110")
+            current = readScaleOnGl(glView, 0)
+            assertEquals("linked Y edit must update X", 1.1, current.x, 0.002)
+            assertEquals("linked Y edit must update Y", 1.1, current.y, 0.002)
+            assertEquals("linked Y edit must update Z", 1.1, current.z, 0.002)
+
+            compose.onNodeWithText(linkLabel).performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !Prefs.isScaleLinked() }
+            setAxis("Y", "135")
+            current = readScaleOnGl(glView, 0)
+            assertEquals("turning the link off must preserve X during Y edit", 1.1, current.x, 0.002)
+            assertEquals("unlinked Y edit must update only Y after toggling", 1.35, current.y, 0.002)
+            assertEquals("turning the link off must preserve Z during Y edit", 1.1, current.z, 0.002)
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuOrientationPositionY))
+                .performSemanticsAction(SemanticsActions.SetProgress) { setProgress ->
+                    assertTrue("Y ruler accepts an accessible value", setProgress(160f))
+                }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).y - 1.6) < 0.002
+            }
+            current = readScaleOnGl(glView, 0)
+            assertEquals("unlinked Y ruler must preserve X", 1.1, current.x, 0.002)
+            assertEquals("unlinked Y ruler must preserve Z", 1.1, current.z, 0.002)
+
         } finally {
             Prefs.setScaleLinked(previousLinked)
             Prefs.setScaleInputInMM(previousMillimeters)
