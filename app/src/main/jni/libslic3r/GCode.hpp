@@ -195,6 +195,7 @@ public:
         m_enable_cooling_markers(false),
         m_enable_extrusion_role_markers(false),
         m_last_processor_extrusion_role(erNone),
+        m_retract_after_last_path(false),
         m_layer_count(0),
         m_layer_index(-1),
         m_layer(nullptr),
@@ -573,6 +574,8 @@ private:
     bool                                m_enable_extrusion_role_markers;
     // Keeps track of the last extrusion role passed to the processor
     ExtrusionRole                       m_last_processor_extrusion_role;
+    // The last completed wall was an outer wall; the next non-zero travel may bypass the retract threshold.
+    bool                                m_retract_after_last_path;
     // Tag an overhanging outer wall for seam preview.
     bool                                m_outer_overhang_tag_pending{false};
     // How many times will change_layer() be called?

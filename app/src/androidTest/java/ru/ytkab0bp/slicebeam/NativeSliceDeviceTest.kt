@@ -1159,6 +1159,75 @@ class NativeSliceDeviceTest {
     }
 
     @Test(timeout = 180_000)
+    fun outerWallRetractionOptionChangesRealShortTravelGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val processKeys = listOf(
+            "layer_height", "initial_layer_print_height", "wall_loops", "wall_sequence",
+            "top_shell_layers", "bottom_shell_layers", "sparse_infill_density",
+            "retraction_minimum_travel", "retract_when_changing_layer", "wipe", "z_hop",
+            "use_relative_e_distances", "gcode_comments", "retract_after_outer_wall",
+        )
+        val previous = processKeys.associateWith(process::get)
+        val source = createThinCubeFixture("outer-wall-short-travel.stl", 10.0, 10.0, 1.0)
+        val output = File(context.cacheDir, "outer-wall-short-travel.gcode")
+        val model = Model(source).also { it.ensureOnBed(0) }
+
+        fun slice(enabled: Boolean): String {
+            process.put("retract_after_outer_wall", if (enabled) "1" else "0")
+            SliceBeam.genCurrentConfig(model)
+            val configFile = SliceBeam.getCurrentConfigFile()
+            assertTrue(
+                "the developer setting must be included in native slice config",
+                Regex("(?m)^retract_after_outer_wall\\s*=\\s*${if (enabled) "1" else "0"}\\s*$")
+                    .containsMatchIn(configFile.readText()),
+            )
+            output.delete()
+            val result = model.slice(configFile.absolutePath, output.absolutePath, null)
+            try {
+                assertTrue("both option states must produce a complete native slice", output.isFile && output.length() > 0L)
+                return output.readText()
+            } finally {
+                result.release()
+            }
+        }
+
+        try {
+            process.put("layer_height", "0.2")
+            process.put("initial_layer_print_height", "0.2")
+            process.put("wall_loops", "3")
+            process.put("wall_sequence", "inner-outer-inner wall")
+            process.put("top_shell_layers", "0")
+            process.put("bottom_shell_layers", "0")
+            process.put("sparse_infill_density", "0%")
+            process.put("retraction_minimum_travel", "5")
+            process.put("retract_when_changing_layer", "0")
+            process.put("wipe", "0")
+            process.put("z_hop", "0")
+            process.put("use_relative_e_distances", "1")
+            process.put("gcode_comments", "1")
+
+            val legacy = slice(enabled = false)
+            val fixed = slice(enabled = true)
+            val retractions = Regex("(?m)^G1[^\\r\\n]*\\bE-\\d+(?:\\.\\d+)?(?:\\s|$)")
+            val legacyCount = retractions.findAll(legacy).count()
+            val fixedCount = retractions.findAll(fixed).count()
+            assertTrue("the control slice must contain retractions", legacyCount > 0)
+            assertTrue(
+                "short travels after outer walls must retract when enabled (legacy=$legacyCount, enabled=$fixedCount)",
+                fixedCount > legacyCount,
+            )
+        } finally {
+            previous.forEach { (key, value) -> if (value == null) process.remove(key) else process.put(key, value) }
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test(timeout = 180_000)
     fun overhangingOuterWallsKeepTheirSeamMarkersInGeneratedAndReopenedGcode() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))

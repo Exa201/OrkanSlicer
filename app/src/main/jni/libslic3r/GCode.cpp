@@ -2513,6 +2513,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     const bool is_bbl_printers = print.is_BBL_printer();
     const WipeTowerType wipe_tower_type = print.wipe_tower_type();
     m_calib_config.clear();
+    if (print.calib_mode() == CalibMode::Calib_Auto_PA_Line || print.calib_mode() == CalibMode::Calib_Retraction_tower)
+        m_calib_config.set_key_value("retract_after_outer_wall", new ConfigOptionBool(false));
     // resets analyzer's tracking data
     m_last_height  = 0.f;
     m_last_layer_z = 0.f;
@@ -5358,8 +5360,10 @@ LayerResult GCode::process_layer(
         gcode += std::move(gcode_toolchange);
 
         // let analyzer tag generator aware of a role type change
-        if (layer_tools.has_wipe_tower && m_wipe_tower)
+        if (layer_tools.has_wipe_tower && m_wipe_tower) {
             m_last_processor_extrusion_role = erWipeTower;
+            m_retract_after_last_path = false;
+        }
 
         std::vector<InstanceToPrint> &instances_to_print = filament_to_print_instances[extruder_id];
 
@@ -6258,8 +6262,19 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
             }
 
             for (const ExtrusionEntity* ee : region.perimeters) {
+                const size_t size_before = gcode.size();
                 gcode += this->extrude_entity(*ee, "perimeter", -1., region.perimeters,
                                                wipe_support ? &*wipe_support : nullptr);
+                if (gcode.size() != size_before) {
+                    const auto *loop = dynamic_cast<const ExtrusionLoop*>(ee);
+                    const auto *multi_path = dynamic_cast<const ExtrusionMultiPath*>(ee);
+                    const bool outer_wall = ee->inset_idx >= 0 ? ee->inset_idx == 0 :
+                        (loop ? is_outer_wall(*loop) : (multi_path ? std::any_of(
+                            multi_path->paths.begin(), multi_path->paths.end(),
+                            [](const ExtrusionPath &path) { return path.role() == erExternalPerimeter; }) :
+                            ee->role() == erExternalPerimeter));
+                    m_retract_after_last_path = m_config.retract_after_outer_wall.value && outer_wall;
+                }
                 if (wipe_support)
                     wipe_support->append(*ee);
             }
@@ -7650,6 +7665,8 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
         this->set_last_pos(travel.points.back());
     }
 
+    if (travel.size() >= 2)
+        m_retract_after_last_path = false;
     return gcode;
 }
 
@@ -7671,7 +7688,9 @@ LiftType GCode::to_lift_type(ZHopType z_hop_types) {
 
 bool GCode::needs_retraction(const Polyline &travel, ExtrusionRole role, LiftType& lift_type)
 {
-    if (travel.length() < scale_(FILAMENT_CONFIG(retraction_minimum_travel))) {
+    const bool leaving_external_perimeter = is_perimeter(m_last_processor_extrusion_role) && m_last_processor_extrusion_role != erPerimeter;
+    const bool force_after_outer_wall = m_retract_after_last_path && travel.length() > SCALED_EPSILON;
+    if (!force_after_outer_wall && travel.length() < scale_(FILAMENT_CONFIG(retraction_minimum_travel))) {
         // skip retraction if the move is shorter than the configured threshold
         return false;
     }
@@ -7749,7 +7768,7 @@ bool GCode::needs_retraction(const Polyline &travel, ExtrusionRole role, LiftTyp
 
     //BBS: force to retract when leave from external perimeter for a long travel
     //Better way is judging whether the travel move direction is same with last extrusion move.
-    if (is_perimeter(m_last_processor_extrusion_role) && m_last_processor_extrusion_role != erPerimeter) {
+    if (leaving_external_perimeter) {
         if (ZHopType(FILAMENT_CONFIG(z_hop_types)) == ZHopType::zhtAuto) {
             lift_type = is_through_overhang(clipped_travel) ? LiftType::SpiralLift : LiftType::SlopeLift;
         }
@@ -7856,6 +7875,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     int new_extruder_id = get_extruder_id(new_filament_id);
     if (!m_writer.need_toolchange(new_filament_id))
         return "";
+    m_retract_after_last_path = false;
 
     // if we are running a single-extruder setup, just set the extruder and return nothing
     if (!m_writer.multiple_extruders) {

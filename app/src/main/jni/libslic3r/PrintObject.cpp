@@ -1177,6 +1177,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "wipe_on_loops"
             || opt_key == "wipe_inward"
             || opt_key == "wipe_inward_distance"
+            || opt_key == "retract_after_outer_wall"
             || opt_key == "wipe_speed") {
             steps.emplace_back(posPerimeters);
         } else if (
