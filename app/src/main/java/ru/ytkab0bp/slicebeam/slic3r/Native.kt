@@ -442,6 +442,9 @@ class Native {
 
     @JvmStatic
     external fun model_get_layer_height_profile(ptr: Long, i: Int): DoubleArray
+    /** Test hook for reproducing serialized Orca variable-layer profiles in native slice regressions. */
+    @JvmStatic
+    external fun model_set_layer_height_profile_for_regression(ptr: Long, i: Int, profile: DoubleArray): Boolean
     @JvmStatic
     external fun model_fit_layer_height_profile_to_object(ptr: Long, sourceIndex: Int, targetIndex: Int): Boolean
     @JvmStatic

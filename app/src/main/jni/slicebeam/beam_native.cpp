@@ -2834,6 +2834,27 @@ extern "C" {
         return result;
     }
 
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1set_1layer_1height_1profile_1for_1regression(
+        JNIEnv* env, jclass, jlong ptr, jint i, jdoubleArray profileArray) {
+        ModelRef* model = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(ptr));
+        if (model == nullptr || profileArray == nullptr || i < 0 ||
+            static_cast<size_t>(i) >= model->model.objects.size() ||
+            model->model.objects[static_cast<size_t>(i)] == nullptr)
+            return JNI_FALSE;
+        const jsize size = env->GetArrayLength(profileArray);
+        if (size < 4 || (size & 1) != 0) return JNI_FALSE;
+        std::vector<coordf_t> profile(static_cast<size_t>(size));
+        env->GetDoubleArrayRegion(profileArray, 0, size, profile.data());
+        if (env->ExceptionCheck()) return JNI_FALSE;
+        for (size_t index = 0; index < profile.size(); index += 2) {
+            if (!std::isfinite(profile[index]) || !std::isfinite(profile[index + 1]) || profile[index + 1] <= 0.0 ||
+                (index > 0 && profile[index] < profile[index - 2]))
+                return JNI_FALSE;
+        }
+        model->model.objects[static_cast<size_t>(i)]->layer_height_profile.set(std::move(profile));
+        return JNI_TRUE;
+    }
+
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1fit_1layer_1height_1profile_1to_1object(
         JNIEnv* env, jclass, jlong ptr, jint sourceIndex, jint targetIndex) {
         ModelRef* model = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(ptr));

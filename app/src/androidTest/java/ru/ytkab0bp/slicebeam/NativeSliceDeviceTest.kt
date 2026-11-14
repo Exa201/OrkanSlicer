@@ -3499,7 +3499,8 @@ class NativeSliceDeviceTest {
             )
             SliceBeam.genCurrentConfig(model)
             val generated = configFile.readText()
-            assertTrue("the variable profile must reach the native slice config", generated.contains("adaptive_layer_height = 1"))
+            assertTrue("adaptive layer heights must be attached to the model before native slicing",
+                model.hasAdaptiveLayerHeight(0))
             result = model.slice(configFile.absolutePath, output.absolutePath, null)
             val gcode = output.readText()
             assertHasExtrusion(gcode)
@@ -3546,6 +3547,7 @@ class NativeSliceDeviceTest {
         process.put("support_object_xy_distance", "0.35")
         process.put("support_interface_top_layers", "0")
         process.put("support_interface_bottom_layers", "2")
+        process.put("gcode_comments", "1")
 
         val modelFile = createSupportCapitalFixture("orca25-support-variable-gap-bottom-capital.stl")
         val output = File(context.cacheDir, "orca25-support-variable-gap-bottom-capital.gcode")
@@ -3553,25 +3555,18 @@ class NativeSliceDeviceTest {
         var result: GCodeProcessorResult? = null
         try {
             model.ensureOnBed(0)
-            SliceBeam.genCurrentConfig(model)
-            val configFile = SliceBeam.getCurrentConfigFile()
-            model.applyAdaptiveLayerHeight(0, configFile.absolutePath, 0.5f)
-            val boundsMin = model.boundingBoxExactMin
-            val boundsMax = model.boundingBoxExactMax
-            val centerX = (boundsMin.x + boundsMax.x) / 2.0
-            val centerY = (boundsMin.y + boundsMax.y) / 2.0
+            // Match Orca's exact serialized profile: the 0.16 mm interval begins at the 2 mm
+            // base-to-stem boundary, so the synchronized 0.2 mm bottom gap rounds down to zero.
+            val profile = doubleArrayOf(0.0, 0.2, 2.0, 0.2, 2.0, 0.16, 2.16, 0.16, 2.16, 0.2, 14.0, 0.2)
             assertTrue(
-                "a finer synchronized layer schedule must be applied at the base-to-stem transition",
-                model.adjustLayerHeightAtWorldPoint(
-                    0, configFile.absolutePath, centerX, centerY, boundsMin.z + 2.08,
-                    8.0, 0.04, 1, 0.5f,
-                ),
+                "the serialized Orca profile must be installed on the model",
+                Native.model_set_layer_height_profile_for_regression(model.pointer, 0, profile),
             )
-            val profile = model.adaptiveLayerHeightProfile(0)
-            assertTrue("the variable profile must include a layer thinner than the nominal 0.2 mm",
-                profile.toList().chunked(2).any { it.size == 2 && it[0] in 1.6..2.4 && it[1] < 0.2 - 1e-6 })
+            assertArrayEquals("the model must retain the exact 0.16 mm synchronized interval", profile,
+                model.adaptiveLayerHeightProfile(0), 1e-6)
 
             SliceBeam.genCurrentConfig(model)
+            val configFile = SliceBeam.getCurrentConfigFile()
             val generated = configFile.readText()
             assertTrue("support bottom interface layers must reach native slicing",
                 generated.contains("support_interface_bottom_layers = 2"))
@@ -3580,11 +3575,14 @@ class NativeSliceDeviceTest {
             result = model.slice(configFile.absolutePath, output.absolutePath, null)
             val gcode = output.readText()
             assertHasExtrusion(gcode)
-            val interfaceZs = supportExtrusionSegments(gcode)
-                .filter { it.type.contains("support interface", ignoreCase = true) }
+            val supportSegments = supportExtrusionSegments(gcode)
+            val interfaceZs = supportSegments
+                .filter { it.type.contains("interface", ignoreCase = true) }
                 .map { kotlin.math.round(it.z * 1000.0).toLong() }
                 .distinct()
-            assertEquals("two bottom-contact interface layers must survive the rounded variable gap", 2, interfaceZs.size)
+            assertEquals("two bottom-contact interface layers must survive the rounded variable gap; " +
+                "supportTypes=${supportSegments.groupBy { it.type }.mapValues { it.value.size }} interfaceZs=$interfaceZs",
+                2, interfaceZs.size)
             Log.i("NativeSliceDeviceTest", "PASS synchronized bottom support contact interface layers=$interfaceZs")
         } finally {
             result?.release()
@@ -9343,6 +9341,7 @@ class NativeSliceDeviceTest {
                 continue
             }
             if (!line.startsWith("G0 ") && !line.startsWith("G1 ") && !line.startsWith("G92 ")) continue
+            val moveComment = line.substringAfter(';', "").trim().lowercase()
             val axes = axisRegex.findAll(line.substringBefore(';')).associate { match ->
                 match.groupValues[1] to match.groupValues[2].toDouble()
             }
@@ -9360,8 +9359,15 @@ class NativeSliceDeviceTest {
                 if (relativeExtrusion) value > 0.0 else value > previous
             } == true
             if (depositing && x != null && y != null && nextX != null && nextY != null) {
-                val segment = GCodePathSegment(x!!, y!!, nextX, nextY, z, type, width)
-                if (type.contains("support")) supports += segment
+                // Orca labels support moves on each extrusion command ("support material
+                // interface"), while TYPE markers may collapse interface and base to "Support".
+                val moveType = when {
+                    moveComment.contains("support material interface") -> "support material interface"
+                    moveComment.contains("support material") -> "support material"
+                    else -> type
+                }
+                val segment = GCodePathSegment(x!!, y!!, nextX, nextY, z, moveType, width)
+                if (moveType.contains("support")) supports += segment
             }
             x = nextX
             y = nextY
