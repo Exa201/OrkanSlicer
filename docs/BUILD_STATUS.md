@@ -737,3 +737,11 @@ scripts/build-debug.sh
 - Android unterstützt das In-Place-Downgrade einer normalen App nicht verlässlich; die UI macht diese Systemgrenze deutlich. Zur Wiederherstellung kann Android eine manuelle Neuinstallation nach Datensicherung verlangen.
 - Release-Pruning wurde auf genau zwei Nightly-Prereleases eingestellt. Behalten: v0.8.458 und v0.8.456; die dazwischen älteren v0.8.455/.454/.453 samt Tags gelöscht. Das Skript `scripts/prune-nightly-releases.ps1 -WhatIf` prüft den nächsten Ring vor Ausführung.
 - Debug-Unit-Suite und Changelog-Gate erfolgreich. Die neue Funktion ist noch nicht als APK veröffentlicht.
+
+## Signiertes Nightly-Release 0.8.459 — 2026-11-14
+
+- Release [v0.8.459-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.459-nightly.1), Commit `e5931b1d11367b273e37d47357f6f48804c6b751`; package `com.exa201.orkanslicer.nightly25`, versionCode 494.
+- ARM64 APK `OrkanSlicerNightly25_0.8.459_arm64-v8a.apk`, 239,656,514 bytes, SHA-256 `d2415f21121ba5d6bb0f83c90e6ad369b58a089a8d60a210efb04fdefad26e94`. GitHub digest matches; SHA-256 sidecar included.
+- Signature verified with historical OrkanSlicer certificate SHA-256 `6254b703f8440e375448b8ec213ef2dc63ebd6c4094ae83eb25f39c2cf426d12`. API-36 ARM64-capable emulator install/start passed. No physical Xiaomi test claimed.
+- The old 0.8.458 release APK was unsigned and caused the shown Android “Paket ungültig” error. Replaced it with signed `OrkanSlicerNightly25_5fa95112f4.apk` (239,640,130 bytes, SHA-256 `4c4b5d6c84704e5b7513db52b901f50cd2caa8349e8085981dde069aa23fa30a`) using the same verified historical cert.
+- Release retention: v0.8.459 and v0.8.458 only; v0.8.456 removed. Future local release signing: `scripts/sign-nightly-apk.ps1` with `ORKAN_NIGHTLY_SIGNING_PASSWORD` set in the process environment; script asserts the expected signer fingerprint.
