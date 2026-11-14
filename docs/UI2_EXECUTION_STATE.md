@@ -5001,3 +5001,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Die adaptive Vorschauqualität ist im Produktpfad vorhanden: App-Einstellungen bieten automatische oder explizite GL-Renderauflösung und FPS-Grenze; `DevicePerformancePolicy` erkennt Low-RAM/unterstützte Low-End-Renderer. `GLView` setzt nur die EGL-Vorschauauflösung, `GCodeViewer`/`GLRenderer` begrenzen sichtbare Vorschauauflösung bzw. Mesh-/Layerlast. Die Slicing-Geometrie bleibt davon unberührt; Policy-Unit-Tests decken Auswahl und Touchkoordinaten ab.
 - Hardwarezustand erneut: Xiaomi 2211133G online, `mWakefulness=Awake`, `mStayOn=true`, alle CPUs `0-7` sichtbar/erlaubt. Ein echter Slice-Worker-Fan-out ist ohne installierte Testvariante nicht gemessen.
 - MIUI-USB-Installationsbestätigung ist weiterhin der Übergabepunkt für Xiaomi-Instrumentierung. Automatisierte Shell-Eingabe erhält `INJECT_EVENTS`-SecurityException; kein Test-Install oder Slice-Lauf gestartet.
+
+## Nightly 2.5 prerelease — Support-Interface-Fix — 2026-11-14
+
+- App 0.8.458 / versionCode 493, package `com.exa201.orkanslicer.nightly25`; source commit `5fa95112f45f69c0e7efe8a73c9a05ea3727a3dd` (fix commit `a99e9447d1bddaaaea23dce4778f108c4a74a066`).
+- ARM64 Release APK `OrkanSlicerNightly25_5fa95112f4.apk`, 239,387,839 bytes, SHA-256 `e592edb4dc099eca6f3cbea5fb4b24963609f711b857815e75458ed1a5bc93c9`; APK and checksum sidecar uploaded. GitHub asset digest matches.
+- Release [v0.8.458-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.458-nightly.1) is a prerelease targeting the source commit. Gradle `:app:verifyNightlyChangelog :app:assembleRelease` succeeded. Fix regression tests/instrumentation recorded on the source commit passed; Xiaomi validation is still blocked because the MIUI USB installation prompt expires/cancels before confirmation.
+- Retention is five prereleases: 0.8.458, 0.8.456, 0.8.455, 0.8.454, 0.8.453. The previously oldest 0.8.452 release and tag were deleted after verifying the new assets.
+- Orca Batch 18 remains 5/10; release publication does not count as hardware verification. Next concrete step: install/launch this APK on Xiaomi after accepting the device's normal MIUI USB-install prompt, then run the bottom-support regression and TBB worker probe.

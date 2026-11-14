@@ -723,3 +723,10 @@ scripts/check-native-prebuilts.py arm64-v8a
 scripts/build-debug.sh
 ```
 
+
+## Nightly 2.5 prerelease 0.8.458 — 2026-11-14
+
+- Published [v0.8.458-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.458-nightly.1), source commit `5fa95112f45f69c0e7efe8a73c9a05ea3727a3dd`; package `com.exa201.orkanslicer.nightly25`, versionCode 493.
+- ARM64 Release APK `OrkanSlicerNightly25_5fa95112f4.apk`, 239,387,839 bytes, SHA-256 `e592edb4dc099eca6f3cbea5fb4b24963609f711b857815e75458ed1a5bc93c9`. GitHub asset digest matches; `.sha256` sidecar uploaded.
+- `:app:verifyNightlyChangelog :app:assembleRelease` passed. Support-interface regression checks were passed on the source commit; physical Xiaomi installation/runtime check remains unverified due the expiring MIUI USB installation confirmation.
+- Five newest prereleases retained: 0.8.458, 0.8.456, 0.8.455, 0.8.454, 0.8.453; 0.8.452 and its tag were removed.
