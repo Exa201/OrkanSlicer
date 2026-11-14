@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.459 — Vorversions-Download und installierbares Release — 2026-11-14
+
+- Im App-Menü kann die nächstniedrigere veröffentlichte Nightly gesucht und geladen werden. Android kann ein In-Place-Downgrade weiterhin ablehnen; die App weist auf die manuelle Neuinstallation hin.
+- Nightly-Releases werden als Schieberegister mit der aktuellen und der vorherigen Version aufbewahrt.
+- Das Release-APK wird mit demselben Android-Signaturzertifikat wie das bestehende OrkanSlicer-APK signiert.
+
+
 ## 0.8.458 — Bottom-Interface-Support korrigiert — 2026-11-14
 
 - Bottom-Interface-Lagen bleiben aktiv, wenn Top-Interface-Lagen auf 0 stehen.

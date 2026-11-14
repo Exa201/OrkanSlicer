@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer Nightly 2.5 · 0.8.458\n\n• Support-Interfaces bleiben bei deaktiviertem Top-Interface erhalten. Die konfigurierte Anzahl farbiger Bottom-Interface-Lagen stimmt jetzt auch mit dem G-Code überein.\n• Bottom- und Top-Interface-Dichte werden getrennt angewendet.",
-  "en": "OrkanSlicer Nightly 2.5 · 0.8.458\n\n• Support interfaces remain enabled when top interfaces are disabled. The configured number of colored bottom-interface layers now matches the generated G-code.\n• Bottom and top interface densities are applied independently.",
-  "ru": "OrkanSlicer Nightly 2.5 · 0.8.458\n\n• Интерфейс поддержки сохраняется, когда верхний интерфейс отключён. Настроенное число цветных нижних интерфейсных слоёв теперь соответствует G-коду.\n• Плотность верхнего и нижнего интерфейсов применяется раздельно."
+  "de": "OrkanSlicer Nightly 2.5 · 0.8.459\n\n• Vorherige Nightly-Version direkt aus dem App-Menü laden. Android kann das In-Place-Downgrade ablehnen; dann ist eine manuelle Neuinstallation erforderlich.\n• Nightly-Veröffentlichungen behalten die aktuelle und die vorherige Version.",
+  "en": "OrkanSlicer Nightly 2.5 · 0.8.459\n\n• Download the previous Nightly directly from the app menu. Android may reject in-place downgrades; manual reinstallation may be required.\n• Nightly releases retain the current and previous versions.",
+  "ru": "OrkanSlicer Nightly 2.5 · 0.8.459\n\n• Загрузите предыдущую Nightly-версию прямо из меню приложения. Android может отклонить установку поверх более новой версии; может потребоваться переустановка вручную.\n• В релизах Nightly хранятся текущая и предыдущая версии."
 }
