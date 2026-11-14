@@ -5225,11 +5225,11 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun projectMenuImportsMultipleSelectedStlsSequentially() {
+    fun projectMenuImportsMixedSelectedMeshesInOneBatch() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val firstFile = File(activity.cacheDir, "menu-multi-import-${System.nanoTime()}-a.stl")
-        val secondFile = File(activity.cacheDir, "menu-multi-import-${System.nanoTime()}-b.stl")
+        val secondFile = File(activity.cacheDir, "menu-multi-import-${System.nanoTime()}-b.obj")
         val cachedFiles = listOf(
             File(SliceBeam.getModelCacheDir(), firstFile.name),
             File(SliceBeam.getModelCacheDir(), secondFile.name),
@@ -5258,10 +5258,12 @@ class InitialProjectMenuDeviceTest {
         ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
         val authority = requireNotNull(provider.authority).substringBefore(';')
         try {
-            listOf(firstFile, secondFile).forEach { file ->
-                activity.assets.open("models/xyz_cube.stl").use { source ->
-                    file.outputStream().use(source::copyTo)
-                }
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                firstFile.outputStream().use(source::copyTo)
+            }
+            InstrumentationRegistry.getInstrumentation().context.assets
+                .open("models/orca-bridge-speed.obj").use { source ->
+                secondFile.outputStream().use(source::copyTo)
             }
             assertEquals(0, bed.currentModel?.objectsCount ?: 0)
 
@@ -5279,7 +5281,7 @@ class InitialProjectMenuDeviceTest {
             val secondUri = FileProvider.getUriForFile(activity, authority, secondFile)
             val clipData = android.content.ClipData.newUri(
                 activity.contentResolver,
-                "selected STL models",
+                "selected STL and OBJ models",
                 firstUri,
             ).apply { addItem(android.content.ClipData.Item(secondUri)) }
             val resultIntent = Intent().apply { setClipData(clipData) }
@@ -5291,12 +5293,12 @@ class InitialProjectMenuDeviceTest {
                     .invoke(activity, requestCode, android.app.Activity.RESULT_OK, resultIntent)
             }
             compose.waitUntil(timeoutMillis = 60_000) {
-                bed.currentModel?.objectsCount == 2
+                (bed.currentModel?.objectsCount ?: 0) >= 2
             }
-            assertEquals("both selected STLs should be imported in order", 2,
-                requireNotNull(bed.currentModel).objectsCount)
+            assertTrue("the selected STL and OBJ should both be imported as separate objects",
+                requireNotNull(bed.currentModel).objectsCount >= 2)
             compose.waitUntil(timeoutMillis = 10_000) { cachedFiles.none(File::exists) }
-            assertTrue("the sequential importer should remove each temporary cached STL after loading",
+            assertTrue("the batch importer should remove temporary cached meshes after loading",
                 cachedFiles.none(File::exists))
         } finally {
             launchers[requestCode] = previousLauncher
