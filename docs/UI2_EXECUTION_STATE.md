@@ -5041,3 +5041,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Reparierte Vorversion v0.8.458: `OrkanSlicerNightly25_5fa95112f4.apk`, 239,640,130 bytes, SHA-256 `4c4b5d6c84704e5b7513db52b901f50cd2caa8349e8085981dde069aa23fa30a`; APK-Asset und Checksum-Datei am existierenden Release ersetzt und Signatur geprüft.
 - Neue APK auf API-36-Emulator mit ARM64-Unterstützung installiert und gestartet. Paketmanager meldet Version 0.8.459/code 494; Start-Logprüfung ohne FATAL EXCEPTION, ANR, fatal signal oder OOM. Hardwaretest auf Xiaomi nicht durchgeführt.
 - Zwei-Releases-Ring nach Upload geprüft: 0.8.459 und reparierte 0.8.458; 0.8.456 entfernt. `scripts/sign-nightly-apk.ps1` signiert künftige Release-APKs nur mit dem historischen erwarteten Zertifikat und bricht bei abweichendem Fingerprint ab; Passwort wird über `ORKAN_NIGHTLY_SIGNING_PASSWORD` übergeben und nicht gespeichert.
+## Nightly multi-mesh import extension — 2026-11-14
+
+- The existing single import path already delegates STL, OBJ, AMF, OLTP, and other formats to the Orca model bridge, but multi-selection only accepted STL. Multi-selection and external multi-file open now batch STL/OBJ/AMF/OLTP as independent mesh objects and perform the existing one-transaction placement pass.
+- STEP/STP remains on its option-dialog path and 3MF remains on its project-aware import path; neither is flattened into this independent-mesh batch. STL-only footprint preflight is not applied to OBJ/AMF/OLTP.
+- Verification: `ModelBatchImportPolicyTest` 2/2 passed; `:app:assembleDebug` successful; `git diff --check` clean. The only build warnings were existing Kotlin/SDK/Gradle warnings.
+- Xiaomi 2211133G is visible through ADB, but MIUI rejected the debug install with `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`; no import runtime test ran. This feature is not hardware-accepted and does not count toward the ten runtime-verified changes needed for an APK release. Screen stay-awake was enabled for the test attempt.
+- Next concrete test: after normal MIUI confirmation permits the test install, select one STL and one OBJ (then AMF separately) in multi-select, verify one loading job, separate objects, correct single-pass bed placement, and that omitted STEP/3MF files receive the explanatory message.
+
+\n

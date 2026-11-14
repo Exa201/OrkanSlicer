@@ -2737,11 +2737,11 @@ private fun loadModelInternal(
     loadImportedModelOnRenderer(imported, reduction, preserveProjectLayout, callback, autoOrientImportedModels, f)
 }
 
-/** Import a multi-file STL selection as one model batch so the native nest runs once. */
+/** Import independent mesh files as one model batch so the native nest runs once. */
 @JvmOverloads
 fun loadModelBatch(files:List<File>, callback:ModelLoadCallback? = null, autoOrientImportedModels:Boolean = true) {
     if (files.isEmpty()) {
-        callback?.onFailed(IllegalArgumentException("No STL files selected"))
+        callback?.onFailed(IllegalArgumentException("No supported mesh files selected"))
         return
     }
     if (destroyed || modelLoadInProgress) {
@@ -2761,8 +2761,10 @@ fun loadModelBatch(files:List<File>, callback:ModelLoadCallback? = null, autoOri
         try {
             files.forEachIndexed { fileIndex, file ->
                 if (destroyed || importGeneration != modelImportGeneration) throw ImportCancelledException()
-                StlImportPreflight.largeTriangleCount(file, IMPORT_TRIANGLE_LIMIT.toLong())?.let {
-                    if (!confirmLargeStlImport(it)) throw ImportCancelledException()
+                if (file.extension.equals("stl", ignoreCase = true)) {
+                    StlImportPreflight.largeTriangleCount(file, IMPORT_TRIANGLE_LIMIT.toLong())?.let {
+                        if (!confirmLargeStlImport(it)) throw ImportCancelledException()
+                    }
                 }
                 var source:Model? = null
                 try {
@@ -2779,12 +2781,12 @@ fun loadModelBatch(files:List<File>, callback:ModelLoadCallback? = null, autoOri
                 } catch (error:Exception) {
                     if (error is ImportCancelledException || error is java.util.concurrent.CancellationException) throw error
                     failedFiles++
-                    Log.e("BedFragment", "Could not import STL batch item ${file.name}", error)
+                    Log.e("BedFragment", "Could not import mesh batch item ${file.name}", error)
                 } finally {
                     source?.release()
                 }
             }
-            if (batch.objectsCount == 0) throw IllegalStateException("No STL file in the selection could be imported.")
+            if (batch.objectsCount == 0) throw IllegalStateException("No selected mesh file could be imported.")
             if (destroyed || importGeneration != modelImportGeneration) throw ImportCancelledException()
             val reduction = if (reducedBefore > 0L) ImportReduction(reducedBefore, reducedAfter) else null
             loadImportedModelOnRenderer(batch, reduction, false, object:ModelLoadCallback {
@@ -2801,13 +2803,13 @@ fun loadModelBatch(files:List<File>, callback:ModelLoadCallback? = null, autoOri
             if (error is ImportCancelledException || error is java.util.concurrent.CancellationException) {
                 ViewUtils.postOnMainThread { if (!destroyed && importGeneration == modelImportGeneration) callback?.onCancelled() }
             } else {
-                Log.e("BedFragment", "Could not load STL batch", error)
+                Log.e("BedFragment", "Could not load mesh batch", error)
                 ViewUtils.postOnMainThread { if (!destroyed && importGeneration == modelImportGeneration) callback?.onFailed(error) }
             }
         } finally {
             modelLoadInProgress = false
         }
-    }, "OrcaStlBatchLoader").start()
+    }, "OrcaMeshBatchLoader").start()
 }
 
 private fun loadImportedModelOnRenderer(

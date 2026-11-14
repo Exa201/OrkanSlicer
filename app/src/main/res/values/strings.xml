@@ -705,6 +705,10 @@
     <string name="MenuFileOpenMultipleStlProgress">Loading STL %1$d of %2$d…</string>
     <string name="MenuFileOpenMultipleStlComplete">Loaded %1$d of %2$d STL files as separate objects.</string>
     <string name="MenuFileOpenMultipleStlFailed">Could not load %1$d of %2$d STL files.</string>
+    <string name="MenuFileOpenMultipleMeshOnly">Only STL, OBJ, AMF, and OLTP mesh files can be loaded together. STEP and project files must be opened separately.</string>
+    <string name="MenuFileOpenMultipleMeshProgress">Loading mesh %1$d of %2$d…</string>
+    <string name="MenuFileOpenMultipleMeshComplete">Loaded %1$d of %2$d mesh files as separate objects.</string>
+    <string name="MenuFileOpenMultipleMeshFailed">Could not load %1$d of %2$d mesh files.</string>
     <string name="MenuFileDelete">Remove model</string>
     <string name="MenuFileObjects">Loaded objects</string>
     <string name="MenuFileObjectActions">Object actions</string>

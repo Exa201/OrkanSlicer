@@ -93,6 +93,7 @@ import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationPolicy
 import ru.ytkab0bp.slicebeam.navigation.NavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.ModelBatchImportPolicy
 import ru.ytkab0bp.slicebeam.slic3r.Native
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
@@ -264,19 +265,19 @@ private fun handleExternalModelOpen(intent: Intent) {
         return
     }
 
-    val stlFiles = uris.filter { uri ->
-        IOUtils.getDisplayName(uri)?.lowercase(Locale.ROOT)?.endsWith(".stl") == true
+    val batchFiles = uris.filter { uri ->
+        ModelBatchImportPolicy.supports(IOUtils.getDisplayName(uri))
     }
-    if (stlFiles.size != uris.size) {
-        Toast.makeText(this, R.string.MenuFileOpenMultipleStlOnly, Toast.LENGTH_LONG).show()
+    if (batchFiles.size != uris.size) {
+        Toast.makeText(this, R.string.MenuFileOpenMultipleMeshOnly, Toast.LENGTH_LONG).show()
     }
-    if (stlFiles.isEmpty()) {
+    if (batchFiles.isEmpty()) {
         showFileOperationError(
             getString(R.string.MenuFileOpenFileFailed),
-            getString(R.string.MenuFileOpenMultipleStlOnly),
+            getString(R.string.MenuFileOpenMultipleMeshOnly),
         )
     } else {
-        runInWorkspaceBed { loadMultipleStlFiles(stlFiles) }
+        runInWorkspaceBed { loadMultipleMeshFiles(batchFiles) }
     }
 }
 
@@ -503,26 +504,26 @@ selectedFiles.add(data.getData()!!)
 }
 if (selectedFiles.size > 1)
 {
-val stlFiles = ArrayList<Uri>()
+val batchFiles = ArrayList<Uri>()
 for (uri in selectedFiles)
 {
 val name = IOUtils.getDisplayName(uri)
-if (name != null && name.lowercase(Locale.ROOT).endsWith(".stl")) stlFiles.add(uri)
+if (ModelBatchImportPolicy.supports(name)) batchFiles.add(uri)
 }
-if (stlFiles.size != selectedFiles.size)
+if (batchFiles.size != selectedFiles.size)
 {
-Toast.makeText(this, R.string.MenuFileOpenMultipleStlOnly, Toast.LENGTH_LONG).show()
+Toast.makeText(this, R.string.MenuFileOpenMultipleMeshOnly, Toast.LENGTH_LONG).show()
 }
-if (stlFiles.isEmpty())
+if (batchFiles.isEmpty())
 {
 showFileOperationError(
     getString(R.string.MenuFileOpenFileFailed),
-    getString(R.string.MenuFileOpenMultipleStlOnly),
+    getString(R.string.MenuFileOpenMultipleMeshOnly),
 )
 }
 else
 {
-runInWorkspaceBed { loadMultipleStlFiles(stlFiles) }
+runInWorkspaceBed { loadMultipleMeshFiles(batchFiles) }
 }
 }
 else if (!selectedFiles.isEmpty())
@@ -2059,15 +2060,17 @@ private fun probeStepContent(uri:Uri, onResult:(Boolean)->Unit) {
         }
     }
 }
-private fun loadMultipleStlFiles(files:List<Uri>) {
+private fun loadMultipleMeshFiles(files:List<Uri>) {
 if (files.isEmpty()) return
 val tag = UUID.randomUUID().toString()
 SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING,
-getString(R.string.MenuFileOpenMultipleStlProgress, 1, files.size)).tag(tag))
-// Pack larger footprints first so early small files do not force large parts onto overflow
-// plates. Unknown/ASCII STL inputs retain their relative selection order after known binaries.
+getString(R.string.MenuFileOpenMultipleMeshProgress, 1, files.size)).tag(tag))
+// Estimate STL footprints when possible so large STL parts are packed before smaller meshes.
 IOUtils.IO_POOL.submit {
     val areas = files.map { uri ->
+        if (IOUtils.getDisplayName(uri)?.substringAfterLast('.', "")?.equals("stl", ignoreCase = true) != true) {
+            return@map 0.0
+        }
         runCatching {
             getContentResolver().openAssetFileDescriptor(uri, "r")?.use { descriptor ->
                 descriptor.createInputStream().use { input ->
@@ -2081,13 +2084,13 @@ IOUtils.IO_POOL.submit {
         if (isFinishing || isDestroyed) {
             SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
         } else {
-            stageMultipleStlFiles(orderedFiles, 0, ArrayList(), 0, tag)
+            stageMultipleMeshFiles(orderedFiles, 0, ArrayList(), 0, tag)
         }
     }
 }
 }
 /** Stage the selection, then hand the entire batch to one native packing transaction. */
-private fun stageMultipleStlFiles(files:List<Uri>, index:Int, cachedFiles:ArrayList<File>, failed:Int, tag:String) {
+private fun stageMultipleMeshFiles(files:List<Uri>, index:Int, cachedFiles:ArrayList<File>, failed:Int, tag:String) {
     if (isFinishing || isDestroyed) {
         cachedFiles.forEach(File::delete)
         SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
@@ -2099,7 +2102,7 @@ private fun stageMultipleStlFiles(files:List<Uri>, index:Int, cachedFiles:ArrayL
             cachedFiles.forEach(File::delete)
             SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.ERROR,
-                getString(R.string.MenuFileOpenMultipleStlFailed, failed + cachedFiles.size, files.size)))
+                getString(R.string.MenuFileOpenMultipleMeshFailed, failed + cachedFiles.size, files.size)))
             return
         }
         bed.loadModelBatch(cachedFiles, object:BedFragment.ModelLoadCallback {
@@ -2124,10 +2127,10 @@ private fun stageMultipleStlFiles(files:List<Uri>, index:Int, cachedFiles:ArrayL
                     val totalFailed = failed + failedInBatch
                     val loaded = files.size - totalFailed
                     if (loaded > 0) SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(getString(
-                        R.string.MenuFileOpenMultipleStlComplete, loaded, files.size)))
+                        R.string.MenuFileOpenMultipleMeshComplete, loaded, files.size)))
                     if (totalFailed > 0) SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
                         SnackbarsLayout.Type.ERROR,
-                        getString(R.string.MenuFileOpenMultipleStlFailed, totalFailed, files.size)))
+                        getString(R.string.MenuFileOpenMultipleMeshFailed, totalFailed, files.size)))
                 }
             }
             override fun onFailed(error:Exception) {
@@ -2136,7 +2139,7 @@ private fun stageMultipleStlFiles(files:List<Uri>, index:Int, cachedFiles:ArrayL
                 ViewUtils.postOnMainThread {
                     SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
                     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.ERROR,
-                        getString(R.string.MenuFileOpenMultipleStlFailed, files.size, files.size)))
+                        getString(R.string.MenuFileOpenMultipleMeshFailed, files.size, files.size)))
                 }
             }
             override fun onCancelled() {
@@ -2150,14 +2153,14 @@ private fun stageMultipleStlFiles(files:List<Uri>, index:Int, cachedFiles:ArrayL
     val uri = files[index]
     val displayName = IOUtils.getDisplayName(uri)
     if (displayName == null) {
-        stageMultipleStlFiles(files, index + 1, cachedFiles, failed + 1, tag)
+        stageMultipleMeshFiles(files, index + 1, cachedFiles, failed + 1, tag)
         return
     }
     val extension = displayName.substringAfterLast('.', "stl")
     val baseName = displayName.substringBeforeLast('.', displayName)
     val cachedFile = getSafeCachedModelFile("${baseName}-${index + 1}.$extension")
     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING,
-        getString(R.string.MenuFileOpenMultipleStlProgress, index + 1, files.size)).updateTaggedInPlace(tag))
+        getString(R.string.MenuFileOpenMultipleMeshProgress, index + 1, files.size)).updateTaggedInPlace(tag))
     IOUtils.IO_POOL.submit {
         try {
             val input = contentResolver.openInputStream(uri) ?: throw FileNotFoundException(uri.toString())
@@ -2171,12 +2174,12 @@ private fun stageMultipleStlFiles(files:List<Uri>, index:Int, cachedFiles:ArrayL
             } }
             ViewUtils.postOnMainThread {
                 cachedFiles.add(cachedFile)
-                stageMultipleStlFiles(files, index + 1, cachedFiles, failed, tag)
+                stageMultipleMeshFiles(files, index + 1, cachedFiles, failed, tag)
             }
         } catch (error:Exception) {
             cachedFile.delete()
-            Log.e("MainActivity", "Failed to stage selected STL: $displayName", error)
-            ViewUtils.postOnMainThread { stageMultipleStlFiles(files, index + 1, cachedFiles, failed + 1, tag) }
+            Log.e("MainActivity", "Failed to stage selected mesh: $displayName", error)
+            ViewUtils.postOnMainThread { stageMultipleMeshFiles(files, index + 1, cachedFiles, failed + 1, tag) }
         }
     }
 }

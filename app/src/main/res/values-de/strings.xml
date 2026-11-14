@@ -688,6 +688,10 @@
     <string name="MenuFileOpenMultipleStlProgress">STL %1$d von %2$d wird geladen …</string>
     <string name="MenuFileOpenMultipleStlComplete">%1$d von %2$d STL-Dateien wurden als einzelne Objekte geladen.</string>
     <string name="MenuFileOpenMultipleStlFailed">%1$d von %2$d STL-Dateien konnten nicht geladen werden.</string>
+    <string name="MenuFileOpenMultipleMeshOnly">Gemeinsam lassen sich nur STL-, OBJ-, AMF- und OLTP-Netzdateien laden. STEP- und Projektdateien bitte einzeln öffnen.</string>
+    <string name="MenuFileOpenMultipleMeshProgress">Netz %1$d von %2$d wird geladen …</string>
+    <string name="MenuFileOpenMultipleMeshComplete">%1$d von %2$d Netzdateien wurden als einzelne Objekte geladen.</string>
+    <string name="MenuFileOpenMultipleMeshFailed">%1$d von %2$d Netzdateien konnten nicht geladen werden.</string>
     <string name="MenuFileDelete">Modell entfernen</string>
     <string name="MenuFileObjects">Geladene Objekte</string>
     <string name="MenuFileObjectActions">Objektaktionen</string>
