@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.458 — Bottom-Interface-Support korrigiert — 2026-11-14
+
+- Bottom-Interface-Lagen bleiben aktiv, wenn Top-Interface-Lagen auf 0 stehen.
+- Die Support-Kontaktlage wird auf die konfigurierte Anzahl Interface-Lagen angerechnet; dadurch stimmen farbige Support-Lagen und G-Code-Rollen wieder mit der Einstellung überein.
+- Bottom- und Top-Interface-Dichte werden getrennt behandelt. Bottom-, Top- und Tree-Support-Regressionen bestanden im API-36-Instrumentierungslauf; Debug- und SliceTest-Unit-Suiten jeweils 777/777.
+
 ## 0.8.457 — Einheitliche, wischbare Workspace-Menüs — 2026-11-14
 
 - Alle unteren Menüs im Hochformat verwenden vier Spalten und bis zu zwei Reihen. Der separate Pfeilbutton entfällt; zusätzliche Aktionen werden direkt per horizontalem Wischen erreicht.
