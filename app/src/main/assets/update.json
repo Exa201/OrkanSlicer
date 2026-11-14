@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer Nightly 2.5 · 0.8.459\n\n• Vorherige Nightly-Version direkt aus dem App-Menü laden. Android kann das In-Place-Downgrade ablehnen; dann ist eine manuelle Neuinstallation erforderlich.\n• Nightly-Veröffentlichungen behalten die aktuelle und die vorherige Version.",
-  "en": "OrkanSlicer Nightly 2.5 · 0.8.459\n\n• Download the previous Nightly directly from the app menu. Android may reject in-place downgrades; manual reinstallation may be required.\n• Nightly releases retain the current and previous versions.",
-  "ru": "OrkanSlicer Nightly 2.5 · 0.8.459\n\n• Загрузите предыдущую Nightly-версию прямо из меню приложения. Android может отклонить установку поверх более новой версии; может потребоваться переустановка вручную.\n• В релизах Nightly хранятся текущая и предыдущая версии."
+  "de": "OrkanSlicer Nightly 2.5 · 0.8.460\n\n• Orca-2.5-Verbesserungen für Tree-Support, variable Schichthöhen und Rückzüge nach Außenwänden.\n• Release-Ring mit den fünf neuesten Nightly-Versionen.",
+  "en": "OrkanSlicer Nightly 2.5 · 0.8.460\n\n• Orca 2.5 improvements for tree supports, variable layer heights, and retraction after outer walls.\n• Release ring retains the five newest Nightly versions.",
+  "ru": "OrkanSlicer Nightly 2.5 · 0.8.460\n\n• Улучшения Orca 2.5 для древовидных поддержек, переменной высоты слоя и ретракта после внешних стенок.\n• В кольце релизов сохраняются пять последних версий Nightly."
 }

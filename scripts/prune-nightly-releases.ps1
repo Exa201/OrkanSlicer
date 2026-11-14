@@ -2,7 +2,7 @@
 param(
     [string]$Repository = 'Exa201/OrkanSlicer-Nightly-2.5',
     [ValidateRange(2, 100)]
-    [int]$Retain = 2
+    [int]$Retain = 5
 )
 
 $releases = gh release list --repo $Repository --limit 100 --json tagName,name,createdAt,isPrerelease,isDraft | ConvertFrom-Json

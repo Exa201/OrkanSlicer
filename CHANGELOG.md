@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.460 — Orca-2.5-Slicing-Fixes — 2026-11-14
+
+- Orca-Verbesserungen für Tree-Support-Cluster, Supportkontakte über variable Schichthöhen und Rückzüge nach Außenwänden in den mobilen Kern übernommen.
+- Die drei Native-Slice-Regressionen bestanden jeweils 1/1 auf dem Honor Magic7 Pro; die Außenwand-Rückzugsprüfung bestand zusätzlich 1/1 auf dem API-36-Emulator. Bei einer Wiederholung auf dem Honor liefen zwei Tests erneut erfolgreich; die ADB-Verbindung brach während des dritten Tests ab.
+- Debug- und SliceTest-Unit-Suiten bestanden jeweils 783/783 ohne Fehler oder Übersprünge.
+- Der Nightly-Aufbewahrungsstandard hält die fünf neuesten veröffentlichten Prereleases.
+
 ## 0.8.459 — Vorversions-Download und installierbares Release — 2026-11-14
 
 - Im App-Menü kann die nächstniedrigere veröffentlichte Nightly gesucht und geladen werden. Android kann ein In-Place-Downgrade weiterhin ablehnen; die App weist auf die manuelle Neuinstallation hin.

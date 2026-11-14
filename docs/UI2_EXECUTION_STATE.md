@@ -1,4 +1,13 @@
-# Nightly execution state — 2026-11-13
+# Nightly execution state — 2026-11-14
+
+## Aktueller Abschlussstand — Orca Batch 18 und Release 0.8.460
+
+- Orca Batch 18 ist **10/10**: Punkte 8–10 sind Orca-Tree-Support-Cluster (`87cf1429ca`), Supportkontakt-Trimmung bei variablen Layerhöhen (`011f3fc0ae` und `3dcdf2818c`) sowie stabiler Bottom-Contact-Cache (`8fc94ade1e`). Die gezielten Native-Slice-Tests bestanden zuvor einzeln 1/1 auf Honor Magic7 Pro (Android 16). Bei einer Wiederholung am 14.11. bestanden die Overhang-Cluster- und Layer-Gap-Tests erneut 1/1; während der dritten Testausführung fiel Honors WLAN-ADB-Verbindung aus. Dieser Wiederholungslauf gilt für den dritten Test als nicht abgeschlossen.
+- Punkt 7 (`retract_after_outer_wall`) besteht zusätzlich 1/1 auf Honor und 1/1 auf API-36-Emulator. ARM64-Native-Build und Instrumentierungs-APK sind vorhanden.
+- Vollständige JVM-Suiten erneut ausgeführt: Debug **783/783**, SliceTest **783/783**, jeweils 0 Fehler, Errors oder Skips. `verifyNightlyChangelog` vor dem Versionswechsel erfolgreich.
+- Release-Metadaten werden auf 0.8.460 / versionCode 495 aktualisiert. Das Änderungsprotokoll wird beim App-Start über `update.json` versioniert. Das Release-Retention-Skript wird auf die fünf neuesten Prereleases eingestellt.
+- Honor war anfangs online (`192.168.68.66:41319`), ging während des dritten Langzeittests offline. Der neu eingegebene Pairing-Code konnte nicht verwendet werden, weil kein aktiver Pairing-Port offen war; der zuvor bekannte Port 35053 antwortete mit Protokollfehler. Xiaomi bleibt separat durch `INSTALL_FAILED_USER_RESTRICTED` blockiert.
+- Nächster konkreter Schritt: Version 0.8.460 gegen `CHANGELOG.md`/`update.json` prüfen, Release-APK mit dem verifizierten historischen Signaturzertifikat bauen, APK-Signatur und ZIP-Inhalt validieren, Release veröffentlichen und danach den Ring auf fünf aktuelle Prereleases begrenzen.
 
 ## Aktueller Fortsetzungsstand — Honor-Installerdiagnose und Orca Batch 18 — 2026-11-14
 
