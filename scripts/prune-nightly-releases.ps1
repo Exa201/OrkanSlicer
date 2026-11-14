@@ -6,7 +6,16 @@ param(
 )
 
 $releases = gh release list --repo $Repository --limit 100 --json tagName,name,createdAt,isPrerelease,isDraft | ConvertFrom-Json
-$nightlies = @($releases | Where-Object { $_.isPrerelease -and -not $_.isDraft } | Sort-Object { [DateTimeOffset]$_.createdAt } -Descending)
+$nightlies = @($releases | Where-Object { $_.isPrerelease -and -not $_.isDraft } | ForEach-Object {
+    $versionMatch = [regex]::Match($_.tagName, '^v(\d+\.\d+\.\d+)-nightly(?:\.|$)')
+    if (-not $versionMatch.Success) { throw "Nightly release tag has no semantic app version: $($_.tagName)" }
+    [pscustomobject]@{
+        tagName = $_.tagName
+        name = $_.name
+        createdAt = $_.createdAt
+        version = [version]$versionMatch.Groups[1].Value
+    }
+} | Sort-Object version -Descending)
 $expired = @($nightlies | Select-Object -Skip $Retain)
 
 if ($expired.Count -eq 0) {
