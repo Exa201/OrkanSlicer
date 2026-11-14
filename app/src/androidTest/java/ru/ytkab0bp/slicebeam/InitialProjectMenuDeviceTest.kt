@@ -47,7 +47,6 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.click
-import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
@@ -5974,6 +5973,68 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun portraitMenuGridUsesRowsAndFirstVerticalSwipeWorksInModelAndEdit() {
+        val activity = compose.activity
+        assumeTrue("This interaction test targets the compact phone layout", usesCompactPortraitLayout(activity))
+        activity.getSharedPreferences("workspace_menu_customization", 0).edit().clear().commit()
+
+        openWorkspaceMenu(activity, WorkspaceDestination.TOOLS, R.string.MenuOptions)
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithTag("workspace-menu-action-${R.string.MenuFileCalibrations}")
+                .fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodesWithTag("workspace-menu-action-${R.string.MenuFileImportProfiles}")
+                    .fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodesWithTag("workspace-menu-action-${R.string.MenuFileExportProfiles}")
+                    .fetchSemanticsNodes().isNotEmpty()
+        }
+        val toolsActionTags = listOf(
+            R.string.MenuFileCalibrations,
+            R.string.MenuFileImportProfiles,
+            R.string.MenuFileExportProfiles,
+        )
+        val actionRows = toolsActionTags.map { titleRes ->
+            compose.onNodeWithTag("workspace-menu-action-$titleRes").fetchSemanticsNode().boundsInWindow.center.y
+        }
+        assertTrue("Three Tools actions must occupy the same first row: $actionRows",
+            actionRows.maxOrNull()!! - actionRows.minOrNull()!! < 8f * activity.resources.displayMetrics.density)
+
+        openModelMenu(activity)
+        compose.onNodeWithTag("model-menu-scope-object").performClick()
+        val menuGrid = compose.onNodeWithTag("workspace-menu-actions-grid")
+        fun verticalScrollPosition(): Float = menuGrid.fetchSemanticsNode().config[
+            SemanticsProperties.VerticalScrollAxisRange
+        ].value()
+        val modelScrollStart = verticalScrollPosition()
+        assertTrue("Model actions beyond the first eight must be vertically scrollable",
+            menuGrid.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].maxValue() > 0f)
+        menuGrid.performTouchInput { swipeUp(startY = height * 0.82f, endY = height * 0.18f) }
+        compose.waitUntil(timeoutMillis = 5_000) { verticalScrollPosition() > modelScrollStart }
+
+        openEditMenu(activity)
+        val editGrid = compose.onNodeWithTag("workspace-menu-actions-grid")
+        val editScrollStart = editGrid.fetchSemanticsNode().config[
+            SemanticsProperties.VerticalScrollAxisRange
+        ].value()
+        assertTrue("Edit actions beyond the first eight must be vertically scrollable",
+            editGrid.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].maxValue() > 0f)
+        editGrid.performTouchInput { swipeUp(startY = height * 0.82f, endY = height * 0.18f) }
+        compose.waitUntil(timeoutMillis = 5_000) {
+            editGrid.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value() > editScrollStart
+        }
+
+        openModelMenu(activity)
+        compose.onNodeWithTag("model-menu-scope-object").performClick()
+        val returnedModelGrid = compose.onNodeWithTag("workspace-menu-actions-grid")
+        val returnedModelStart = returnedModelGrid.fetchSemanticsNode().config[
+            SemanticsProperties.VerticalScrollAxisRange
+        ].value()
+        returnedModelGrid.performTouchInput { swipeUp(startY = height * 0.82f, endY = height * 0.18f) }
+        compose.waitUntil(timeoutMillis = 5_000) {
+            returnedModelGrid.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value() > returnedModelStart
+        }
+    }
+
+    @Test
     fun toolsMenuProfileImportBuildsCorrectDocumentPickerRequest() {
         val activity = compose.activity
         val requestCode = MainActivity.REQUEST_CODE_IMPORT_PROFILES
@@ -11553,81 +11614,17 @@ class InitialProjectMenuDeviceTest {
             .get(bed).let { it as List<Model?> }.filterNotNull()
 
     private fun scrollMenuToIndex(index: Int) {
-        // Compact portrait menus use a two-row LazyHorizontalGrid. Wide and landscape
-        // layouts use a vertically scrollable action column, where individual actions
-        // are brought into view with performScrollTo() at the call site.
+        // Compact portrait menus use a four-column LazyVerticalGrid. Wide and landscape
+        // layouts use a vertically scrollable action column.
         if (usesCompactPortraitLayout(compose.activity)) {
             compose.onNode(hasScrollToIndexAction()).performScrollToIndex(index)
         }
     }
 
-    /** Uses the visible horizontal action paging, matching how users reach off-screen menu tiles. */
+    /** Brings an off-screen action into view using the menu's native vertical scroll behavior. */
     private fun revealMenuAction(activity: MainActivity, titleRes: Int) {
         val title = activity.getString(titleRes)
-        if (!usesCompactPortraitLayout(activity)) {
-            compose.onNodeWithContentDescription(title).performScrollTo().assertIsDisplayed()
-            return
-        }
-        val tileTag = "workspace-menu-action-$titleRes"
-        repeat(24) {
-            val action = compose.onAllNodesWithContentDescription(title)
-                .fetchSemanticsNodes().firstOrNull()
-            val tile = compose.onAllNodesWithTag(tileTag).fetchSemanticsNodes().firstOrNull()
-            val panel = compose.onAllNodesWithTag("workspace-menu-panel")
-                .fetchSemanticsNodes().firstOrNull()
-            val pagingAffordanceVisible = compose.onAllNodesWithContentDescription(
-                activity.getString(R.string.WorkspaceMoreTitle),
-            ).fetchSemanticsNodes().isNotEmpty()
-            val visiblePanelRight = panel?.boundsInWindow?.right?.minus(
-                if (pagingAffordanceVisible) 52f * activity.resources.displayMetrics.density else 0f,
-            ) ?: Float.NEGATIVE_INFINITY
-            val geometryLooksVisible = action != null && tile != null && panel != null &&
-                tile.boundsInWindow.left >= panel.boundsInWindow.left &&
-                tile.boundsInWindow.top >= panel.boundsInWindow.top &&
-                tile.boundsInWindow.width >= 48f * activity.resources.displayMetrics.density &&
-                tile.boundsInWindow.height >= 48f * activity.resources.displayMetrics.density &&
-                // Reserve space only while the paging affordance is actually present. When a
-                // menu fits on one page, the final action may use the panel's right-hand area.
-                tile.boundsInWindow.right <= visiblePanelRight &&
-                tile.boundsInWindow.bottom <= panel.boundsInWindow.bottom
-            if (geometryLooksVisible && runCatching {
-                    compose.onNodeWithContentDescription(title).assertIsDisplayed()
-                }.isSuccess
-            ) return
-            val grid = compose.onNodeWithTag("workspace-menu-actions-grid")
-            val pageDescription = activity.getString(R.string.WorkspaceMoreTitle)
-            if (compose.onAllNodesWithContentDescription(pageDescription)
-                    .fetchSemanticsNodes().isNotEmpty()
-            ) {
-                // Use the same page-sized accessible control exposed to users. Small synthetic
-                // swipes can stop inside a large-font tile and leave the target clipped behind
-                // the fixed paging affordance.
-                compose.onNodeWithContentDescription(pageDescription).performClick()
-            } else {
-                val gridWidth = grid.fetchSemanticsNode().size.width.toFloat()
-                grid.performTouchInput {
-                    swipeLeft(startX = gridWidth * 0.65f, endX = gridWidth * 0.35f)
-                }
-            }
-            compose.waitForIdle()
-        }
-        val action = compose.onAllNodesWithContentDescription(title)
-            .fetchSemanticsNodes().firstOrNull()
-        val tile = compose.onAllNodesWithTag(tileTag).fetchSemanticsNodes().firstOrNull()
-        val panel = compose.onAllNodesWithTag("workspace-menu-panel")
-            .fetchSemanticsNodes().firstOrNull()
-        val descriptions = compose.onAllNodes(
-            androidx.compose.ui.test.SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription),
-            useUnmergedTree = true,
-        ).fetchSemanticsNodes().mapNotNull { node ->
-            runCatching { node.config[SemanticsProperties.ContentDescription].joinToString() }.getOrNull()
-        }
-        throw AssertionError(
-            "Menu action '$title' did not become fully visible inside its panel; " +
-            "action=${action?.boundsInWindow}, tile=${tile?.boundsInWindow}, panel=${panel?.boundsInWindow}, " +
-                "grid=${compose.onAllNodesWithTag("workspace-menu-actions-grid").fetchSemanticsNodes().size}, " +
-                "visible descriptions=$descriptions",
-        )
+        compose.onNodeWithContentDescription(title).performScrollTo().assertIsDisplayed()
     }
 
     private fun revealPaintFilamentSwatch(

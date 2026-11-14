@@ -1,5 +1,12 @@
 # Nightly execution state — 2026-11-14
 
+## Hochformat-Menüraster und Scrollgesten
+
+- Die gemeinsame Menüfläche verwendet vier feste Spalten in zeilenweiser Reihenfolge: bis vier Aktionen bleiben in einer Reihe, fünf bis acht füllen die zweite Reihe, ab der neunten Aktion scrollt das Raster senkrecht. Eine Reihe mit höchstens vier Einträgen belegt nur die Höhe einer Aktionsreihe.
+- Das vorherige `LazyHorizontalGrid` sortierte Kacheln spaltenweise und konkurrierte beim seitlichen Blättern mit der Navigation. Das neue `LazyVerticalGrid` lässt horizontale Wischgesten zur Menünavigation frei; Drag-Autoscroll folgt nun der vertikalen Achse. Testhelfer nutzen denselben vertikalen Scrollpfad.
+- `InitialProjectMenuDeviceTest#portraitMenuGridUsesRowsAndFirstVerticalSwipeWorksInModelAndEdit` bestand auf dem API-36-Emulator (**1/1**): drei Tools-Aktionen liegen auf derselben Reihe; der erste Aufwärtswisch bewegt Modell- und Ändern-Menü; erneut geöffnet scrollt Modell ebenfalls direkt. `BedMenuActionTileWidthPolicyTest` bestand (**3/3**). Debug-Unit-Suite lief vor dieser Ergänzung mit **783/783**; Debug-Hauptcode und Instrumentierung kompilierten erfolgreich.
+- Kein APK-Release wurde erstellt. Aktuelle Version bleibt **0.8.461**, Orca Batch 19 bleibt **1/10**. Xiaomi und HONOR wurden für diese UI-Abnahme nicht verwendet; der Test lief ausschließlich auf dem API-36-Emulator.
+
 ## Kobra 3 externe Spule — vollständige Upload-Draufsicht
 
 - Im Kobra-3-Upload mit externer Spule lief die vorhandene Thumbnail-Aufnahme am `prepareAnycubicUpload`-Sonderzweig vorbei. Dadurch konnte der Drucker weiterhin das im G-Code eingebettete reduzierte Slicerbild erhalten.

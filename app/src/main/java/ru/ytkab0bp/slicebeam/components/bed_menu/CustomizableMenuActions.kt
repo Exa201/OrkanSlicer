@@ -151,10 +151,10 @@ internal fun CustomizableBedMenuActionsContent(
         editing = true
     }
     if (portrait) {
-        // Keep the customization control beside the horizontal action strip. A separate
+        // Keep the customization control beside the action grid. A separate
         // header row consumed most of the short workspace panel on compact phones and
         // reduced every action to an unusable touch target.
-        Row(modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier.fillMaxSize(), verticalAlignment = Alignment.Top) {
             BedMenuActionsContent(
                 visibleActions, portrait, Modifier.weight(1f),
                 onActionPositioned = onActionPositioned,
@@ -167,7 +167,7 @@ internal fun CustomizableBedMenuActionsContent(
                 draggedActionTranslation = dragState.dragTranslation,
                 draggedActionPointerInRoot = dragState.pointerInRoot,
                 onDragAutoScroll = { amount ->
-                    dragState.dragTranslation += Offset(amount, 0f)
+                    dragState.dragTranslation += Offset(0f, amount)
                     updateDropTarget(dragState.pointerInRoot)
                 },
             )

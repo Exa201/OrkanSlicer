@@ -4,10 +4,9 @@ import android.view.View
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.layout.PaddingValues
@@ -63,7 +62,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
-import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShellLayoutPolicy
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -105,7 +103,11 @@ internal object BedMenuActionTileWidthPolicy {
     @Suppress("UNUSED_PARAMETER")
     fun columnsForLayout(fontScale: Float, screenWidthDp: Int): Int = 4
 
-    /** Fits the fixed-column horizontal grid after accounting for both paddings and inter-column gaps. */
+    /** Up to four actions use one row; later rows are revealed only by vertical scrolling. */
+    fun visibleRowsForActionCount(actionCount: Int): Int =
+        ((actionCount.coerceAtLeast(1) + 3) / 4).coerceIn(1, 2)
+
+    /** Fits all four portrait columns beside the fixed menu-customization control. */
     fun gridTileWidthDp(
         screenWidthDp: Int,
         columns: Int,
@@ -142,10 +144,7 @@ internal fun BedMenuActionsContent(
     if (portrait) {
         val columns = BedMenuActionTileWidthPolicy.columnsForLayout(fontScale, widthDp)
         BoxWithConstraints(modifier.fillMaxSize()) {
-            val rows = WorkspaceShellLayoutPolicy.portraitMenuRows(
-                availableHeightDp = maxHeight.value.toInt(),
-                fontScale = fontScale,
-            )
+            val visibleRows = BedMenuActionTileWidthPolicy.visibleRowsForActionCount(actions.size)
             val tileWidth = BedMenuActionTileWidthPolicy.gridTileWidthDp(
                 screenWidthDp = maxWidth.value.toInt(),
                 columns = columns,
@@ -161,10 +160,10 @@ internal fun BedMenuActionsContent(
                 while (draggedActionTitleRes != null) {
                     val pointer = latestDragPointer.value
                     val bounds = gridBounds
-                    if (pointer != null && bounds.width > 0f) {
+                    if (pointer != null && bounds.height > 0f) {
                         val delta = when {
-                            pointer.x < bounds.left + edgeSizePx -> -6f
-                            pointer.x > bounds.right - edgeSizePx -> 6f
+                            pointer.y < bounds.top + edgeSizePx -> -6f
+                            pointer.y > bounds.bottom - edgeSizePx -> 6f
                             else -> 0f
                         }
                         if (delta != 0f) {
@@ -180,35 +179,34 @@ internal fun BedMenuActionsContent(
                     delay(16)
                 }
             }
-            val gridTileHeight = if (fontScale >= 1.15f) 112.dp else 96.dp
-            // LazyHorizontalGrid fills cells top-to-bottom. Reorder each 4×2 page so the
-            // user's action order reads left-to-right across the first row, then the second.
-            val rowMajorActions = remember(actions, columns, rows) {
-                actions.chunked(columns * rows).flatMap { page ->
-                    page.indices.sortedWith(compareBy({ it % columns }, { it / columns })).map(page::get)
-                }
-            }
-            val actionIds = remember(rowMajorActions) { rowMajorActions.map { it.titleRes } }
+            val gridTileHeight = if (fontScale >= 1.15f) 112.dp else 94.dp
+            val gridHeight = minOf(
+                maxHeight,
+                gridTileHeight * visibleRows + 2.dp * (visibleRows - 1),
+            )
+            // A vertical grid fills each row left-to-right. Four actions stay on one row,
+            // actions five through eight occupy the second row, and only further actions scroll.
+            val actionIds = remember(actions) { actions.map { it.titleRes } }
             var previousActionIds by remember { mutableStateOf<List<Int>?>(null) }
-            LaunchedEffect(rows, actionIds) {
+            LaunchedEffect(actionIds) {
                 if (previousActionIds != null && previousActionIds != actionIds) {
                     gridState.scrollToItem(0)
                 }
                 previousActionIds = actionIds
             }
-            LazyHorizontalGrid(
-                rows = GridCells.Fixed(rows),
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columns),
                 state = gridState,
-                flingBehavior = rememberSnapFlingBehavior(gridState),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxWidth().height(gridHeight)
                     .onGloballyPositioned { gridBounds = it.boundsInRoot() }
                     .testTag("workspace-menu-actions-grid"),
                 contentPadding = PaddingValues(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 // Slice menus replace their whole action set after slicing. Stable action
                 // identity prevents the grid from reusing an old tile and its click handler.
-                items(rowMajorActions, key = { action -> action.titleRes }) { action ->
+                items(actions, key = { action -> action.titleRes }) { action ->
                     BedMenuActionTile(
                         action,
                         portrait = true,
@@ -382,7 +380,7 @@ private fun BedMenuActionTile(
                 shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
             ) else Modifier)
             // Keep the lifted item above its neighbours while it follows the pointer.
-            // LazyRow/LazyHorizontalGrid otherwise draw later cells over a translated tile.
+            // Lazy grids otherwise draw later cells over a translated tile.
             .zIndex(if (isDragged) 1f else 0f)
             .graphicsLayer {
                 if (isDragged) {
@@ -400,7 +398,7 @@ private fun BedMenuActionTile(
             .then(dragModifier)
             .then(interaction)
             // Keep the accessible node on the whole clickable tile, not just its short
-            // label. This preserves its real touch target in compact horizontal grids.
+                // label. This preserves its real touch target in compact portrait grids.
             .semantics(mergeDescendants = true) {
                 contentDescription = fullTitle
                 if (onMoveAction != null) {

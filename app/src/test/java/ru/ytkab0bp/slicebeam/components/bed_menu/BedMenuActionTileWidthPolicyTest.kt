@@ -24,4 +24,14 @@ class BedMenuActionTileWidthPolicyTest {
             assertTrue("Grid tiles should remain touchable at $width dp", tile >= 48)
         }
     }
+
+    @Test
+    fun portraitMenuUsesOneRowThroughFourActionsAndCapsVisibleRowsAtTwo() {
+        assertEquals(1, BedMenuActionTileWidthPolicy.visibleRowsForActionCount(0))
+        assertEquals(1, BedMenuActionTileWidthPolicy.visibleRowsForActionCount(1))
+        assertEquals(1, BedMenuActionTileWidthPolicy.visibleRowsForActionCount(4))
+        assertEquals(2, BedMenuActionTileWidthPolicy.visibleRowsForActionCount(5))
+        assertEquals(2, BedMenuActionTileWidthPolicy.visibleRowsForActionCount(8))
+        assertEquals(2, BedMenuActionTileWidthPolicy.visibleRowsForActionCount(9))
+    }
 }
