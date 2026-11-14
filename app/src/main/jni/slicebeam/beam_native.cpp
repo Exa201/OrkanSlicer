@@ -633,6 +633,78 @@ extern "C" {
         return result;
     }
 
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_multiline_1lateral_1walls_1regression_1probe(
+            JNIEnv *env, jclass) {
+        using namespace Slic3r;
+        constexpr double spacing = 0.45;
+        const ExPolygon square(Points{
+            Point::new_scale(0., 0.), Point::new_scale(40., 0.),
+            Point::new_scale(40., 40.), Point::new_scale(0., 40.),
+        });
+        const Polygons inner = shrink(to_polygons(square), scale_(3.));
+        jint checked = 0;
+        jint failures = 0;
+        for (const InfillPattern pattern : {ipLateralLattice, ipLateralHoneycomb}) {
+            for (const int multiline : {2, 3}) {
+                for (size_t layer_id = 0; layer_id < 60; ++layer_id) {
+                    std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+                    if (!filler) {
+                        ++failures;
+                        continue;
+                    }
+                    filler->spacing = spacing;
+                    filler->angle = 0.f;
+                    filler->fixed_angle = true;
+                    filler->layer_id = layer_id;
+                    filler->z = 0.2 * double(layer_id + 1);
+
+                    FillParams params;
+                    params.pattern = pattern;
+                    params.density = 0.3f;
+                    params.multiline = multiline;
+                    params.lateral_lattice_angle_1 = -45.;
+                    params.lateral_lattice_angle_2 = 45.;
+                    params.infill_overhang_angle = 60.f;
+                    params.dont_adjust = true;
+                    Surface surface(stInternal, square);
+                    const Polylines paths = intersection_pl(filler->fill_surface(&surface, params), inner);
+                    ++checked;
+
+                    std::vector<double> xs;
+                    xs.reserve(paths.size());
+                    for (const Polyline &line : paths) {
+                        if (std::abs(line.first_point().x() - line.last_point().x()) >= scale_(0.001)) {
+                            ++failures;
+                            continue;
+                        }
+                        xs.push_back(unscale<double>(line.first_point().x() + line.last_point().x()) / 2.);
+                    }
+                    std::sort(xs.begin(), xs.end());
+                    if (xs.size() < 3) {
+                        ++failures;
+                        continue;
+                    }
+                    std::vector<size_t> wall_lines{1};
+                    for (size_t i = 1; i < xs.size(); ++i) {
+                        const double gap = xs[i] - xs[i - 1];
+                        if (gap <= spacing - 0.001) ++failures;
+                        if (gap < spacing + 0.001)
+                            ++wall_lines.back();
+                        else
+                            wall_lines.push_back(1);
+                    }
+                    for (size_t i = 1; i + 1 < wall_lines.size(); ++i)
+                        if (wall_lines[i] < size_t(multiline)) ++failures;
+                }
+            }
+        }
+        const std::array<jint, 2> values{checked, failures};
+        jintArray result = env->NewIntArray(static_cast<jsize>(values.size()));
+        if (result != nullptr)
+            env->SetIntArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
+        return result;
+    }
+
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_mesh_1boolean_1isolated_1vertices_1probe(
             JNIEnv *env, jclass) {
         using namespace Slic3r;

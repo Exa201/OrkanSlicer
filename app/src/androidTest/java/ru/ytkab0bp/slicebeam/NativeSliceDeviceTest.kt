@@ -978,6 +978,16 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun lateralMultilineInfillMergesSlidingWallsWithoutGapsOrOverlaps() {
+        val result = Native.multiline_lateral_walls_regression_probe()
+        assertArrayEquals(
+            "two lateral patterns × two wall widths × sixty layer phases must have no missing or overlapped wall lines",
+            intArrayOf(240, 0),
+            result,
+        )
+    }
+
+    @Test
     fun changingFilamentCountPreservesEveryNozzleVariantValue() {
         val result = Native.filament_variant_resize_regression_probe()
         assertArrayEquals(
