@@ -848,8 +848,8 @@ object SliceUploadController {
     private fun isAnycubicKobra3(printer: ConfigObject): Boolean =
         printer.get("printer_model")?.lowercase(Locale.ROOT)?.startsWith("anycubic kobra 3") == true
 
-    /** Captures the actual rendered model from the build-plate viewport for printer thumbnails. */
-    private fun captureWorkspacePreview(fragment: BedFragment, callback: (ByteArray?) -> Unit) {
+    /** Captures the unsliced model in a fitted top view for printer thumbnails. */
+    internal fun captureWorkspacePreview(fragment: BedFragment, callback: (ByteArray?) -> Unit) {
         val view = fragment.glView
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || view == null || view.width < 1 || view.height < 1) {
             callback(null)
@@ -868,6 +868,7 @@ object SliceUploadController {
         val handler = Handler(Looper.getMainLooper())
         val source = view.renderer.gcodeResult
         var originalRange: androidx.core.util.Pair<Long, Long>? = null
+        var capturedEditableModel = false
         var finished = false
         var copyRequested = false
         lateinit var timeout: Runnable
@@ -876,12 +877,12 @@ object SliceUploadController {
             finished = true
             handler.removeCallbacks(timeout)
             view.queueEvent {
-                if (view.renderer.gcodeResult === source) {
+                if (capturedEditableModel) {
+                    view.renderer.endPrinterThumbnailCapture()
+                } else if (view.renderer.gcodeResult === source) {
                     val viewer = view.renderer.viewer
-                    val selected = source?.previewSelection
                     if (viewer != null && originalRange != null) {
-                        viewer.setLayersViewRange(selected?.from?.toLong()?.minus(1) ?: originalRange!!.first,
-                            selected?.to?.toLong()?.minus(1) ?: originalRange!!.second)
+                        viewer.setLayersViewRange(originalRange!!.first, originalRange!!.second)
                         viewer.applyPerformanceMode(Prefs.isPerformanceModeEnabled() || Prefs.isLowPerformancePreviewDevice())
                         view.requestRender()
                     }
@@ -922,12 +923,19 @@ object SliceUploadController {
         }
         }
         view.queueEvent {
+            if (finished) return@queueEvent
+            capturedEditableModel = view.renderer.beginPrinterThumbnailCapture()
+            if (capturedEditableModel) {
+                view.renderer.afterNextFrame(capture)
+                view.requestRender()
+                return@queueEvent
+            }
             val viewer = view.renderer.viewer
             if (source != null && view.renderer.gcodeResult === source && viewer != null && viewer.getLayersCount() > 0) {
                 originalRange = viewer.layersViewRange
-                // Printer thumbnails always show the complete object, independently
-                // of the selected preview part. Restore the user's part after copying.
-                viewer.applyPerformanceMode(true)
+                // When an editable model is unavailable, use the full G-code preview rather
+                // than the performance-mode layer subset, then restore the user's selection.
+                viewer.applyPerformanceMode(false)
                 viewer.setLayersViewRange(0, viewer.getLayersCount() - 1)
                 view.renderer.afterNextFrame(capture)
                 view.requestRender()

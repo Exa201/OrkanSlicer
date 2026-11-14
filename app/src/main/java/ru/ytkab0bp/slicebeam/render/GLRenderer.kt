@@ -104,6 +104,16 @@ private val plateViewMatrix = DoubleArray(16)
 var gcodeResult: GCodeProcessorResult? = null
 var viewer: GCodeViewer? = null
 internal var isViewerEnabled:Boolean = false
+@Volatile private var printerThumbnailCaptureMode = false
+internal val isPrinterThumbnailCaptureActive: Boolean
+    get() = printerThumbnailCaptureMode
+private data class PrinterThumbnailCameraState(
+    val position: Vec3d,
+    val origin: Vec3d,
+    val up: Vec3d,
+    val zoom: Float,
+)
+private var printerThumbnailCameraState: PrinterThumbnailCameraState? = null
 // Primary selection (drives the transform gizmo, flatten, fill-bed, duplicate).
  // selectedObjects holds the full multi-selection; when non-empty it always contains selectedObject.
  var selectedObject = -1
@@ -1106,6 +1116,56 @@ viewer = null
 }
 this.gcodeResult = result
 }
+
+/** Temporarily render the editable build plate for a printer thumbnail, independent of sliced layers. */
+fun beginPrinterThumbnailCapture(): Boolean {
+    if (printerThumbnailCaptureMode || model == null) return false
+    val activeBed = bed ?: return false
+    val min = activeBed.getVolumeMin() ?: return false
+    val max = activeBed.getVolumeMax() ?: return false
+    printerThumbnailCameraState = PrinterThumbnailCameraState(
+        Vec3d(camera.position), Vec3d(camera.origin), Vec3d(camera.up), camera.zoom,
+    )
+    printerThumbnailCaptureMode = true
+    val centerX = (min.x + max.x) * 0.5
+    val centerY = (min.y + max.y) * 0.5
+    val span = maxOf(max.x - min.x, max.y - min.y, 100.0)
+    camera.origin.set(centerX, centerY, min.z)
+    camera.position.set(centerX, centerY, max.z + span + 1.0)
+    camera.up.set(0.0, 1.0, 0.0)
+    camera.zoom = 1f
+    camera.invalidate()
+    updateProjection()
+    val aspect = viewportWidth.coerceAtLeast(1).toDouble() / viewportHeight.coerceAtLeast(1).toDouble()
+    val plateHalfWidth = (max.x - min.x) * 0.5
+    val plateHalfHeight = (max.y - min.y) * 0.5
+    val halfHeight = maxOf(plateHalfHeight, plateHalfWidth / aspect) * 1.05
+    val halfWidth = halfHeight * aspect
+    DoubleMatrix.orthoM(projectionMatrix, 0, -halfWidth, halfWidth, -halfHeight, halfHeight,
+        NEAR_PLANE.toDouble(), FAR_PLANE.toDouble())
+    glView?.requestRender()
+    return true
+}
+
+/** Restore the interactive sliced viewport and release meshes allocated only for the thumbnail. */
+fun endPrinterThumbnailCapture() {
+    if (!printerThumbnailCaptureMode) return
+    printerThumbnailCaptureMode = false
+    printerThumbnailCameraState?.let { saved ->
+        camera.position.set(saved.position)
+        camera.origin.set(saved.origin)
+        camera.up.set(saved.up)
+        camera.zoom = saved.zoom
+    }
+    printerThumbnailCameraState = null
+    camera.invalidate()
+    updateProjection()
+    for (mesh in glModels) mesh.release()
+    glModels.clear()
+    clearModifierPreviews()
+    clearAllCommittedOverlays()
+    glView?.requestRender()
+}
 @Synchronized fun clearMeasurePoints() {
 measurePointA = null
 measurePointB = null
@@ -1434,9 +1494,11 @@ bed!!.render(shadersManager!!, bottom, plateViewMatrix, projectionMatrix, 1f / c
 }
 }
 }
-drawPrimeTowerPreview(viewMatrix)
-drawMeasurePoints()
-if (isViewerEnabled)
+if (!printerThumbnailCaptureMode) {
+    drawPrimeTowerPreview(viewMatrix)
+    drawMeasurePoints()
+}
+if (isViewerEnabled && !printerThumbnailCaptureMode)
 {
 if (viewer == null)
 {
@@ -1497,7 +1559,7 @@ if (left) glFrontFace(GL_CCW)
 }
 shader.stopUsing()
 }
-if (viewer == null && this.model != null)
+if ((viewer == null || printerThumbnailCaptureMode) && this.model != null)
 {
 shader = shadersManager!!.get(GLShadersManager.SHADER_GOURAUD_LIGHT)
 shader.startUsing()
@@ -1521,8 +1583,8 @@ if (left)
 {
 glFrontFace(GL_CW)
 }
-val selected = selectedObjects.contains(i)
-val primary = i == selectedObject
+val selected = !printerThumbnailCaptureMode && selectedObjects.contains(i)
+val primary = !printerThumbnailCaptureMode && i == selectedObject
 shader.setUniform("emission_factor", 0.05f)
 DoubleMatrix.setIdentityM(modelMatrix, 0)
 if (selected)
@@ -1565,7 +1627,7 @@ initObjectPreview(glModel, i)
 glModels.add(glModel)
 }
 val glModel = glModels.get(i)
-val hovering = glModel.isHovering || selected
+val hovering = !printerThumbnailCaptureMode && (glModel.isHovering || selected)
 // FIXME: Render is lagging out with hover progress
 // if (hovering && glModel.hoverProgress < 1) {
 // glModel.hoverProgress = Math.min(glModel.hoverProgress + dt / 50f, 1);
@@ -1583,7 +1645,7 @@ val baseFilament = ((if (paintingThis) paintBaseFilamentPreview else null)
 val baseColor = paintPalette.getOrNull(baseFilament) ?: color
 glModel.setColor(ColorUtils.blendARGB(baseColor, Color.WHITE, if (hovering) 0.4f else 0f))
 glModel.render()
-renderModifierVolumes(i, this.model!!, outModelMatrix, left)
+if (!printerThumbnailCaptureMode) renderModifierVolumes(i, this.model!!, outModelMatrix, left)
 if (!overlays.isEmpty())
 {
 // Painted facets share the object's surface; offset to avoid z-fighting.

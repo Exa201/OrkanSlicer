@@ -880,7 +880,7 @@ canvas.drawColor(ThemesRepo.getColor(android.R.attr.windowBackground))
 canvas.restore()
 val previewResult = renderer.gcodeResult
 val preview = previewResult?.previewSelection
-if (previewResult != null && preview != null && previewResult.previewLayerCount > 0) {
+if (!renderer.isPrinterThumbnailCaptureActive && previewResult != null && preview != null && previewResult.previewLayerCount > 0) {
     val badge = context.getString(R.string.GCodePreviewBadge, preview.from, preview.to, previewResult.previewLayerCount)
     val margin = ViewUtils.dp(8).toFloat()
     val padding = ViewUtils.dp(6).toFloat()

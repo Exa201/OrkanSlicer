@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer Nightly 2.5 · 0.8.460\n\n• Orca-2.5-Verbesserungen für Tree-Support, variable Schichthöhen und Rückzüge nach Außenwänden.\n• Release-Ring mit den fünf neuesten Nightly-Versionen.",
-  "en": "OrkanSlicer Nightly 2.5 · 0.8.460\n\n• Orca 2.5 improvements for tree supports, variable layer heights, and retraction after outer walls.\n• Release ring retains the five newest Nightly versions.",
-  "ru": "OrkanSlicer Nightly 2.5 · 0.8.460\n\n• Улучшения Orca 2.5 для древовидных поддержек, переменной высоты слоя и ретракта после внешних стенок.\n• В кольце релизов сохраняются пять последних версий Nightly."
+  "de": "OrkanSlicer Nightly 2.5 · 0.8.461\n\n• Drucker-Vorschaubilder zeigen jetzt das vollständige ungeslicte Modell in Draufsicht statt der reduzierten Layeransicht.\n• Die Layerauswahl und Kameraposition werden nach der Aufnahme wiederhergestellt.",
+  "en": "OrkanSlicer Nightly 2.5 · 0.8.461\n\n• Printer thumbnails now show the complete unsliced model from above instead of the reduced layer preview.\n• Layer selection and camera position are restored after capture.",
+  "ru": "OrkanSlicer Nightly 2.5 · 0.8.461\n\n• На миниатюрах принтера теперь показана полная неслайсированная модель сверху, а не сокращённый просмотр слоёв.\n• Выбор слоёв и положение камеры восстанавливаются после снимка."
 }

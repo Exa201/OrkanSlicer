@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.461 — Vollständige Drucker-Vorschaubilder — 2026-11-14
+
+- Drucker-Uploads erfassen jetzt das ungeslicte Modell in einer orthografischen Draufsicht der Druckplatte, statt den reduzierten Layerblock der G-Code-Vorschau zu übernehmen.
+- Die Aufnahme stellt Kamera und Layerauswahl wieder her; bei fehlendem bearbeitbarem Modell wird die vollständige G-Code-Layeransicht verwendet.
+- Der echte Slice-/Upload-Vorschaubildpfad bestand im Loopback-Instrumentierungstest 1/1 ohne Drucker oder Druckstart. Debug- und SliceTest-Suiten jeweils 783/783.
+
 ## 0.8.460 — Orca-2.5-Slicing-Fixes — 2026-11-14
 
 - Orca-Verbesserungen für Tree-Support-Cluster, Supportkontakte über variable Schichthöhen und Rückzüge nach Außenwänden in den mobilen Kern übernommen.

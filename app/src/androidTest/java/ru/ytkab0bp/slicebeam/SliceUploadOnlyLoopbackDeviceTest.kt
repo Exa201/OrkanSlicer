@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam
 
 import android.app.Application
+import android.graphics.BitmapFactory
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -72,6 +73,7 @@ class SliceUploadOnlyLoopbackDeviceTest {
         val allowExplicitPrintStart = CountDownLatch(1)
         val printStartReceived = CountDownLatch(1)
         val requestsHandled = CountDownLatch(1)
+        val originalPerformanceMode = Prefs.isPerformanceModeEnabled()
         val serverThread = Thread {
             try {
                 var requestIndex = 0
@@ -136,6 +138,7 @@ class SliceUploadOnlyLoopbackDeviceTest {
         }.apply { isDaemon = true; name = "OrkanSlicer-upload-only-loopback"; start() }
 
         try {
+            Prefs.setPerformanceModeEnabled(true)
             activity.assets.open("models/xyz_cube.stl").use { source -> modelFile.outputStream().use(source::copyTo) }
             val loaded = CountDownLatch(1)
             val loadedModel = AtomicReference<Model?>()
@@ -162,7 +165,33 @@ class SliceUploadOnlyLoopbackDeviceTest {
             assertTrue("Native slice must produce a real G-code file", BedFragment.tempGCodePath.isFile && BedFragment.tempGCodePath.length() > 0)
             val gcodeIntegrity = GCodeIntegrityValidator.validate(BedFragment.tempGCodePath)
             assertTrue("Generated G-code must be valid before upload: ${gcodeIntegrity.details}", gcodeIntegrity.isValid())
-            expectedGcodeName.set(requireNotNull(bed.glView?.renderer?.gcodeResult).getRecommendedName())
+            val renderer = requireNotNull(bed.glView?.renderer)
+            val sliceResult = requireNotNull(renderer.gcodeResult)
+            expectedGcodeName.set(sliceResult.getRecommendedName())
+            val viewer = requireNotNull(renderer.viewer)
+            val selectedLayerRange = viewer.layersViewRange
+            if (viewer.getLayersCount() > ru.ytkab0bp.slicebeam.slic3r.GCodePreviewPolicy.DEFAULT_BLOCK_SIZE) {
+                assertTrue("Test must start with the intentionally reduced performance preview",
+                    selectedLayerRange.second - selectedLayerRange.first + 1 < viewer.getLayersCount())
+            }
+            val thumbnailBytes = AtomicReference<ByteArray?>()
+            val thumbnailReady = CountDownLatch(1)
+            activity.runOnUiThread {
+                SliceUploadController.captureWorkspacePreview(bed) { image ->
+                    thumbnailBytes.set(image)
+                    thumbnailReady.countDown()
+                }
+            }
+            assertTrue("Printer thumbnail capture should finish", thumbnailReady.await(20, TimeUnit.SECONDS))
+            val capturedThumbnail = requireNotNull(thumbnailBytes.get())
+            val thumbnail = requireNotNull(BitmapFactory.decodeByteArray(capturedThumbnail, 0, capturedThumbnail.size))
+            assertTrue("Printer thumbnail should be bounded for upload", thumbnail.width <= 512 && thumbnail.height <= 512)
+            assertTrue("Build plate thumbnail should contain rendered pixels", thumbnail.width > 1 && thumbnail.height > 1)
+            thumbnail.recycle()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                renderer.viewer?.layersViewRange == selectedLayerRange
+            }
+            assertTrue("Thumbnail capture must not replace or clear the active slice result", bed.hasSliceResult())
 
             activity.runOnUiThread {
                 SliceUploadController.upload(bed, "moonraker", host, null, false, printer, intArrayOf(0))
@@ -224,6 +253,7 @@ class SliceUploadOnlyLoopbackDeviceTest {
                 .assertIsDisplayed()
             assertTrue("Upload connection failures must keep the workspace alive", !activity.isFinishing)
         } finally {
+            Prefs.setPerformanceModeEnabled(originalPerformanceMode)
             runCatching { server.close() }
             serverThread.join(2_000)
             modelFile.delete()
