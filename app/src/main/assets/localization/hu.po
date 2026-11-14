@@ -286,7 +286,7 @@ msgid "High Flow"
 msgstr "Nagy áramlás"
 
 msgid "Standard"
-msgstr "Normál"
+msgstr "Szabvány"
 
 msgid "TPU High Flow"
 msgstr "TPU nagy áramlású"
@@ -1544,7 +1544,7 @@ msgstr "Közép"
 
 msgctxt "Alignment"
 msgid "Bottom"
-msgstr "Alsó"
+msgstr "Alul"
 
 msgid "Revert alignment."
 msgstr "Igazítás visszaállítása."
@@ -1916,7 +1916,7 @@ msgstr "Pont kiválasztása"
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Delete"
+msgstr "Törlés"
 
 msgid "Restart selection"
 msgstr "Kijelölés újrakezdése"
@@ -2788,7 +2788,7 @@ msgid "Quality"
 msgstr "Minőség"
 
 msgid "Shell"
-msgstr "Héj"
+msgstr "Héjazás"
 
 msgid "Infill"
 msgstr "Kitöltés"
@@ -2803,7 +2803,7 @@ msgid "Speed"
 msgstr "Sebesség"
 
 msgid "Strength"
-msgstr "Szilárdság"
+msgstr "Erősség"
 
 msgid "Top solid layers"
 msgstr "Felső tömör rétegek"
@@ -3123,7 +3123,7 @@ msgid "Transform"
 msgstr "Transzformálás"
 
 msgid "Split"
-msgstr "Szétválaszt"
+msgstr "Szétválasztás"
 
 msgid "To Objects"
 msgstr "Objektumokra"
@@ -3770,7 +3770,7 @@ msgid "Color"
 msgstr "Szín"
 
 msgid "Pause"
-msgstr "Szünet"
+msgstr "Szüneteltetés"
 
 msgid "Template"
 msgstr "Sablon"
@@ -3949,7 +3949,7 @@ msgid "Innerloop"
 msgstr "Belső kör"
 
 msgid "Top"
-msgstr "Felül"
+msgstr "Felső"
 
 msgid "The fan controls the temperature during printing to improve print quality. The system automatically adjusts the fan's switch and speed according to different printing materials."
 msgstr "A ventilátor nyomtatás közben szabályozza a hőmérsékletet a jobb minőség érdekében. A rendszer a nyomtatási anyagtól függően automatikusan állítja a ventilátor ki-be kapcsolását és fordulatszámát."
@@ -4779,7 +4779,7 @@ msgid "%s does not support %s"
 msgstr "%s nem támogatja %s"
 
 msgid "Step"
-msgstr "Lépés"
+msgstr "Lépésköz"
 
 msgid "Unmapped"
 msgstr "Nincs hozzárendelve"
@@ -5164,7 +5164,7 @@ msgid "Rectangular"
 msgstr "Téglalap"
 
 msgid "Circular"
-msgstr "Kör"
+msgstr "Körkörös"
 
 msgid "Load shape from STL..."
 msgstr "Forma betöltése STL-ből..."
@@ -6493,7 +6493,7 @@ msgid "Fan Speed"
 msgstr "Ventilátor fordulatszám"
 
 msgid "Flow"
-msgstr "Anyagáramlás"
+msgstr "Áramlás"
 
 msgid "Actual Flow"
 msgstr "Tényleges áramlás"
@@ -6861,7 +6861,7 @@ msgstr "Minőség / sebesség"
 # AI Translated
 msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Simítás"
+msgstr "Sima"
 
 msgid "Radius"
 msgstr "Sugár"
@@ -7048,13 +7048,13 @@ msgstr "Elöl"
 
 msgctxt "Camera View"
 msgid "Back"
-msgstr "Hátul"
+msgstr "Vissza"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
 msgctxt "Camera View"
 msgid "Top"
-msgstr "Felül"
+msgstr "Felső"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Bottom
@@ -7418,7 +7418,7 @@ msgid "Preview"
 msgstr "Előnézet"
 
 msgid "Project"
-msgstr "Projekt"
+msgstr "Vetítés"
 
 msgid "Yes"
 msgstr "Igen"
@@ -7653,7 +7653,7 @@ msgid "Cut selection to clipboard"
 msgstr "Kijelölés kivágása a vágólapra"
 
 msgid "Copy"
-msgstr "Másolás"
+msgstr "Másolat"
 
 msgid "Copy selection to clipboard"
 msgstr "Kijelölés másolása a vágólapra"
@@ -7779,7 +7779,7 @@ msgid "Edit"
 msgstr "Szerkesztés"
 
 msgid "View"
-msgstr "Nézet"
+msgstr "Megtekintés"
 
 # AI Translated
 msgid "Open Speed Dial"
@@ -8511,7 +8511,7 @@ msgstr "Csendes"
 # AI Translated
 msgctxt "Mode"
 msgid "Standard"
-msgstr "Normál"
+msgstr "Szabvány"
 
 # AI Translated
 msgid "Sport"
@@ -9229,7 +9229,7 @@ msgstr "Felső"
 
 msgctxt "Layers"
 msgid "Bottom"
-msgstr "Alsó"
+msgstr "Alul"
 
 # AI Translated
 msgid "This setting does not specify a plugin capability type."
@@ -9544,7 +9544,7 @@ msgstr "Másolat"
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Mirror"
-msgstr "Tükör"
+msgstr "Tükrözés"
 
 # AI Translated
 #. TRN IDEX/IQEX role: multicolor partner of the Primary on the same gantry.
@@ -10901,7 +10901,7 @@ msgid "Units"
 msgstr "Mértékegység"
 
 msgid "Home"
-msgstr "Kezdőlap"
+msgstr "Home"
 
 msgid "Default page"
 msgstr "Alapértelmezett oldal"
@@ -11747,7 +11747,7 @@ msgid "Select the network plug-in version to use"
 msgstr "A használandó hálózati bővítmény verzió kiválasztása"
 
 msgid "Developer"
-msgstr "Fejlesztő"
+msgstr "Fejlesztői"
 
 msgid "Skip AMS blacklist check"
 msgstr "AMS tiltólista ellenőrzés kihagyása"
@@ -11977,7 +11977,7 @@ msgstr "Érvénytelen számérték."
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr "Vége"
+msgstr "End"
 
 msgid "Customize"
 msgstr "Testreszabás"
@@ -14433,7 +14433,7 @@ msgid "The connected printer does not match the currently selected printer. Plea
 msgstr "A csatlakoztatott nyomtató nem egyezik a jelenleg kiválasztott nyomtatóval. Kérlek, változtasd meg a kiválasztott nyomtatót."
 
 msgid "Mapping"
-msgstr "Hozzárendelés"
+msgstr "Leképezés"
 
 msgid "Overwriting"
 msgstr "Felülírás"
@@ -18517,7 +18517,7 @@ msgid "Contour"
 msgstr "Kontúr"
 
 msgid "Hole"
-msgstr "Lyuk"
+msgstr "Furat"
 
 msgid "Contour and hole"
 msgstr "Kontúr és lyuk"
@@ -20238,7 +20238,7 @@ msgid "Aligned back"
 msgstr "Hátulra igazítva"
 
 msgid "Back"
-msgstr "Hátul"
+msgstr "Vissza"
 
 msgid "Random"
 msgstr "Véletlenszerű"
@@ -24308,7 +24308,7 @@ msgid "Line"
 msgstr "Vonal"
 
 msgid "Pattern"
-msgstr "Mintázat"
+msgstr "Sokszorozás"
 
 msgid "Method"
 msgstr "Módszer"
@@ -24543,7 +24543,7 @@ msgstr "Tesztmodell"
 # AI Translated
 msgctxt "Test model"
 msgid "Standard"
-msgstr "Normál"
+msgstr "Szabvány"
 
 # AI Translated
 msgctxt "Test model"
@@ -26929,7 +26929,7 @@ msgstr "A csomag megnyitása a böngészőben"
 
 # AI Translated
 msgid "Subscribed"
-msgstr "Feliratkozott"
+msgstr "Feliratkozva"
 
 # AI Translated
 msgid "Local"
@@ -28425,7 +28425,7 @@ msgid "Up to vertex"
 msgstr "Csúcsig"
 
 msgid "End"
-msgstr "Vége"
+msgstr "End"
 
 # AI Translated
 msgid "2nd dist"
@@ -28447,7 +28447,7 @@ msgstr "Egyesítés"
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Cut"
-msgstr "Kivágás"
+msgstr "Vágás"
 
 # AI Translated
 msgid "Intersect"
@@ -39321,3 +39321,77 @@ msgstr "Társítás"
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "Egy vagy több extruder adaptív Pressure Advance modellje érvénytelen értékeket tartalmazhat."
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr ""
+"A kizárt asztalterület érvénytelen. Egyszerű, önmagát nem metsző sokszögnek "
+"kell lennie."
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr ""
+"Az érvénytelen területet eltávolítottuk, ezért add meg újra egy érvényes "
+"sokszöggel."
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr ""
+"Szeretnéd másolni a(z) %1% alábbi paramétereit a(z) %2% paramétereibe?"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Kattints az összehasonlítás gombra a teljes érték megtekintéséhez."
+
+# AI Translated
+msgid "Process settings"
+msgstr "Folyamatbeállítások"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "A teljes értékek összehasonlítása"
+
+# AI Translated
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr ""
+"Az extruderek nyomtatható területeinek nincs közös része, ezért a "
+"törlőtorony nem nyomtatható ki.\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr ""
+"Szerkesztés: %1%   ·   N = merőleges nézet a síkra   ·   Megerősítés vagy "
+"Mégse az eszköztáron"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  kattints egy kényszerjelvényre a kijelöléséhez"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% kijelölve — a Delete eltávolítja"

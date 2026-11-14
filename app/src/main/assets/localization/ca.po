@@ -340,7 +340,7 @@ msgid "During the hotend upgrade, the toolhead will move. Don't reach into the c
 msgstr "Durant l'actualització del hotend, el capçal es mourà. No introduïu les mans a la cambra."
 
 msgid "Update"
-msgstr "Actualitzar"
+msgstr "Actualitza"
 
 msgid "Current AMS humidity"
 msgstr "Humitat actual de l'AMS"
@@ -817,7 +817,7 @@ msgid "Selection"
 msgstr "Selecció"
 
 msgid "Plate"
-msgstr "Safata"
+msgstr "Placa"
 
 # AI Translated
 # Needs human review: Glossary has no Catalan rendering; Distribuir chosen as the counterpart of Alinear (command that spaces objects evenly).
@@ -1070,7 +1070,7 @@ msgstr "Seleccioneu tots els connectors"
 # AI Translated
 msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Tallar"
+msgstr "Tall"
 
 msgid "Rotate cut plane"
 msgstr "Girar el pla tallat"
@@ -1410,7 +1410,7 @@ msgstr "Operació"
 #. TRN EmbossOperation
 #. ORCA
 msgid "Join"
-msgstr "Unir"
+msgstr "Unió"
 
 msgid "Click to change text into object part."
 msgstr "Feu clic per canviar el text a la peça de l'objecte."
@@ -1420,7 +1420,7 @@ msgstr "No podeu canviar el tipus de l'última part sòlida de l'objecte."
 
 msgctxt "EmbossOperation"
 msgid "Cut"
-msgstr "Retalla"
+msgstr "Tall"
 
 msgid "Click to change part type into negative volume."
 msgstr "Feu clic per canviar el tipus de peça en volum negatiu."
@@ -1579,7 +1579,7 @@ msgstr "Dreta"
 
 msgctxt "Alignment"
 msgid "Top"
-msgstr "Part superior"
+msgstr "Superior"
 
 msgctxt "Alignment"
 msgid "Middle"
@@ -1587,7 +1587,7 @@ msgstr "Al mig"
 
 msgctxt "Alignment"
 msgid "Bottom"
-msgstr "Part inferior"
+msgstr "Inferior"
 
 msgid "Revert alignment."
 msgstr "Revertir l'alineació."
@@ -1958,7 +1958,7 @@ msgstr "Seleccionar el punt"
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Supr"
+msgstr "Suprimir"
 
 msgid "Restart selection"
 msgstr "Reinicia la selecció"
@@ -2817,7 +2817,7 @@ msgid "Import File"
 msgstr "Importar arxiu"
 
 msgid "Delete"
-msgstr "Esborrar"
+msgstr "Suprimir"
 
 msgid "Choose files"
 msgstr "Trieu fitxers"
@@ -2842,7 +2842,7 @@ msgid "Quality"
 msgstr "Qualitat"
 
 msgid "Shell"
-msgstr "Carcassa"
+msgstr "Buidat"
 
 msgid "Infill"
 msgstr "Farciment"
@@ -3182,7 +3182,7 @@ msgid "Transform"
 msgstr "Transformació"
 
 msgid "Split"
-msgstr "Partir"
+msgstr "Divisió"
 
 msgid "To Objects"
 msgstr "Als objectes"
@@ -4828,7 +4828,7 @@ msgstr "Desar"
 
 msgctxt "Navigation"
 msgid "Back"
-msgstr "Enrere"
+msgstr "Darrera"
 
 msgid "Example"
 msgstr "Exemple"
@@ -6551,7 +6551,7 @@ msgid "Fan Speed"
 msgstr "Velocitat del ventilador"
 
 msgid "Flow"
-msgstr "Fluxe"
+msgstr "Flux"
 
 msgid "Actual Flow"
 msgstr "Flux real"
@@ -6925,7 +6925,7 @@ msgstr "Qualitat / Velocitat"
 # AI Translated
 msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Suavitzar"
+msgstr "Suau"
 
 msgid "Radius"
 msgstr "Radi"
@@ -7475,13 +7475,13 @@ msgid "Design"
 msgstr "Disseny"
 
 msgid "Prepare"
-msgstr "Preparació"
+msgstr "Preparant"
 
 msgid "Preview"
 msgstr "Previsualització"
 
 msgid "Project"
-msgstr "Projecte"
+msgstr "Projecció"
 
 msgid "Yes"
 msgstr "Sí"
@@ -7708,7 +7708,7 @@ msgid "Redo"
 msgstr "Refer"
 
 msgid "Cut"
-msgstr "Retalla"
+msgstr "Tall"
 
 msgid "Cut selection to clipboard"
 msgstr "Tallar la selecció al porta-retalls"
@@ -7836,10 +7836,10 @@ msgstr "Preferències"
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
-msgstr "Edita"
+msgstr "Editar"
 
 msgid "View"
-msgstr "Vista"
+msgstr "Veure"
 
 # AI Translated
 msgid "Open Speed Dial"
@@ -9609,7 +9609,7 @@ msgstr "Principal"
 #. TRN IDEX/IQEX role: the tool head prints a copy of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Copy"
-msgstr "Còpia"
+msgstr "Copiar"
 
 # AI Translated
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
@@ -11838,7 +11838,7 @@ msgid "Select the network plug-in version to use"
 msgstr "Seleccioneu la versió del connector de xarxa a utilitzar"
 
 msgid "Developer"
-msgstr "Desenvolupador"
+msgstr "Desenvolupament"
 
 msgid "Skip AMS blacklist check"
 msgstr "Omet la comprovació de la llista negra AMS"
@@ -12071,7 +12071,7 @@ msgstr "Entrada numèrica no vàlida."
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr "Final"
+msgstr "Fi"
 
 msgid "Customize"
 msgstr "Personalitzar"
@@ -24445,7 +24445,7 @@ msgid "Line"
 msgstr "Línia"
 
 msgid "Pattern"
-msgstr "Patró"
+msgstr "Matriu"
 
 msgid "Method"
 msgstr "Mètode"
@@ -28580,7 +28580,7 @@ msgid "Up to vertex"
 msgstr "Fins al vèrtex"
 
 msgid "End"
-msgstr "Final"
+msgstr "Fi"
 
 # AI Translated
 msgid "2nd dist"
@@ -28597,12 +28597,12 @@ msgstr "Cos nou"
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Join"
-msgstr "Unir"
+msgstr "Unió"
 
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Cut"
-msgstr "Tallar"
+msgstr "Tall"
 
 # AI Translated
 msgid "Intersect"
@@ -31168,7 +31168,7 @@ msgstr "Fusionar el cos eina amb l'objectiu — un sol sòlid, sense junta"
 # AI Translated
 msgctxt "Design"
 msgid "Subtract"
-msgstr "Resta"
+msgstr "Restar"
 
 # AI Translated
 msgid "Cut the tool body out of the target"
@@ -39450,3 +39450,75 @@ msgstr "Associar"
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "El model de Pressure Advance adaptatiu d'un o més extrusors pot contenir valors no vàlids."
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr ""
+"La zona d'exclusió de la placa no és vàlida. Ha de ser un polígon simple, "
+"sense autointersecció."
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr ""
+"S'ha eliminat l'àrea no vàlida; torneu-la a definir amb un polígon vàlid."
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "Voleu copiar els paràmetres següents de %1% a %2%?"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Feu clic al botó de comparació per veure el valor complet."
+
+# AI Translated
+msgid "Process settings"
+msgstr "Configuració del Procés"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "Comparar els valors complets"
+
+# AI Translated
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr ""
+"Les àrees imprimibles dels extrusors no tenen cap àrea comuna, de manera que"
+" la Torre de Purga no es pot imprimir.\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr ""
+"Editant: %1%   ·   N = mirar perpendicular al pla   ·   Confirmar o "
+"Cancel·lar a la barra d'eines"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  feu clic a la insígnia d'una restricció per seleccionar-la"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% seleccionada — Supr l'elimina"

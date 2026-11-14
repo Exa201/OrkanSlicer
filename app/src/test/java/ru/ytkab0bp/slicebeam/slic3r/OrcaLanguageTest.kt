@@ -49,4 +49,18 @@ class OrcaLanguageTest {
             assertTrue("${language.tag} catalog unexpectedly has too few strings", translatedNames.size >= 150)
         }
     }
+
+    @Test fun refreshedOrca251CatalogsTranslateTheExcludedBedAreaValidation() {
+        val assetRoot = listOf(File("src/main/assets/localization"), File("app/src/main/assets/localization"))
+            .firstOrNull { it.isDirectory }
+            ?: error("Orca localization assets directory not found")
+        val source = "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
+
+        OrcaLanguage.all.filter { it.tag != "en" }.forEach { language ->
+            val file = File(assetRoot, "${language.assetKey}.po")
+            assertTrue("Missing Orca 2.5.1 PO asset for ${language.tag}", file.isFile)
+            val localization = file.inputStream().use(Slic3rLocalization::fromPo)
+            assertTrue("${language.tag} must include the refreshed Orca 2.5.1 translation", localization.get(source) != source)
+        }
+    }
 }

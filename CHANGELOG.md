@@ -1159,3 +1159,9 @@ This fork includes the earlier OrcaMobile/SliceBeam Kotlin UI migration, model a
 
 - Der PO-Loader verarbeitet Singular- und Plural-Quelltexte sowie `msgstr[n]`-Übersetzungen der Orca-Kataloge. Pluralisierte Werkzeugmeldungen fallen dadurch nicht mehr auf englische Quelltexte zurück.
 - Parserregression und echter deutscher Orca-Katalogeintrag ergänzt.
+
+## 0.8.459 — OrcaSlicer 2.5.1 Sprachkataloge — 2026-11-14
+
+- Übersetzungen der 23 Orca-Sprachkataloge auf den OrcaSlicer-2.5.1-Stand aktualisiert und neue übersetzte Texte ergänzt.
+- Nightly-eigene PO-Einträge und vorhandene Übersetzungen, die Orca im neuen Katalog leer lässt, bleiben erhalten.
+- Regression prüft den neuen Druckbett-Validierungstext in allen 22 übersetzten Sprachassets.

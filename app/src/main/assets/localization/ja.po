@@ -907,7 +907,7 @@ msgstr "スケール"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
-msgstr "サイズ"
+msgstr "ファイルサイズ"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: Lost 'Uniform'; the label read only スケール.
@@ -942,7 +942,7 @@ msgid "Frustum"
 msgstr "円錐台"
 
 msgid "Square"
-msgstr "四角形"
+msgstr "正方形"
 
 msgid "Hexagon"
 msgstr "六角形"
@@ -1084,7 +1084,7 @@ msgid "Bulge proportion related to radius"
 msgstr "半径に対する膨らみの比率"
 
 msgid "Space"
-msgstr "スペース"
+msgstr "Space"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: Reworded to quote the Space label and match the Bulge tooltip.
@@ -1589,25 +1589,25 @@ msgstr "文字ごとに位置と方向を設定する。"
 # Needs human review: Rewrote a person's translation: Alignment option rendered as a face name (左面).
 msgctxt "Alignment"
 msgid "Left"
-msgstr "左揃え"
+msgstr "左"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: Alignment set mixed faces and katakana; aligned to 〜揃え.
 msgctxt "Alignment"
 msgid "Center"
-msgstr "左右中央揃え"
+msgstr "センター"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: Alignment option rendered as a face name (右面).
 msgctxt "Alignment"
 msgid "Right"
-msgstr "右揃え"
+msgstr "右"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: Alignment set mixed faces and katakana; aligned to 〜揃え.
 msgctxt "Alignment"
 msgid "Top"
-msgstr "上揃え"
+msgstr "上面"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: Alignment set mixed faces and katakana; aligned to 〜揃え.
@@ -1619,7 +1619,7 @@ msgstr "上下中央揃え"
 # Needs human review: Rewrote a person's translation: Alignment option rendered as a face name (底面).
 msgctxt "Alignment"
 msgid "Bottom"
-msgstr "下揃え"
+msgstr "底面"
 
 msgid "Revert alignment."
 msgstr "アライメントを戻す。"
@@ -2016,7 +2016,7 @@ msgstr "点を選択"
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Delete"
+msgstr "削除"
 
 msgid "Restart selection"
 msgstr "選択をリセット"
@@ -2148,7 +2148,7 @@ msgstr "計測ギズモを終了"
 # AI Translated
 msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "組み立て"
+msgstr "組立てる"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "分解比率が1であることを確認し、少なくとも2つのボリュームを選択してください。"
@@ -4067,7 +4067,7 @@ msgstr "オフ"
 # AI Translated
 msgctxt "air_duct"
 msgid "Filter"
-msgstr "フィルター"
+msgstr "フィルタリング"
 
 msgid "Enabling filtration redirects the right fan to filter gas, which may reduce cooling performance."
 msgstr "フィルタリングを有効にすると右ファンがガスフィルターに使用され、冷却性能が低下する可能性があります。"
@@ -4946,7 +4946,7 @@ msgid "%s does not support %s"
 msgstr "%s は %s をサポートしていません"
 
 msgid "Step"
-msgstr "手順"
+msgstr "ステップ"
 
 msgid "Unmapped"
 msgstr "未割り当て"
@@ -5336,7 +5336,7 @@ msgid "Rectangular"
 msgstr "長方形"
 
 msgid "Circular"
-msgstr "円形"
+msgstr "円形状"
 
 msgid "Load shape from STL..."
 msgstr "STLからシェープデータを読込む"
@@ -5351,7 +5351,7 @@ msgid "Not found:"
 msgstr "見つかりません:"
 
 msgid "Model"
-msgstr "モデル"
+msgstr "機種"
 
 msgid "Choose an STL file to import bed shape from:"
 msgstr "STLファイル（ベッドシェープ）をインポート:"
@@ -6713,7 +6713,7 @@ msgid "Fan Speed"
 msgstr "ファン回転速度"
 
 msgid "Flow"
-msgstr "流量"
+msgstr "フロー"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: 実際の流れ is a calque; pairs with 流量 (Flow) and 実速度 (Actual Speed) in the view-type list.
@@ -6760,7 +6760,7 @@ msgid "Wipe"
 msgstr "拭き上げ"
 
 msgid "Extrude"
-msgstr "押出"
+msgstr "押し出し"
 
 msgid "Inner wall"
 msgstr "内壁"
@@ -7042,7 +7042,7 @@ msgstr "色変更"
 # Needs human review: Rewrote a person's translation: msgctxt Noun: a time-estimate row, not the verb 造形する.
 msgctxt "Noun"
 msgid "Print"
-msgstr "造形"
+msgstr "造形する"
 
 msgid "Time Estimation"
 msgstr "予測時間"
@@ -7286,13 +7286,13 @@ msgstr "正面"
 
 msgctxt "Camera View"
 msgid "Back"
-msgstr "背面"
+msgstr "戻る"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
 msgctxt "Camera View"
 msgid "Top"
-msgstr "トップ"
+msgstr "上面"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Bottom
@@ -7654,13 +7654,13 @@ msgid "Design"
 msgstr "デザイン"
 
 msgid "Prepare"
-msgstr "準備"
+msgstr "準備中"
 
 msgid "Preview"
 msgstr "プレビュー"
 
 msgid "Project"
-msgstr "プロジェクト"
+msgstr "投影"
 
 msgid "Yes"
 msgstr "はい"
@@ -8906,7 +8906,7 @@ msgstr "クリックしてマシンを追加"
 # AI Translated
 # Needs human review: Rewrote a person's translation: 'Device status' does not fit the upload-queue status column.
 msgid "Status"
-msgstr "状態"
+msgstr "ステータス"
 
 msgctxt "Firmware"
 msgid "Update"
@@ -9824,7 +9824,7 @@ msgstr "コピー"
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Mirror"
-msgstr "ミラー"
+msgstr "反転"
 
 # AI Translated
 #. TRN IDEX/IQEX role: multicolor partner of the Primary on the same gantry.
@@ -11203,7 +11203,7 @@ msgid "Units"
 msgstr "単位"
 
 msgid "Home"
-msgstr "ホーム"
+msgstr "Home"
 
 msgid "Default page"
 msgstr "デフォルトページ"
@@ -12313,7 +12313,7 @@ msgstr "無効な数値入力です。"
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr "終了"
+msgstr "End"
 
 msgid "Customize"
 msgstr "カスタマイズ"
@@ -18883,7 +18883,7 @@ msgstr ""
 
 # AI Translated
 msgid "Linear"
-msgstr "線形"
+msgstr "直線状"
 
 # AI Translated
 msgid "Quadratic"
@@ -18922,7 +18922,7 @@ msgstr "ロックザグ"
 # AI Translated
 # Needs human review: Rewrote a person's translation: 直線 duplicated the Rectilinear label in the infill pattern list; glossary Line = 線.
 msgid "Line"
-msgstr "線"
+msgstr "線分"
 
 msgid "Grid"
 msgstr "グリッド"
@@ -21096,7 +21096,7 @@ msgid "Aligned back"
 msgstr "背面に揃える"
 
 msgid "Back"
-msgstr "背面"
+msgstr "戻る"
 
 msgid "Random"
 msgstr "ランダム"
@@ -25504,7 +25504,7 @@ msgstr ""
 # AI Translated
 msgctxt "PA calibration method"
 msgid "Line"
-msgstr "線"
+msgstr "線分"
 
 msgid "Pattern"
 msgstr "パターン"
@@ -29692,7 +29692,7 @@ msgstr "頂点まで"
 # AI Translated
 # Needs human review: Rewrote a person's translation: 終了 ('finish') for the end-condition label.
 msgid "End"
-msgstr "終了条件"
+msgstr "End"
 
 # AI Translated
 msgid "2nd dist"
@@ -29714,7 +29714,7 @@ msgstr "結合"
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Cut"
-msgstr "切り取り"
+msgstr "カット"
 
 # AI Translated
 msgid "Intersect"
@@ -40527,3 +40527,68 @@ msgstr "関連付け"
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "1つ以上の押出機のアダプティブPressure Advanceモデルに、無効な値が含まれている可能性があります。"
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr "除外領域が無効です。自己交差のない単純な多角形にする必要があります。"
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr "無効な領域は削除されました。有効な多角形で改めて指定してください。"
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "%1%の以下のパラメータを%2%にコピーしますか？"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "比較ボタンをクリックすると全文を確認できます。"
+
+# AI Translated
+msgid "Process settings"
+msgstr "プロセス設定"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "全文を比較"
+
+# AI Translated
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr "押出機の造形可能領域に共通部分がないため、プライムタワーを印刷できません。\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr "編集中: %1%   ·   N = 平面に垂直に表示   ·   ツールバーで確定または取消し"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  拘束バッジをクリックして選択"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1%を選択中 — Deleteで削除"

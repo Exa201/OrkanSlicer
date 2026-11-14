@@ -1102,7 +1102,7 @@ msgid "Bulge proportion related to radius"
 msgstr "Utbuktningens proportion i förhållande till radien"
 
 msgid "Space"
-msgstr "Mellanslag"
+msgstr "Blanksteg"
 
 # AI Translated
 msgid "Space proportion related to radius"
@@ -1462,7 +1462,7 @@ msgstr "Åtgärd"
 #. TRN EmbossOperation
 #. ORCA
 msgid "Join"
-msgstr "Sammanfoga"
+msgstr "Förena"
 
 # AI Translated
 msgid "Click to change text into object part."
@@ -1474,7 +1474,7 @@ msgstr "Du kan inte ändra typen på objektets sista solida del."
 
 msgctxt "EmbossOperation"
 msgid "Cut"
-msgstr "Beskär"
+msgstr "Skär"
 
 # AI Translated
 msgid "Click to change part type into negative volume."
@@ -1666,7 +1666,7 @@ msgstr "Vänster"
 # AI Translated
 msgctxt "Alignment"
 msgid "Center"
-msgstr "Centrerad"
+msgstr "Centrera"
 
 msgctxt "Alignment"
 msgid "Right"
@@ -1683,7 +1683,7 @@ msgstr "Mitten"
 
 msgctxt "Alignment"
 msgid "Bottom"
-msgstr "Bottenlager"
+msgstr "Botten"
 
 # AI Translated
 msgid "Revert alignment."
@@ -2142,7 +2142,7 @@ msgstr "Välj punkt"
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Delete"
+msgstr "Ta bort"
 
 # AI Translated
 msgid "Restart selection"
@@ -3066,7 +3066,7 @@ msgid "Import File"
 msgstr "Importera fil"
 
 msgid "Delete"
-msgstr "Radera"
+msgstr "Ta bort"
 
 msgid "Choose files"
 msgstr "Välj filer"
@@ -4135,14 +4135,14 @@ msgid "Color"
 msgstr "Färg"
 
 msgid "Pause"
-msgstr "Paus"
+msgstr "Pausa"
 
 msgid "Template"
 msgstr "Mall"
 
 # AI Translated
 msgid "Custom"
-msgstr "Anpassad"
+msgstr "Anpassade"
 
 msgid "Pause:"
 msgstr "Pausa:"
@@ -7437,7 +7437,7 @@ msgstr "Kvalitet/Hastighet"
 # AI Translated
 msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Jämna ut"
+msgstr "Jämn"
 
 msgid "Radius"
 msgstr "Radie"
@@ -7635,13 +7635,13 @@ msgstr "Framifrån"
 # AI Translated
 msgctxt "Camera View"
 msgid "Back"
-msgstr "Bak"
+msgstr "Tillbaka"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
 msgctxt "Camera View"
 msgid "Top"
-msgstr "Topp"
+msgstr "Topplager"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Bottom
@@ -8020,13 +8020,13 @@ msgid "Design"
 msgstr "Design"
 
 msgid "Prepare"
-msgstr "Förbered"
+msgstr "Förbereder"
 
 msgid "Preview"
 msgstr "Förhandsvisning"
 
 msgid "Project"
-msgstr "Projekt"
+msgstr "Projicera"
 
 msgid "Yes"
 msgstr "Ja"
@@ -8262,7 +8262,7 @@ msgid "Redo"
 msgstr "Gör om"
 
 msgid "Cut"
-msgstr "Beskär"
+msgstr "Skär"
 
 msgid "Cut selection to clipboard"
 msgstr "Klipp ut markeringen till urklipp"
@@ -8406,7 +8406,7 @@ msgid "Edit"
 msgstr "Redigera"
 
 msgid "View"
-msgstr "Vy"
+msgstr "Visa"
 
 # AI Translated
 msgid "Open Speed Dial"
@@ -9950,7 +9950,7 @@ msgstr "Topplager"
 
 msgctxt "Layers"
 msgid "Bottom"
-msgstr "Bottenlager"
+msgstr "Botten"
 
 # AI Translated
 msgid "This setting does not specify a plugin capability type."
@@ -10284,13 +10284,13 @@ msgstr "Primär"
 #. TRN IDEX/IQEX role: the tool head prints a copy of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Copy"
-msgstr "Kopia"
+msgstr "Kopiera"
 
 # AI Translated
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Mirror"
-msgstr "Spegel"
+msgstr "Spegelvänd"
 
 # AI Translated
 #. TRN IDEX/IQEX role: multicolor partner of the Primary on the same gantry.
@@ -11630,7 +11630,7 @@ msgstr "Nordamerika"
 # AI Translated
 msgctxt "Region"
 msgid "Others"
-msgstr "Övriga"
+msgstr "Andra"
 
 msgid "Changing the region will log you out of your account.\n"
 msgstr "Om du ändrar regionen loggas du ut från ditt konto.\n"
@@ -11754,7 +11754,7 @@ msgstr "Enheter"
 
 # AI Translated
 msgid "Home"
-msgstr "Hem"
+msgstr "Home"
 
 # AI Translated
 msgid "Default page"
@@ -12927,7 +12927,7 @@ msgstr "Ogiltig numerisk inmatning."
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr "Slut"
+msgstr "End"
 
 msgid "Customize"
 msgstr "Anpassa"
@@ -30651,7 +30651,7 @@ msgid "Up to vertex"
 msgstr "Upp till hörn"
 
 msgid "End"
-msgstr "Slut"
+msgstr "End"
 
 # AI Translated
 msgid "2nd dist"
@@ -41566,3 +41566,76 @@ msgstr "Koppla"
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "Modellen för adaptiv Pressure Advance för en eller flera extrudrar kan innehålla ogiltiga värden."
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr ""
+"Utesluten yta av byggplattan är ogiltig. Den måste vara en enkel polygon "
+"utan självskärningar."
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr ""
+"Det ogiltiga området har tagits bort. Definiera det igen med en giltig "
+"polygon."
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "Vill du kopiera följande parametrar för %1% till %2%?"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Klicka på jämförelseknappen för att se hela värdet."
+
+# AI Translated
+msgid "Process settings"
+msgstr "Processinställningar"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "Jämför hela värdena"
+
+# AI Translated
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr ""
+"Extrudrarnas utskrivbara områden har ingen gemensam yta, så prime tornet kan"
+" inte skrivas ut.\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr ""
+"Redigerar: %1%   ·   N = titta vinkelrätt mot planet   ·   Bekräfta eller "
+"Avbryt i verktygsfältet"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  klicka på en villkorsmarkör för att markera den"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% markerad — Delete tar bort den"

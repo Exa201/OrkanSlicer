@@ -177,11 +177,11 @@ msgstr "右"
 
 # AI Translated
 msgid "Left"
-msgstr "左"
+msgstr "左視"
 
 # AI Translated
 msgid "Right"
-msgstr "右"
+msgstr "右視"
 
 msgid "extruder"
 msgstr "擠出機"
@@ -897,7 +897,7 @@ msgstr "縮放"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
-msgstr "尺寸"
+msgstr "大小"
 
 msgid "Uniform scale"
 msgstr "等比例縮放"
@@ -1079,7 +1079,7 @@ msgstr "與半徑相關的凸起比例"
 
 # AI Translated
 msgid "Space"
-msgstr "間隔"
+msgstr "Space"
 
 # AI Translated
 msgid "Space proportion related to radius"
@@ -1411,7 +1411,7 @@ msgstr "操作"
 #. TRN EmbossOperation
 #. ORCA
 msgid "Join"
-msgstr "合併"
+msgstr "接合"
 
 # AI Translated
 msgid "Click to change text into object part."
@@ -1424,7 +1424,7 @@ msgstr "無法變更物件最後一個實體零件的類型。"
 # AI Translated
 msgctxt "EmbossOperation"
 msgid "Cut"
-msgstr "切除"
+msgstr "切割"
 
 msgid "Click to change part type into negative volume."
 msgstr "點選將零件類型變更為負體積。"
@@ -1451,7 +1451,7 @@ msgid "Name has to be unique."
 msgstr "名稱不可重複。"
 
 msgid "OK"
-msgstr "確認"
+msgstr "位置正確"
 
 msgid "Rename style"
 msgstr "更改樣式名稱"
@@ -1577,7 +1577,7 @@ msgstr "設定每個字形的位置和方向。"
 
 msgctxt "Alignment"
 msgid "Left"
-msgstr "左"
+msgstr "左視"
 
 msgctxt "Alignment"
 msgid "Center"
@@ -1585,7 +1585,7 @@ msgstr "置中"
 
 msgctxt "Alignment"
 msgid "Right"
-msgstr "右"
+msgstr "右視"
 
 msgctxt "Alignment"
 msgid "Top"
@@ -1999,7 +1999,7 @@ msgstr "選取點"
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Delete"
+msgstr "刪除"
 
 msgid "Restart selection"
 msgstr "重新開始選取"
@@ -2896,7 +2896,7 @@ msgid "Quality"
 msgstr "品質"
 
 msgid "Shell"
-msgstr "外殼"
+msgstr "薄殼"
 
 msgid "Infill"
 msgstr "填充"
@@ -3262,7 +3262,7 @@ msgid "Transform"
 msgstr "變換"
 
 msgid "Split"
-msgstr "拆分"
+msgstr "分割"
 
 msgid "To Objects"
 msgstr "拆分到物件"
@@ -4986,7 +4986,7 @@ msgid "%s does not support %s"
 msgstr "%s 不支援 %s"
 
 msgid "Step"
-msgstr "步驟"
+msgstr "步進值"
 
 msgid "Unmapped"
 msgstr "未映射"
@@ -5108,12 +5108,12 @@ msgstr "使用 AMS 裡的線材列印"
 # AI Translated
 msgctxt "Nozzle position"
 msgid "Left"
-msgstr "左"
+msgstr "左視"
 
 # AI Translated
 msgctxt "Nozzle position"
 msgid "Right"
-msgstr "右"
+msgstr "右視"
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "當目前線材用完時，列印裝置將按照以下順序繼續列印。"
@@ -5385,7 +5385,7 @@ msgstr "矩形"
 
 # AI Translated
 msgid "Circular"
-msgstr "圓形"
+msgstr "環形"
 
 msgid "Load shape from STL..."
 msgstr "從 STL 檔案載入形狀..."
@@ -5400,7 +5400,7 @@ msgid "Not found:"
 msgstr "未發現："
 
 msgid "Model"
-msgstr "模型"
+msgstr "型號"
 
 msgid "Choose an STL file to import bed shape from:"
 msgstr "選擇熱床形狀的 STL 檔案："
@@ -7142,7 +7142,7 @@ msgstr "品質/速度"
 # AI Translated
 msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "平滑"
+msgstr "平滑模式"
 
 msgid "Radius"
 msgstr "半徑"
@@ -7337,19 +7337,19 @@ msgstr "前視"
 # AI Translated
 msgctxt "Camera View"
 msgid "Back"
-msgstr "後視"
+msgstr "返回"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
 msgctxt "Camera View"
 msgid "Top"
-msgstr "上視"
+msgstr "頂部"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Bottom
 msgctxt "Camera View"
 msgid "Bottom"
-msgstr "下視"
+msgstr "底部"
 
 # AI Translated
 msgctxt "Camera View"
@@ -7719,13 +7719,13 @@ msgid "Design"
 msgstr "設計"
 
 msgid "Prepare"
-msgstr "準備"
+msgstr "準備中"
 
 msgid "Preview"
 msgstr "預覽"
 
 msgid "Project"
-msgstr "專案"
+msgstr "投影"
 
 msgid "Yes"
 msgstr "是"
@@ -7948,7 +7948,7 @@ msgid "Export"
 msgstr "匯出"
 
 msgid "Quit"
-msgstr "結束"
+msgstr "退出"
 
 msgid "Undo"
 msgstr "復原"
@@ -7958,7 +7958,7 @@ msgstr "重做"
 
 # AI Translated
 msgid "Cut"
-msgstr "剪下"
+msgstr "切割"
 
 msgid "Cut selection to clipboard"
 msgstr "剪下所選項目到剪貼簿"
@@ -8737,7 +8737,7 @@ msgstr "計算中..."
 # AI Translated
 msgctxt "Printer camera"
 msgid "Camera"
-msgstr "攝影機"
+msgstr "相機"
 
 msgid "Storage"
 msgstr "儲存空間"
@@ -9914,7 +9914,7 @@ msgstr "未啟用"
 #. TRN IDEX/IQEX role: the tool head the slicer generates paths for.
 msgctxt "IDEX/IQEX role"
 msgid "Primary"
-msgstr "主"
+msgstr "主模式"
 
 # AI Translated
 #. TRN IDEX/IQEX role: the tool head prints a copy of the Primary's paths.
@@ -11331,7 +11331,7 @@ msgid "Units"
 msgstr "單位"
 
 msgid "Home"
-msgstr "首頁"
+msgstr "Home"
 
 msgid "Default page"
 msgstr "預設頁面"
@@ -12431,7 +12431,7 @@ msgstr "無效的數值輸入。"
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr "結束"
+msgstr "End"
 
 msgid "Customize"
 msgstr "自訂"
@@ -15081,7 +15081,7 @@ msgstr "成功從列印裝置同步線材顏色和類型。"
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr "確定"
+msgstr "位置正確"
 
 msgid "Ramming customization"
 msgstr "自訂尖端成型"
@@ -19015,7 +19015,7 @@ msgid "Locked Zag"
 msgstr "限定之字"
 
 msgid "Line"
-msgstr "線"
+msgstr "直線"
 
 msgid "Grid"
 msgstr "網格"
@@ -19303,7 +19303,7 @@ msgid "Contour"
 msgstr "輪廓"
 
 msgid "Hole"
-msgstr "孔洞"
+msgstr "孔"
 
 msgid "Contour and hole"
 msgstr "輪廓和孔"
@@ -21154,7 +21154,7 @@ msgid "Aligned back"
 msgstr "背部對齊"
 
 msgid "Back"
-msgstr "背面"
+msgstr "返回"
 
 msgid "Random"
 msgstr "隨機"
@@ -22693,7 +22693,7 @@ msgid "Rectangle"
 msgstr "矩形"
 
 msgid "Rib"
-msgstr "肋條"
+msgstr "肋"
 
 msgid "Extra rib length"
 msgstr "額外肋條長度"
@@ -25494,11 +25494,11 @@ msgstr ""
 
 msgctxt "PA calibration method"
 msgid "Line"
-msgstr "線"
+msgstr "直線"
 
 # AI Translated
 msgid "Pattern"
-msgstr "圖案"
+msgstr "陣列"
 
 msgid "Method"
 msgstr "方法"
@@ -27019,7 +27019,7 @@ msgstr "列印裝置"
 
 # AI Translated
 msgid "Processes"
-msgstr "列印參數"
+msgstr "處理程序"
 
 # AI Translated
 msgid "Show/Hide system information"
@@ -29669,7 +29669,7 @@ msgstr "至頂點"
 
 # AI Translated
 msgid "End"
-msgstr "終止條件"
+msgstr "End"
 
 # AI Translated
 msgid "2nd dist"
@@ -29691,7 +29691,7 @@ msgstr "接合"
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Cut"
-msgstr "切除"
+msgstr "切割"
 
 # AI Translated
 msgid "Intersect"
@@ -29829,7 +29829,7 @@ msgstr "布林"
 
 # AI Translated
 msgid "Subtract"
-msgstr "減去"
+msgstr "相減"
 
 # AI Translated
 msgid "Target (kept)"
@@ -32232,7 +32232,7 @@ msgstr "將工具本體融合到目標中，成為單一實體，沒有接縫"
 # AI Translated
 msgctxt "Design"
 msgid "Subtract"
-msgstr "減去"
+msgstr "相減"
 
 # AI Translated
 msgid "Cut the tool body out of the target"
@@ -36884,7 +36884,7 @@ msgstr "混合"
 # AI Translated
 msgctxt "Texture Displacement"
 msgid "Add"
-msgstr "相加"
+msgstr "新增"
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -40457,3 +40457,68 @@ msgstr "關聯"
 
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "一個或多個擠出機的適應性 Pressure Advance 模型可能包含無效值。"
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr "熱床淨空區域無效，必須是不自我相交的簡單多邊形。"
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr "無效區域已被移除，請使用有效的多邊形重新定義。"
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "您要將 %1% 的下列參數複製到 %2% 嗎？"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "點選比較按鈕即可查看完整值。"
+
+# AI Translated
+msgid "Process settings"
+msgstr "列印參數設定"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "比較完整值"
+
+# AI Translated
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr "各擠出機的可列印區域沒有共同部分，無法列印換料塔。\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr "編輯中：%1%   ·   N = 正視平面   ·   在工具列中按「確認」或「取消」"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  點選約束標記即可選取"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "已選取 %1% — 按 Delete 可將其移除"

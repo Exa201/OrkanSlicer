@@ -170,10 +170,10 @@ msgid "right"
 msgstr "destra"
 
 msgid "Left"
-msgstr "Da sinistra"
+msgstr "Sinistra"
 
 msgid "Right"
-msgstr "Da Destra"
+msgstr "Destra"
 
 msgid "extruder"
 msgstr "estrusore"
@@ -782,7 +782,7 @@ msgid "Selection"
 msgstr "Selezione"
 
 msgid "Plate"
-msgstr "Piatto"
+msgstr "Piastra"
 
 # AI Translated
 # Needs human review: Distribute has no glossary rendering yet; check the term.
@@ -872,7 +872,7 @@ msgstr "Ridimensiona"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
-msgstr "Dimensioni"
+msgstr "Dimensione"
 
 msgid "Uniform scale"
 msgstr "Scala uniforme"
@@ -1323,7 +1323,7 @@ msgid "First font"
 msgstr "Primo carattere"
 
 msgid "Advanced"
-msgstr "Avanzate"
+msgstr "Avanzata"
 
 # AI Translated
 msgid "Reset all options except the text and operation"
@@ -1921,7 +1921,7 @@ msgstr "Seleziona punto"
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Canc"
+msgstr "Elimina"
 
 msgid "Restart selection"
 msgstr "Riavvio della selezione"
@@ -2793,7 +2793,7 @@ msgid "Quality"
 msgstr "Qualità"
 
 msgid "Shell"
-msgstr "Guscio"
+msgstr "Svuotamento"
 
 msgid "Infill"
 msgstr "Riempimento"
@@ -2808,7 +2808,7 @@ msgid "Speed"
 msgstr "Velocità"
 
 msgid "Strength"
-msgstr "Resistenza"
+msgstr "Intensità"
 
 msgid "Top solid layers"
 msgstr "Strati solidi superiori"
@@ -3227,7 +3227,7 @@ msgid "Paste Process Settings"
 msgstr "Incolla impostazioni di processo"
 
 msgid "Edit"
-msgstr "Modifica"
+msgstr "Modifica funzione"
 
 msgid "Merge with"
 msgstr "Unisci con"
@@ -3780,7 +3780,7 @@ msgid "Template"
 msgstr "Modello"
 
 msgid "Custom"
-msgstr "Personalizzato"
+msgstr "Personalizzate"
 
 msgid "Pause:"
 msgstr "Pausa:"
@@ -3912,7 +3912,7 @@ msgstr "Spento"
 # AI Translated
 msgctxt "air_duct"
 msgid "Filter"
-msgstr "Filtro"
+msgstr "Filtra"
 
 msgid "Enabling filtration redirects the right fan to filter gas, which may reduce cooling performance."
 msgstr "L'abilitazione della filtrazione reindirizza la ventola destra al filtraggio del gas, il che potrebbe ridurre le prestazioni di raffreddamento."
@@ -4769,7 +4769,7 @@ msgid "%s does not support %s"
 msgstr "%s non supporta %s"
 
 msgid "Step"
-msgstr "Incremento"
+msgstr "Passo"
 
 msgid "Unmapped"
 msgstr "Non mappato"
@@ -4886,12 +4886,12 @@ msgstr "Stampa con filamento nell'AMS"
 # AI Translated
 msgctxt "Nozzle position"
 msgid "Left"
-msgstr "Sinistro"
+msgstr "Sinistra"
 
 # AI Translated
 msgctxt "Nozzle position"
 msgid "Right"
-msgstr "Destro"
+msgstr "Destra"
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Quando si esaurisce il materiale corrente, la stampante continuerà a stampare nel seguente ordine."
@@ -7025,7 +7025,7 @@ msgstr "Frontale"
 
 msgctxt "Camera View"
 msgid "Back"
-msgstr "Posteriore"
+msgstr "Indietro"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
@@ -7387,13 +7387,13 @@ msgid "Design"
 msgstr "Progettazione"
 
 msgid "Prepare"
-msgstr "Prepara"
+msgstr "In preparazione"
 
 msgid "Preview"
 msgstr "Anteprima"
 
 msgid "Project"
-msgstr "Progetto"
+msgstr "Proietta"
 
 msgid "Yes"
 msgstr "Sì"
@@ -7747,10 +7747,10 @@ msgstr "Preferenze"
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
-msgstr "Modifica"
+msgstr "Modifica funzione"
 
 msgid "View"
-msgstr "Vista"
+msgstr "Visualizza"
 
 # AI Translated
 msgid "Open Speed Dial"
@@ -9514,7 +9514,7 @@ msgstr "Copia"
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Mirror"
-msgstr "Specchio"
+msgstr "Specchia"
 
 # AI Translated
 #. TRN IDEX/IQEX role: multicolor partner of the Primary on the same gantry.
@@ -10860,7 +10860,7 @@ msgid "Units"
 msgstr "Unità"
 
 msgid "Home"
-msgstr "Pagina iniziale"
+msgstr "Home"
 
 msgid "Default page"
 msgstr "Pagina predefinita"
@@ -14226,7 +14226,7 @@ msgid "Extruder count"
 msgstr "Numero di estrusori"
 
 msgid "Capabilities"
-msgstr "Caratteristiche"
+msgstr "Funzionalità"
 
 msgid "Show all presets (including incompatible)"
 msgstr "Mostra tutti i profili (compresi quelli non compatibili)"
@@ -20123,7 +20123,7 @@ msgid "Aligned back"
 msgstr "Allineato dietro"
 
 msgid "Back"
-msgstr "Posteriore"
+msgstr "Indietro"
 
 msgid "Random"
 msgstr "Casuale"
@@ -24171,7 +24171,7 @@ msgid "Line"
 msgstr "Linea"
 
 msgid "Pattern"
-msgstr "Modello"
+msgstr "Ripetizione"
 
 msgid "Method"
 msgstr "Metodo"
@@ -28307,7 +28307,7 @@ msgstr "Unisci"
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Cut"
-msgstr "Sottrai"
+msgstr "Taglia"
 
 # AI Translated
 msgid "Intersect"
@@ -39153,3 +39153,76 @@ msgstr "Associa"
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "Il modello Pressure Advance adattivo per uno o più estrusori potrebbe contenere valori non validi."
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr ""
+"La zona piatto esclusa non è valida. Deve essere un poligono semplice, senza"
+" autointersezioni."
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr ""
+"L'area non valida è stata rimossa: definiscila di nuovo usando un poligono "
+"valido."
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "Vuoi copiare i seguenti parametri di %1% in %2%?"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Clicca sul pulsante di confronto per vedere il valore completo."
+
+# AI Translated
+msgid "Process settings"
+msgstr "Impostazioni processo"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "Confronta i valori completi"
+
+# AI Translated
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr ""
+"Le aree stampabili degli estrusori non hanno alcuna area in comune, quindi "
+"la torre di spurgo non può essere stampata.\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr ""
+"Modifica: %1%   ·   N = vista normale al piano   ·   Conferma o Annulla "
+"nella barra degli strumenti"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  clicca il simbolo di un vincolo per selezionarlo"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% selezionato — Canc lo elimina"

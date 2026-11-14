@@ -310,7 +310,7 @@ msgstr "Hotend yükseltmesi sırasında baskı kafası hareket edecek. Elinizi o
 
 # AI Translated
 msgid "Update"
-msgstr "Güncelle"
+msgstr "Güncelleme"
 
 msgid "Current AMS humidity"
 msgstr "Mevcut AMS nemi"
@@ -921,7 +921,7 @@ msgid "Connectors"
 msgstr "Bağlayıcılar"
 
 msgid "Type"
-msgstr "Tür"
+msgstr "Tip"
 
 msgid "Style"
 msgstr "Stil"
@@ -1368,7 +1368,7 @@ msgstr "Operasyon"
 #. TRN EmbossOperation
 #. ORCA
 msgid "Join"
-msgstr "Ekle"
+msgstr "Birleştirme"
 
 msgid "Click to change text into object part."
 msgstr "Metni nesne kısmına değiştirmek için tıklayın."
@@ -1404,7 +1404,7 @@ msgid "Name has to be unique."
 msgstr "Adın benzersiz olması gerekiyor."
 
 msgid "OK"
-msgstr "TAMAM"
+msgstr "Uygun"
 
 msgid "Rename style"
 msgstr "Stili yeniden adlandır"
@@ -1918,7 +1918,7 @@ msgstr "Nokta seç"
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Delete"
+msgstr "Sil"
 
 msgid "Restart selection"
 msgstr "Seçimi sıfırla"
@@ -2805,7 +2805,7 @@ msgid "Quality"
 msgstr "Kalite"
 
 msgid "Shell"
-msgstr "Kabuk"
+msgstr "Kabuklama"
 
 msgid "Infill"
 msgstr "Dolgu"
@@ -2820,7 +2820,7 @@ msgid "Speed"
 msgstr "Hız"
 
 msgid "Strength"
-msgstr "Dayanıklılık"
+msgstr "Güç"
 
 msgid "Top solid layers"
 msgstr "Üst katı katmanlar"
@@ -3930,7 +3930,7 @@ msgstr "Kapalı"
 # AI Translated
 msgctxt "air_duct"
 msgid "Filter"
-msgstr "Filtre"
+msgstr "Filtreli"
 
 msgid "Enabling filtration redirects the right fan to filter gas, which may reduce cooling performance."
 msgstr "Filtrelemenin etkinleştirilmesi, doğru fanı filtre gazına yönlendirir ve bu da soğutma performansını düşürebilir."
@@ -6737,7 +6737,7 @@ msgstr "Kalite / Hız"
 # AI Translated
 msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Yumuşat"
+msgstr "Pürüzsüz"
 
 msgid "Radius"
 msgstr "Yarıçap"
@@ -6925,7 +6925,7 @@ msgstr "Ön"
 
 msgctxt "Camera View"
 msgid "Back"
-msgstr "Arka"
+msgstr "Geri"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
@@ -7289,13 +7289,13 @@ msgid "Design"
 msgstr "Tasarım"
 
 msgid "Prepare"
-msgstr "Hazırlık"
+msgstr "Hazırlanıyor"
 
 msgid "Preview"
 msgstr "Ön İzleme"
 
 msgid "Project"
-msgstr "Proje"
+msgstr "İzdüşüm"
 
 msgid "Yes"
 msgstr "Evet"
@@ -7511,7 +7511,7 @@ msgid "Export"
 msgstr "Dışa aktar"
 
 msgid "Quit"
-msgstr "Çıkış"
+msgstr "Çıkış yapmak"
 
 msgid "Undo"
 msgstr "Geri al"
@@ -7646,10 +7646,10 @@ msgstr "Tercihler"
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
-msgstr "Düzen"
+msgstr "Düzenle"
 
 msgid "View"
-msgstr "Görünüm"
+msgstr "Görüntüle"
 
 # AI Translated
 msgid "Open Speed Dial"
@@ -9396,7 +9396,7 @@ msgstr ""
 #. TRN IDEX/IQEX role of a tool head that takes no part in the mode.
 msgctxt "IDEX/IQEX role"
 msgid "Inactive"
-msgstr "Pasif"
+msgstr "Etkin değil"
 
 # AI Translated
 #. TRN IDEX/IQEX role: the tool head the slicer generates paths for.
@@ -9408,13 +9408,13 @@ msgstr "Birincil"
 #. TRN IDEX/IQEX role: the tool head prints a copy of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Copy"
-msgstr "Kopya"
+msgstr "Kopyala"
 
 # AI Translated
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Mirror"
-msgstr "Ayna"
+msgstr "Aynala"
 
 # AI Translated
 #. TRN IDEX/IQEX role: multicolor partner of the Primary on the same gantry.
@@ -10767,7 +10767,7 @@ msgid "Units"
 msgstr "Birimler"
 
 msgid "Home"
-msgstr "Ana Sayfa"
+msgstr "Home"
 
 msgid "Default page"
 msgstr "Varsayılan sayfa"
@@ -11864,7 +11864,7 @@ msgstr "Geçersiz sayısal giriş."
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr "Bitiş"
+msgstr "End"
 
 msgid "Customize"
 msgstr "Özelleştir"
@@ -14365,7 +14365,7 @@ msgstr "Yazıcıdan filamentin rengi ve türü başarıyla senkronize edildi."
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr "TAMAM"
+msgstr "Uygun"
 
 msgid "Ramming customization"
 msgstr "Sıkıştırma özelleştirme"
@@ -17076,7 +17076,7 @@ msgid "Aligned Rectilinear"
 msgstr "Hizalanmış doğrusal"
 
 msgid "Concentric"
-msgstr "Konsantrik"
+msgstr "Eş merkezli"
 
 # AI Translated
 msgid "Spiral Inset"
@@ -20090,7 +20090,7 @@ msgid "Aligned back"
 msgstr "Arkaya hizalı"
 
 msgid "Back"
-msgstr "Arka"
+msgstr "Geri"
 
 msgid "Random"
 msgstr "Rastgele"
@@ -21539,7 +21539,7 @@ msgid "Rectangle"
 msgstr "Dikdörtgen"
 
 msgid "Rib"
-msgstr "Kaburga"
+msgstr "Nervür"
 
 msgid "Extra rib length"
 msgstr "Ek kaburga uzunluğu"
@@ -24202,7 +24202,7 @@ msgid "Line"
 msgstr "Çizgi"
 
 msgid "Pattern"
-msgstr "Desen"
+msgstr "Çoğaltma"
 
 msgid "Method"
 msgstr "Yöntem"
@@ -28329,7 +28329,7 @@ msgid "Up to vertex"
 msgstr "Köşe noktasına kadar"
 
 msgid "End"
-msgstr "Son"
+msgstr "End"
 
 # AI Translated
 msgid "2nd dist"
@@ -28346,7 +28346,7 @@ msgstr "Yeni gövde"
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Join"
-msgstr "Birleştir"
+msgstr "Birleştirme"
 
 # AI Translated
 msgctxt "Boolean Mode"
@@ -30918,7 +30918,7 @@ msgstr "Araç gövdesini hedefle birleştirin — tek bir katı, ek yeri olmadan
 # AI Translated
 msgctxt "Design"
 msgid "Subtract"
-msgstr "Çıkarma"
+msgstr "Çıkar"
 
 # AI Translated
 msgid "Cut the tool body out of the target"
@@ -39215,3 +39215,82 @@ msgstr "Ortak"
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "Bir veya daha fazla ekstruder için Uyarlanabilir Pressure Advance modeli geçersiz değerler içeriyor olabilir."
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr ""
+"Hariç tutulan tabla bölgesi geçersiz. Kendisiyle kesişmeyen basit bir çokgen"
+" olmalıdır."
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr ""
+"Geçersiz bölge kaldırıldı, lütfen geçerli bir çokgen kullanarak yeniden "
+"tanımlayın."
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr ""
+"%1% öğesinin aşağıdaki parametrelerini %2% öğesine kopyalamak istiyor "
+"musunuz?"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Değerin tamamını görmek için karşılaştır düğmesine tıklayın."
+
+# AI Translated
+msgid "Process settings"
+msgstr "İşlem ayarları"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "Değerlerin tamamını karşılaştır"
+
+# AI Translated
+# Needs human review: Glossary cell for Prime tower is unsettled; used the
+# catalog's 'Prime Kulesi'.
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr ""
+"Ekstruderlerin yazdırılabilir alanlarının ortak bir bölgesi yok, bu nedenle "
+"Prime Kulesi yazdırılamaz.\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr ""
+"Düzenleniyor: %1%   ·   N = düzleme dik bak   ·   Araç çubuğunda Onayla veya"
+" İptal"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  seçmek için bir kısıtlama rozetine tıklayın"
+
+# AI Translated
+# Needs human review: Status line; check wording reads right with the
+# constraint name.
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% seçildi, Delete tuşu kaldırır"

@@ -294,7 +294,7 @@ msgid "High Flow"
 msgstr "High Flow"
 
 msgid "Standard"
-msgstr "Standaard"
+msgstr "Norm"
 
 # AI Translated
 msgid "TPU High Flow"
@@ -339,7 +339,7 @@ msgid "During the hotend upgrade, the toolhead will move. Don't reach into the c
 msgstr "Tijdens de hot-end upgrade beweegt de printkop. Steek uw hand niet in de kamer."
 
 msgid "Update"
-msgstr "Updaten"
+msgstr "Bijwerken"
 
 # AI Translated
 msgid "Current AMS humidity"
@@ -695,7 +695,7 @@ msgid "Paint-on fuzzy skin editing"
 msgstr "Geschilderde vage buitenkant bewerken"
 
 msgid "Move"
-msgstr "Verplaats"
+msgstr "Verplaatsen"
 
 msgid "Please select at least one object."
 msgstr "Selecteer ten minste één object."
@@ -704,7 +704,7 @@ msgid "Gizmo-Move"
 msgstr "Verplaatsen"
 
 msgid "Rotate"
-msgstr "Draai"
+msgstr "Roteren"
 
 msgid "Gizmo-Rotate"
 msgstr "Roteren"
@@ -808,7 +808,7 @@ msgid "Selection"
 msgstr "Selectie"
 
 msgid "Plate"
-msgstr "Printbed"
+msgstr "Plaat"
 
 # AI Translated
 # Needs human review: Glossary has no Dutch term yet; Verdelen matches the existing Uitlijnen/Verdelen.
@@ -900,7 +900,7 @@ msgstr "Schalen"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
-msgstr "Maat"
+msgstr "Grootte"
 
 msgid "Uniform scale"
 msgstr "uniform schalen"
@@ -939,7 +939,7 @@ msgid "Square"
 msgstr "Vierkant"
 
 msgid "Hexagon"
-msgstr "Zeskant"
+msgstr "Zeshoek"
 
 msgid "Keep orientation"
 msgstr "Oriëntatie behouden"
@@ -1085,7 +1085,7 @@ msgid "Bulge proportion related to radius"
 msgstr "Bolling in verhouding tot de straal"
 
 msgid "Space"
-msgstr "Ruimte"
+msgstr "Spatie"
 
 # AI Translated
 msgid "Space proportion related to radius"
@@ -1446,7 +1446,7 @@ msgstr "U kunt het type van het laatste onderdeel van een object niet wijzigen."
 
 msgctxt "EmbossOperation"
 msgid "Cut"
-msgstr "Knippen"
+msgstr "Snijden"
 
 msgid "Click to change part type into negative volume."
 msgstr "Klik om het onderdeeltype te wijzigen naar een negatief volume."
@@ -1627,7 +1627,7 @@ msgstr "Midden"
 
 msgctxt "Alignment"
 msgid "Bottom"
-msgstr "Onderste"
+msgstr "Onderkant"
 
 msgid "Revert alignment."
 msgstr "Uitlijning terugdraaien."
@@ -2066,7 +2066,7 @@ msgstr "Kies punt"
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Delete"
+msgstr "Verwijderen"
 
 msgid "Restart selection"
 msgstr "Selectie herstarten"
@@ -2210,7 +2210,7 @@ msgstr "Meetgizmo verlaten"
 # AI Translated
 msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Samenstellen"
+msgstr "Monteren"
 
 # AI Translated
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
@@ -3004,7 +3004,7 @@ msgid "Quality"
 msgstr "Kwaliteit"
 
 msgid "Shell"
-msgstr "Buitenlaag"
+msgstr "Uithollen"
 
 msgid "Infill"
 msgstr "Vulling"
@@ -3360,7 +3360,7 @@ msgid "Transform"
 msgstr "Transformeren"
 
 msgid "Split"
-msgstr "Opsplitsen"
+msgstr "Splitsen"
 
 msgid "To Objects"
 msgstr "Naar objecten"
@@ -4046,7 +4046,7 @@ msgid "Color"
 msgstr "Kleur"
 
 msgid "Pause"
-msgstr "Pauze"
+msgstr "Pauzeren"
 
 msgid "Template"
 msgstr "Sjabloon"
@@ -5538,7 +5538,7 @@ msgid "Rectangular"
 msgstr "Rechthoekig"
 
 msgid "Circular"
-msgstr "Rond"
+msgstr "Circulair"
 
 msgid "Load shape from STL..."
 msgstr "Vorm laden vanuit het STL. bestand..."
@@ -7296,7 +7296,7 @@ msgstr "Kleur veranderen"
 # AI Translated
 msgctxt "Noun"
 msgid "Print"
-msgstr "Print"
+msgstr "Printen"
 
 msgid "Time Estimation"
 msgstr "Geschatte duur"
@@ -7352,7 +7352,7 @@ msgstr "Kwaliteit/snelheid"
 # AI Translated
 msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Gladmaken"
+msgstr "Vloeiend"
 
 msgid "Radius"
 msgstr "Straal"
@@ -7553,7 +7553,7 @@ msgstr "Voorkant"
 
 msgctxt "Camera View"
 msgid "Back"
-msgstr "Achterzijde"
+msgstr "Terug"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
@@ -7939,7 +7939,7 @@ msgstr "Voorvertoning"
 
 # AI Translated
 msgid "Project"
-msgstr "Project"
+msgstr "Projecteren"
 
 msgid "Yes"
 msgstr "Ja"
@@ -8162,7 +8162,7 @@ msgid "Export"
 msgstr "Exporteren"
 
 msgid "Quit"
-msgstr "Stop"
+msgstr "Afsluiten"
 
 msgid "Undo"
 msgstr "Ongedaan maken"
@@ -8171,13 +8171,13 @@ msgid "Redo"
 msgstr "Opnieuw doen"
 
 msgid "Cut"
-msgstr "Knippen"
+msgstr "Snijden"
 
 msgid "Cut selection to clipboard"
 msgstr "Selectie naar klembord knippen"
 
 msgid "Copy"
-msgstr "Kopie"
+msgstr "Kopiëren"
 
 msgid "Copy selection to clipboard"
 msgstr "Kopieer selectie naar het klembord"
@@ -8316,7 +8316,7 @@ msgid "Edit"
 msgstr "Bewerken"
 
 msgid "View"
-msgstr "Weergave"
+msgstr "Bekijken"
 
 # AI Translated
 msgid "Open Speed Dial"
@@ -9107,7 +9107,7 @@ msgstr "Stille"
 # AI Translated
 msgctxt "Mode"
 msgid "Standard"
-msgstr "Standaard"
+msgstr "Norm"
 
 # AI Translated
 msgid "Sport"
@@ -9851,7 +9851,7 @@ msgstr "Bovenste"
 
 msgctxt "Layers"
 msgid "Bottom"
-msgstr "Onderste"
+msgstr "Onderkant"
 
 # AI Translated
 msgid "This setting does not specify a plugin capability type."
@@ -10182,13 +10182,13 @@ msgstr "Primair"
 #. TRN IDEX/IQEX role: the tool head prints a copy of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Copy"
-msgstr "Kopie"
+msgstr "Kopiëren"
 
 # AI Translated
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Mirror"
-msgstr "Spiegel"
+msgstr "Spiegelen"
 
 # AI Translated
 #. TRN IDEX/IQEX role: multicolor partner of the Primary on the same gantry.
@@ -11524,7 +11524,7 @@ msgstr "Noord-Amerika"
 # AI Translated
 msgctxt "Region"
 msgid "Others"
-msgstr "Overige"
+msgstr "Andere"
 
 msgid "Changing the region will log you out of your account.\n"
 msgstr "Als u de regio wijzigt, wordt u afgemeld bij uw account.\n"
@@ -11644,7 +11644,7 @@ msgid "Units"
 msgstr "Eenheden"
 
 msgid "Home"
-msgstr "Thuis"
+msgstr "Home"
 
 msgid "Default page"
 msgstr "Startpagina"
@@ -12803,7 +12803,7 @@ msgstr "Ongeldige numerieke invoer."
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr "Einde"
+msgstr "End"
 
 msgid "Customize"
 msgstr "Aanpassen"
@@ -15367,7 +15367,7 @@ msgid "The connected printer does not match the currently selected printer. Plea
 msgstr "De verbonden printer komt niet overeen met de momenteel geselecteerde printer. Wijzig de geselecteerde printer."
 
 msgid "Mapping"
-msgstr "Toewijzing"
+msgstr "Mapping"
 
 msgid "Overwriting"
 msgstr "Overschrijven"
@@ -21692,7 +21692,7 @@ msgid "Aligned back"
 msgstr "Uitgelijnd achter"
 
 msgid "Back"
-msgstr "Achterzijde"
+msgstr "Terug"
 
 msgid "Random"
 msgstr "Willekeurig"
@@ -26370,7 +26370,7 @@ msgstr "Testmodel"
 # AI Translated
 msgctxt "Test model"
 msgid "Standard"
-msgstr "Standaard"
+msgstr "Norm"
 
 # AI Translated
 msgctxt "Test model"
@@ -30437,7 +30437,7 @@ msgid "Up to vertex"
 msgstr "Tot hoekpunt"
 
 msgid "End"
-msgstr "Einde"
+msgstr "End"
 
 # AI Translated
 msgid "2nd dist"
@@ -30459,7 +30459,7 @@ msgstr "Samenvoegen"
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Cut"
-msgstr "Aftrekken"
+msgstr "Snijden"
 
 # AI Translated
 msgid "Intersect"
@@ -41342,3 +41342,76 @@ msgstr "Associeer"
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "Het Adaptive Pressure Advance-model voor een of meer extruders bevat mogelijk ongeldige waarden."
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr ""
+"Het uitgesloten printbedgebied is ongeldig. Het moet een eenvoudige veelhoek"
+" zijn zonder zelfdoorsnijding."
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr ""
+"Het ongeldige gebied is verwijderd. Definieer het opnieuw met een geldige "
+"veelhoek."
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "Wilt u de volgende parameters van %1% kopiëren naar %2%?"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Klik op de vergelijkknop om de volledige waarde te zien."
+
+# AI Translated
+msgid "Process settings"
+msgstr "Procesinstellingen"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "De volledige waarden vergelijken"
+
+# AI Translated
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr ""
+"De printbare gebieden van de extruders hebben geen gemeenschappelijk gebied,"
+" dus de prime toren kan niet worden geprint.\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr ""
+"Bewerken: %1%   ·   N = loodrecht op het vlak kijken   ·   Bevestigen of "
+"Annuleren in de werkbalk"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  klik op een beperkingslabel om het te selecteren"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% geselecteerd — Delete verwijdert het"

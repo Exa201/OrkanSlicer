@@ -743,7 +743,7 @@ msgstr "Tối ưu định hướng"
 
 msgctxt "Verb"
 msgid "Scale"
-msgstr "Tỷ lệ"
+msgstr "Co giãn"
 
 msgid "Gizmo-Scale"
 msgstr "Gizmo - Tỷ lệ"
@@ -792,7 +792,7 @@ msgid "Object operations"
 msgstr "Thao tác vật thể"
 
 msgid "Scale"
-msgstr "Tỷ lệ"
+msgstr "Co giãn"
 
 msgid "Volume operations"
 msgstr "Thao tác thể tích"
@@ -920,7 +920,7 @@ msgstr "Đặt lại xoay hiện tại về số không thực."
 
 msgctxt "Noun"
 msgid "Scale"
-msgstr "Tỷ lệ"
+msgstr "Co giãn"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -957,7 +957,7 @@ msgid "Frustum"
 msgstr "Hình chóp cụt"
 
 msgid "Square"
-msgstr "Vuông"
+msgstr "Hình vuông"
 
 msgid "Hexagon"
 msgstr "Lục giác"
@@ -1098,7 +1098,7 @@ msgid "Bulge proportion related to radius"
 msgstr "Tỷ lệ phồng liên quan đến bán kính"
 
 msgid "Space"
-msgstr "Khoảng cách"
+msgstr "Space"
 
 msgid "Space proportion related to radius"
 msgstr "Tỷ lệ khoảng cách liên quan đến bán kính"
@@ -1584,7 +1584,7 @@ msgstr "Trái"
 
 msgctxt "Alignment"
 msgid "Center"
-msgstr "Giữa"
+msgstr "Căn giữa"
 
 msgctxt "Alignment"
 msgid "Right"
@@ -1915,7 +1915,7 @@ msgstr "Hình SVG"
 
 #. TRN - Input label. Be short as possible
 msgid "Mirror"
-msgstr "Lật"
+msgstr "Lấy đối xứng"
 
 msgid "Choose SVG file for emboss:"
 msgstr "Chọn file SVG cho emboss:"
@@ -1972,7 +1972,7 @@ msgstr "Chọn điểm"
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Delete"
+msgstr "Xóa"
 
 msgid "Restart selection"
 msgstr "Khởi động lại lựa chọn"
@@ -2887,7 +2887,7 @@ msgstr "Chất lượng"
 
 # AI Translated
 msgid "Shell"
-msgstr "Vỏ"
+msgstr "Vỏ mỏng"
 
 # AI Translated
 msgid "Infill"
@@ -2904,7 +2904,7 @@ msgid "Speed"
 msgstr "Tốc độ"
 
 msgid "Strength"
-msgstr "Độ bền"
+msgstr "Cường độ"
 
 msgid "Top solid layers"
 msgstr "Lớp đặc trên"
@@ -4047,7 +4047,7 @@ msgstr "Tắt"
 # AI Translated
 msgctxt "air_duct"
 msgid "Filter"
-msgstr "Bộ lọc"
+msgstr "Lọc"
 
 # AI Translated
 msgid "Enabling filtration redirects the right fan to filter gas, which may reduce cooling performance."
@@ -5366,7 +5366,7 @@ msgid "Rectangular"
 msgstr "Hình chữ nhật"
 
 msgid "Circular"
-msgstr "Hình tròn"
+msgstr "Tròn"
 
 msgid "Load shape from STL..."
 msgstr "Tải hình dạng từ STL..."
@@ -5382,7 +5382,7 @@ msgstr "Không tìm thấy:"
 
 # AI Translated
 msgid "Model"
-msgstr "Mô hình"
+msgstr "Kiểu máy"
 
 # AI Translated
 msgid "Choose an STL file to import bed shape from:"
@@ -7149,7 +7149,7 @@ msgstr "Chất lượng / Tốc độ"
 # AI Translated
 msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Làm mượt"
+msgstr "Mượt"
 
 msgid "Radius"
 msgstr "Bán kính"
@@ -7344,7 +7344,7 @@ msgstr "Trước"
 
 msgctxt "Camera View"
 msgid "Back"
-msgstr "Sau"
+msgstr "Quay lại"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
@@ -7725,13 +7725,13 @@ msgid "Design"
 msgstr "Thiết kế"
 
 msgid "Prepare"
-msgstr "Chuẩn bị"
+msgstr "Đang chuẩn bị"
 
 msgid "Preview"
 msgstr "Xem trước"
 
 msgid "Project"
-msgstr "Dự án"
+msgstr "Chiếu"
 
 msgid "Yes"
 msgstr "Có"
@@ -9907,7 +9907,7 @@ msgstr ""
 #. TRN IDEX/IQEX role of a tool head that takes no part in the mode.
 msgctxt "IDEX/IQEX role"
 msgid "Inactive"
-msgstr "Không dùng"
+msgstr "Chưa kích hoạt"
 
 # AI Translated
 #. TRN IDEX/IQEX role: the tool head the slicer generates paths for.
@@ -9925,7 +9925,7 @@ msgstr "Sao chép"
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Mirror"
-msgstr "Gương"
+msgstr "Lấy đối xứng"
 
 # AI Translated
 #. TRN IDEX/IQEX role: multicolor partner of the Primary on the same gantry.
@@ -11338,7 +11338,7 @@ msgid "Units"
 msgstr "Đơn vị"
 
 msgid "Home"
-msgstr "Trang chủ"
+msgstr "Home"
 
 # AI Translated
 msgid "Default page"
@@ -12492,7 +12492,7 @@ msgstr "Giá trị số không hợp lệ."
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr "Kết thúc"
+msgstr "End"
 
 msgid "Customize"
 msgstr "Tùy chỉnh"
@@ -14982,7 +14982,7 @@ msgstr ""
 # AI Translated
 msgctxt "Sync_AMS"
 msgid "Original"
-msgstr "Gốc"
+msgstr "Bản gốc"
 
 # AI Translated
 msgid "After mapping"
@@ -18941,7 +18941,7 @@ msgid "Locked Zag"
 msgstr "Locked Zag"
 
 msgid "Line"
-msgstr "Đường"
+msgstr "Đường thẳng"
 
 msgid "Grid"
 msgstr "Lưới"
@@ -20954,7 +20954,7 @@ msgid "Aligned back"
 msgstr "Căn chỉnh sau"
 
 msgid "Back"
-msgstr "Sau"
+msgstr "Quay lại"
 
 msgid "Random"
 msgstr "Ngẫu nhiên"
@@ -25059,10 +25059,10 @@ msgstr ""
 
 msgctxt "PA calibration method"
 msgid "Line"
-msgstr "Đường"
+msgstr "Đường thẳng"
 
 msgid "Pattern"
-msgstr "Mẫu"
+msgstr "Mảng"
 
 msgid "Method"
 msgstr "Phương pháp"
@@ -26539,7 +26539,7 @@ msgstr "Máy in"
 
 # AI Translated
 msgid "Processes"
-msgstr "Process"
+msgstr "Tiến trình"
 
 # AI Translated
 msgid "Show/Hide system information"
@@ -29278,7 +29278,7 @@ msgid "Up to vertex"
 msgstr "Đến đỉnh"
 
 msgid "End"
-msgstr "Kết thúc"
+msgstr "End"
 
 # AI Translated
 msgid "2nd dist"
@@ -40086,3 +40086,75 @@ msgstr "Liên kết"
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "Mô hình Adaptive Pressure Advance của một hoặc nhiều extruder có thể chứa giá trị không hợp lệ."
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr ""
+"Vùng loại trừ bàn in không hợp lệ. Vùng này phải là đa giác đơn giản, không "
+"tự cắt nhau."
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr ""
+"Vùng không hợp lệ đã bị xóa, vui lòng xác định lại bằng một đa giác hợp lệ."
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "Bạn có muốn sao chép các tham số sau của %1% sang %2% không?"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Nhấn nút so sánh để xem giá trị đầy đủ."
+
+# AI Translated
+msgid "Process settings"
+msgstr "Cài đặt quy trình"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "So sánh giá trị đầy đủ"
+
+# AI Translated
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr ""
+"Vùng in được của các extruder không có phần chung, nên không thể in prime "
+"tower.\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr ""
+"Đang chỉnh sửa: %1%   ·   N = nhìn vuông góc với mặt phẳng   ·   Xác nhận "
+"hoặc Hủy trên thanh công cụ"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  nhấn vào nhãn ràng buộc để chọn"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "Đã chọn %1% — nhấn Delete để xóa"

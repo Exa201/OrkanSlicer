@@ -713,7 +713,7 @@ msgid "Object operations"
 msgstr "Objektu-eragiketak"
 
 msgid "Scale"
-msgstr "Eskala"
+msgstr "Eskalatu"
 
 msgid "Volume operations"
 msgstr "Bolumen-eragiketak"
@@ -840,7 +840,7 @@ msgstr "Berrezarri uneko biraketa benetako zeroetara."
 
 msgctxt "Noun"
 msgid "Scale"
-msgstr "Eskala"
+msgstr "Eskalatu"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -1015,7 +1015,7 @@ msgid "Bulge proportion related to radius"
 msgstr "Erradioaren araberako gainditze-proportzioa"
 
 msgid "Space"
-msgstr "Hutsunea"
+msgstr "Zuriunea"
 
 msgid "Space proportion related to radius"
 msgstr "Erradioaren araberako hutsune-proportzioa"
@@ -1366,7 +1366,7 @@ msgid "Name has to be unique."
 msgstr "Izenak bakarra izan behar du."
 
 msgid "OK"
-msgstr "Ados"
+msgstr "Ondo"
 
 msgid "Rename style"
 msgstr "Berrizendatu estiloa"
@@ -1488,19 +1488,19 @@ msgstr "Ezarri posizioa eta orientazioa glifo bakoitzeko."
 
 msgctxt "Alignment"
 msgid "Left"
-msgstr "Ezkerrean"
+msgstr "Ezkerrekoa"
 
 msgctxt "Alignment"
 msgid "Center"
-msgstr "Erdian"
+msgstr "Zentratu"
 
 msgctxt "Alignment"
 msgid "Right"
-msgstr "Eskuinean"
+msgstr "Eskuinekoa"
 
 msgctxt "Alignment"
 msgid "Top"
-msgstr "Goian"
+msgstr "Goia"
 
 msgctxt "Alignment"
 msgid "Middle"
@@ -1508,7 +1508,7 @@ msgstr "Erdian"
 
 msgctxt "Alignment"
 msgid "Bottom"
-msgstr "Behean"
+msgstr "Behekoa"
 
 msgid "Revert alignment."
 msgstr "Lerrokatzea alderantzikatu."
@@ -2008,7 +2008,7 @@ msgstr "Neurketa tresna irteten"
 # AI Translated
 msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Muntatu"
+msgstr "Multzokatu"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Mesedez, baieztatu esplosio-erlazioa = 1 dela, eta hautatu objektu bat gutxienez."
@@ -2712,7 +2712,7 @@ msgid "Quality"
 msgstr "Kalitatea"
 
 msgid "Shell"
-msgstr "Oskola"
+msgstr "Hustu"
 
 msgid "Infill"
 msgstr "Betegarria"
@@ -3669,7 +3669,7 @@ msgid "Color"
 msgstr "Kolorea"
 
 msgid "Pause"
-msgstr "Pausa"
+msgstr "Pausatu"
 
 msgid "Template"
 msgstr "Txantiloia"
@@ -3807,7 +3807,7 @@ msgstr "Desaktibatuta"
 # AI Translated
 msgctxt "air_duct"
 msgid "Filter"
-msgstr "Iragazkia"
+msgstr "Iragazi"
 
 msgid "Enabling filtration redirects the right fan to filter gas, which may reduce cooling performance."
 msgstr "Iragazketa gaitzean, eskuineko haizagailua gasa iragaztera bideratzen da, eta horrek hozte-errendimendua murriztu dezake."
@@ -3840,7 +3840,7 @@ msgid "Innerloop"
 msgstr "Barruko begizta"
 
 msgid "Top"
-msgstr "Goikoa"
+msgstr "Goia"
 
 msgid "The fan controls the temperature during printing to improve print quality. The system automatically adjusts the fan's switch and speed according to different printing materials."
 msgstr "Haizagailuak tenperatura kontrolatzen du inprimatzean, inprimatze-kalitatea hobetzeko. Sistemak automatikoki doitzen ditu haizagailuaren piztea eta abiadura, inprimatze-materialaren arabera."
@@ -4626,7 +4626,7 @@ msgstr "Gorde"
 
 msgctxt "Navigation"
 msgid "Back"
-msgstr "Atzera"
+msgstr "Atzea"
 
 msgid "Example"
 msgstr "Adibidea"
@@ -4760,12 +4760,12 @@ msgstr "AMSko filamentuarekin inprimatu"
 # AI Translated
 msgctxt "Nozzle position"
 msgid "Left"
-msgstr "Ezkerra"
+msgstr "Ezkerrekoa"
 
 # AI Translated
 msgctxt "Nozzle position"
 msgid "Right"
-msgstr "Eskuina"
+msgstr "Eskuinekoa"
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Uneko materiala agortzen denean, inprimagailuak hurrengo ordenean inprimatzen jarraituko du."
@@ -6652,7 +6652,7 @@ msgstr "Kolore aldaketa"
 
 msgctxt "Noun"
 msgid "Print"
-msgstr "Inprimaketa"
+msgstr "Inprimatu"
 
 msgid "Time Estimation"
 msgstr "Denbora zenbatespena"
@@ -6704,7 +6704,7 @@ msgstr "Kalitatea / Abiadura"
 # AI Translated
 msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Leundu"
+msgstr "Leuna"
 
 msgid "Radius"
 msgstr "Erradioa"
@@ -6891,13 +6891,13 @@ msgstr "Aurrekoa"
 
 msgctxt "Camera View"
 msgid "Back"
-msgstr "Atzekoa"
+msgstr "Atzea"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
 msgctxt "Camera View"
 msgid "Top"
-msgstr "Goikoa"
+msgstr "Goia"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Bottom
@@ -7249,13 +7249,13 @@ msgid "Design"
 msgstr "Diseinua"
 
 msgid "Prepare"
-msgstr "Prestatu"
+msgstr "Prestatzen"
 
 msgid "Preview"
 msgstr "Aurrebista"
 
 msgid "Project"
-msgstr "Proiektua"
+msgstr "Proiektatu"
 
 msgid "Yes"
 msgstr "Bai"
@@ -7471,7 +7471,7 @@ msgid "Export"
 msgstr "Esportatu"
 
 msgid "Quit"
-msgstr "Irten programatik"
+msgstr "Irten"
 
 msgid "Undo"
 msgstr "Desegin"
@@ -7610,7 +7610,7 @@ msgid "Edit"
 msgstr "Editatu"
 
 msgid "View"
-msgstr "Bista"
+msgstr "Ikusi"
 
 # AI Translated
 msgid "Open Speed Dial"
@@ -9040,7 +9040,7 @@ msgstr "Goia"
 
 msgctxt "Layers"
 msgid "Bottom"
-msgstr "Behea"
+msgstr "Behekoa"
 
 # AI Translated
 msgid "This setting does not specify a plugin capability type."
@@ -9346,13 +9346,13 @@ msgstr "Nagusia"
 #. TRN IDEX/IQEX role: the tool head prints a copy of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Copy"
-msgstr "Kopia"
+msgstr "Kopiatu"
 
 # AI Translated
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Mirror"
-msgstr "Ispilua"
+msgstr "Islatu"
 
 # AI Translated
 #. TRN IDEX/IQEX role: multicolor partner of the Primary on the same gantry.
@@ -10566,7 +10566,7 @@ msgstr "Ipar Amerika"
 # AI Translated
 msgctxt "Region"
 msgid "Others"
-msgstr "Beste batzuk"
+msgstr "Besteak"
 
 msgid "Changing the region will log you out of your account.\n"
 msgstr "Eskualdea aldatzean zure kontuko saioa itxiko da.\n"
@@ -14229,7 +14229,7 @@ msgstr "Inprimagailuko filamentuaren kolorea eta mota behar bezala sinkronizatu 
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr "Ados"
+msgstr "Ondo"
 
 msgid "Ramming customization"
 msgstr "Muturraren moldaketa pertsonalizatzea"
@@ -17889,7 +17889,7 @@ msgid "Locked Zag"
 msgstr "Zag blokeatua"
 
 msgid "Line"
-msgstr "Lerro"
+msgstr "Lerroa"
 
 msgid "Grid"
 msgstr "Sareta"
@@ -19817,7 +19817,7 @@ msgid "Aligned back"
 msgstr "Atzean lerrokatuta"
 
 msgid "Back"
-msgstr "Atzean"
+msgstr "Atzea"
 
 msgid "Random"
 msgstr "Ausazkoa"
@@ -23841,10 +23841,10 @@ msgstr ""
 
 msgctxt "PA calibration method"
 msgid "Line"
-msgstr "Lerro"
+msgstr "Lerroa"
 
 msgid "Pattern"
-msgstr "Patroia"
+msgstr "Errepikapena"
 
 msgid "Method"
 msgstr "Metodoa"
@@ -26343,11 +26343,11 @@ msgstr "Ireki pakete hau zure nabigatzailean"
 
 # AI Translated
 msgid "Subscribed"
-msgstr "Harpidetua"
+msgstr "Harpidetuta"
 
 # AI Translated
 msgid "Local"
-msgstr "Lokala"
+msgstr "Tokikoa"
 
 msgid "Bundle folder does not exist."
 msgstr "Pakete-karpeta ez da existitzen."
@@ -38655,3 +38655,76 @@ msgstr "Elkartu"
 
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "Estrusore baten edo gehiagoren Pressure Advance egokigarriaren modeloak balio baliogabeak izan ditzake."
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr ""
+"Oheko baztertutako eremua baliogabea da. Poligono sinplea izan behar du, "
+"bere burua mozten ez duena."
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr ""
+"Eremu baliogabea kendu da; mesedez, definitu berriro baliozko poligono bat "
+"erabiliz."
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "%1%-(r)en ondorengo parametroak %2%-(r)ra kopiatu nahi dituzu?"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Egin klik konparatu botoian balio osoa ikusteko."
+
+# AI Translated
+msgid "Process settings"
+msgstr "Prozesuaren ezarpenak"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "Konparatu balio osoak"
+
+# AI Translated
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr ""
+"Estrusoreen inprimatze-eremuek ez dute eremu komunik, beraz purgatze-dorrea "
+"ezin da inprimatu.\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr ""
+"Editatzen: %1%   ·   N = begiratu planoarekiko normalean   ·   Berretsi edo "
+"Utzi tresna-barran"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  egin klik murrizketa-ikur batean hura hautatzeko"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% hautatuta — Ezabatu teklak kentzen du"

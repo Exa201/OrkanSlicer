@@ -145,10 +145,10 @@ msgid "right"
 msgstr "右"
 
 msgid "Left"
-msgstr "左"
+msgstr "左视"
 
 msgid "Right"
-msgstr "右"
+msgstr "右视"
 
 msgid "extruder"
 msgstr "挤出机"
@@ -490,7 +490,7 @@ msgid "Gap Fill"
 msgstr "缝隙填充"
 
 msgid "Vertical"
-msgstr "垂直"
+msgstr "竖直"
 
 msgid "Horizontal"
 msgstr "水平"
@@ -1023,7 +1023,7 @@ msgid "Bulge proportion related to radius"
 msgstr "与半径相关的凸起比例"
 
 msgid "Space"
-msgstr "间隔"
+msgstr "Space"
 
 msgid "Space proportion related to radius"
 msgstr "与半径相关的间隔比例"
@@ -1361,7 +1361,7 @@ msgstr "无法更改对象中最后一个实体零件的类型。"
 # Needs human review: Check 切除 reads right next to 合并 and 修改器 on the Emboss/SVG operation buttons.
 msgctxt "EmbossOperation"
 msgid "Cut"
-msgstr "切除"
+msgstr "切割"
 
 msgid "Click to change part type into negative volume."
 msgstr "单击可将零件类型更改为负体积。"
@@ -1386,7 +1386,7 @@ msgid "Name has to be unique."
 msgstr "名称必须是唯一的。"
 
 msgid "OK"
-msgstr "确认"
+msgstr "摆放正确"
 
 msgid "Rename style"
 msgstr "重命名样式"
@@ -1510,19 +1510,19 @@ msgstr "为每个字符独立计算位置和方向。"
 
 msgctxt "Alignment"
 msgid "Left"
-msgstr "左对齐"
+msgstr "左视"
 
 msgctxt "Alignment"
 msgid "Center"
-msgstr "水平居中"
+msgstr "居中"
 
 msgctxt "Alignment"
 msgid "Right"
-msgstr "右对齐"
+msgstr "右视"
 
 msgctxt "Alignment"
 msgid "Top"
-msgstr "顶对齐"
+msgstr "顶部"
 
 msgctxt "Alignment"
 msgid "Middle"
@@ -1530,7 +1530,7 @@ msgstr "垂直居中"
 
 msgctxt "Alignment"
 msgid "Bottom"
-msgstr "底对齐"
+msgstr "底部"
 
 msgid "Revert alignment."
 msgstr "还原对齐。"
@@ -1919,7 +1919,7 @@ msgstr "选择点"
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Delete"
+msgstr "删除"
 
 msgid "Restart selection"
 msgstr "重新选择"
@@ -2053,7 +2053,7 @@ msgstr "退出测量小工具"
 # AI Translated
 msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "装配"
+msgstr "组合"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "请确认爆炸比例 = 1 并选择至少两个零件。"
@@ -2783,7 +2783,7 @@ msgid "Quality"
 msgstr "质量"
 
 msgid "Shell"
-msgstr "外壳"
+msgstr "抽壳"
 
 msgid "Infill"
 msgstr "填充"
@@ -3140,7 +3140,7 @@ msgid "Transform"
 msgstr "变换"
 
 msgid "Split"
-msgstr "拆分"
+msgstr "分割"
 
 msgid "To Objects"
 msgstr "拆分到对象"
@@ -4792,7 +4792,7 @@ msgid "%s does not support %s"
 msgstr "%s 不支持 %s"
 
 msgid "Step"
-msgstr "步骤"
+msgstr "步长"
 
 msgid "Unmapped"
 msgstr "未映射"
@@ -4918,12 +4918,12 @@ msgstr "采用AMS里的材料打印"
 # AI Translated
 msgctxt "Nozzle position"
 msgid "Left"
-msgstr "左"
+msgstr "左视"
 
 # AI Translated
 msgctxt "Nozzle position"
 msgid "Right"
-msgstr "右"
+msgstr "右视"
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "当前材料耗尽时，打印机将按照以下顺序继续打印。"
@@ -5190,7 +5190,7 @@ msgstr "矩形"
 
 # AI Translated
 msgid "Circular"
-msgstr "圆形"
+msgstr "圆周"
 
 msgid "Load shape from STL..."
 msgstr "从STL文件加载形状..."
@@ -5205,7 +5205,7 @@ msgid "Not found:"
 msgstr "未发现："
 
 msgid "Model"
-msgstr "模型"
+msgstr "型号"
 
 msgid "Choose an STL file to import bed shape from:"
 msgstr "选择热床形状的 STL 文件："
@@ -6614,7 +6614,7 @@ msgstr "擦拭"
 
 # AI Translated
 msgid "Extrude"
-msgstr "挤出"
+msgstr "拉伸"
 
 msgid "Inner wall"
 msgstr "内墙"
@@ -6959,7 +6959,7 @@ msgstr "细节/速度"
 # AI Translated
 msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "平滑"
+msgstr "平滑模式"
 
 msgid "Radius"
 msgstr "半径"
@@ -7154,19 +7154,19 @@ msgstr "前视"
 # AI Translated
 msgctxt "Camera View"
 msgid "Back"
-msgstr "后视"
+msgstr "返回"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
 msgctxt "Camera View"
 msgid "Top"
-msgstr "俯视"
+msgstr "顶部"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Bottom
 msgctxt "Camera View"
 msgid "Bottom"
-msgstr "仰视"
+msgstr "底部"
 
 # AI Translated
 msgctxt "Camera View"
@@ -7533,13 +7533,13 @@ msgid "Design"
 msgstr "设计"
 
 msgid "Prepare"
-msgstr "准备"
+msgstr "准备中"
 
 msgid "Preview"
 msgstr "预览"
 
 msgid "Project"
-msgstr "项目"
+msgstr "投影"
 
 msgid "Yes"
 msgstr "是"
@@ -7770,13 +7770,13 @@ msgid "Redo"
 msgstr "重做"
 
 msgid "Cut"
-msgstr "剪切"
+msgstr "切割"
 
 msgid "Cut selection to clipboard"
 msgstr "剪切所选项到剪贴板"
 
 msgid "Copy"
-msgstr "复制"
+msgstr "拷贝"
 
 msgid "Copy selection to clipboard"
 msgstr "复制所选项到剪贴板"
@@ -7909,7 +7909,7 @@ msgid "Edit"
 msgstr "编辑"
 
 msgid "View"
-msgstr "视图"
+msgstr "查看"
 
 # AI Translated
 msgid "Open Speed Dial"
@@ -8530,7 +8530,7 @@ msgstr "正在计算..."
 # AI Translated
 msgctxt "Printer camera"
 msgid "Camera"
-msgstr "摄像头"
+msgstr "相机"
 
 msgid "Storage"
 msgstr "存储"
@@ -9679,13 +9679,13 @@ msgstr "未激活"
 #. TRN IDEX/IQEX role: the tool head the slicer generates paths for.
 msgctxt "IDEX/IQEX role"
 msgid "Primary"
-msgstr "主"
+msgstr "主模式"
 
 # AI Translated
 #. TRN IDEX/IQEX role: the tool head prints a copy of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Copy"
-msgstr "复制"
+msgstr "拷贝"
 
 # AI Translated
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
@@ -10974,7 +10974,7 @@ msgstr "北美"
 # AI Translated
 msgctxt "Region"
 msgid "Others"
-msgstr "其他地区"
+msgstr "其他"
 
 msgid "Changing the region will log you out of your account.\n"
 msgstr "修改区域会自动登出您的账号。\n"
@@ -11096,7 +11096,7 @@ msgstr "单位"
 # AI Translated
 # Needs human review: Rewrote a person's translation: Default-page choice naming the Home tab; every other string calls the home page 主页 (dd3fa8341f, 501e84bd41, b6fceb391c, 72402f25e2).
 msgid "Home"
-msgstr "主页"
+msgstr "Home"
 
 msgid "Default page"
 msgstr "起始页"
@@ -12196,7 +12196,7 @@ msgstr "数值输入无效。"
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr "结束"
+msgstr "End"
 
 msgid "Customize"
 msgstr "自定义"
@@ -14808,7 +14808,7 @@ msgstr "成功同步打印机耗材丝的颜色和类型。"
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr "好的"
+msgstr "摆放正确"
 
 msgid "Ramming customization"
 msgstr "自定义尖端成型"
@@ -18675,7 +18675,7 @@ msgid "Locked Zag"
 msgstr "限定之字"
 
 msgid "Line"
-msgstr "线"
+msgstr "直线"
 
 msgid "Grid"
 msgstr "网格"
@@ -20731,7 +20731,7 @@ msgid "Aligned back"
 msgstr "背部对齐"
 
 msgid "Back"
-msgstr "背面"
+msgstr "返回"
 
 msgid "Random"
 msgstr "随机"
@@ -22240,7 +22240,7 @@ msgstr "矩形"
 
 # AI Translated
 msgid "Rib"
-msgstr "加强筋"
+msgstr "肋条"
 
 msgid "Extra rib length"
 msgstr "额外加强筋长度"
@@ -24980,10 +24980,10 @@ msgstr ""
 
 msgctxt "PA calibration method"
 msgid "Line"
-msgstr "线"
+msgstr "直线"
 
 msgid "Pattern"
-msgstr "图案"
+msgstr "阵列"
 
 msgid "Method"
 msgstr "方法"
@@ -26496,7 +26496,7 @@ msgstr "打印机"
 
 # AI Translated
 msgid "Processes"
-msgstr "工艺"
+msgstr "进程"
 
 # AI Translated
 msgid "Show/Hide system information"
@@ -29134,7 +29134,7 @@ msgstr "成形到顶点"
 
 # AI Translated
 msgid "End"
-msgstr "终止条件"
+msgstr "End"
 
 # AI Translated
 msgid "2nd dist"
@@ -29156,7 +29156,7 @@ msgstr "合并"
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Cut"
-msgstr "切除"
+msgstr "切割"
 
 # AI Translated
 msgid "Intersect"
@@ -29294,7 +29294,7 @@ msgstr "布尔"
 
 # AI Translated
 msgid "Subtract"
-msgstr "减去"
+msgstr "相减"
 
 # AI Translated
 msgid "Target (kept)"
@@ -31697,7 +31697,7 @@ msgstr "将工具实体融合到目标实体中，合为一个无接缝的实体
 # AI Translated
 msgctxt "Design"
 msgid "Subtract"
-msgstr "减去"
+msgstr "相减"
 
 # AI Translated
 msgid "Cut the tool body out of the target"
@@ -36339,7 +36339,7 @@ msgstr "混合"
 # AI Translated
 msgctxt "Texture Displacement"
 msgid "Add"
-msgstr "相加"
+msgstr "添加"
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -39892,3 +39892,68 @@ msgstr "文件关联"
 
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "一个或多个挤出机的自适应 Pressure Advance 模型可能包含无效值。"
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr "不可打印区域无效，必须是不自交的简单多边形。"
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr "无效区域已被移除，请使用有效的多边形重新定义。"
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "是否将 %1% 的以下参数复制到 %2%？"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "单击比较按钮可查看完整值。"
+
+# AI Translated
+msgid "Process settings"
+msgstr "工艺设置"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "比较完整值"
+
+# AI Translated
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr "各挤出机的可打印区域没有公共部分，无法打印擦拭塔。\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr "正在编辑：%1%   ·   N = 正视于平面   ·   在工具栏中确定或取消"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  单击约束标记可将其选中"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "已选中 %1% — 按 Delete 可将其移除"

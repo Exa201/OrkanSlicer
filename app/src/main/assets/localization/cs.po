@@ -172,10 +172,10 @@ msgid "right"
 msgstr "vpravo"
 
 msgid "Left"
-msgstr "Vlevo"
+msgstr "Levý"
 
 msgid "Right"
-msgstr "Vpravo"
+msgstr "Pravý"
 
 # AI Translated
 msgid "extruder"
@@ -290,7 +290,7 @@ msgstr "Vysoký průtok"
 
 # AI Translated
 msgid "Standard"
-msgstr "Standardní"
+msgstr "Norma"
 
 msgid "TPU High Flow"
 msgstr "TPU vysoký průtok"
@@ -518,10 +518,10 @@ msgid "Gap Fill"
 msgstr "Vyplnění mezery"
 
 msgid "Vertical"
-msgstr "Vertikální"
+msgstr "Svislost"
 
 msgid "Horizontal"
-msgstr "Vodorovně"
+msgstr "Vodorovnost"
 
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
@@ -789,7 +789,7 @@ msgid "Selection"
 msgstr "Výběr"
 
 msgid "Plate"
-msgstr "Deska"
+msgstr "Podložka"
 
 # AI Translated
 msgid "Distribute"
@@ -1054,7 +1054,7 @@ msgid "Bulge proportion related to radius"
 msgstr "Poměr vyboulení vůči poloměru"
 
 msgid "Space"
-msgstr "Mezera"
+msgstr "Mezerník"
 
 msgid "Space proportion related to radius"
 msgstr "Podíl mezery vůči poloměru"
@@ -1338,7 +1338,7 @@ msgid "First font"
 msgstr "První písmo"
 
 msgid "Advanced"
-msgstr "Pokročilé"
+msgstr "Pokročilý"
 
 # AI Translated
 msgid "Reset all options except the text and operation"
@@ -1384,7 +1384,7 @@ msgstr "Operace"
 #. TRN EmbossOperation
 #. ORCA
 msgid "Join"
-msgstr "Připojit"
+msgstr "Sjednocení"
 
 msgid "Click to change text into object part."
 msgstr "Kliknutím změníte text na část objektu."
@@ -1394,7 +1394,7 @@ msgstr "Typ poslední pevné části objektu nelze změnit."
 
 msgctxt "EmbossOperation"
 msgid "Cut"
-msgstr "Řezat"
+msgstr "Řez"
 
 msgid "Click to change part type into negative volume."
 msgstr "Kliknutím změníte typ dílu na záporný objem."
@@ -1542,7 +1542,7 @@ msgstr "Nastavit pozici a orientaci pro každý znak."
 
 msgctxt "Alignment"
 msgid "Left"
-msgstr "Vlevo"
+msgstr "Levý"
 
 msgctxt "Alignment"
 msgid "Center"
@@ -1550,11 +1550,11 @@ msgstr "Střed"
 
 msgctxt "Alignment"
 msgid "Right"
-msgstr "Vpravo"
+msgstr "Pravý"
 
 msgctxt "Alignment"
 msgid "Top"
-msgstr "Nahoře"
+msgstr "Horní"
 
 msgctxt "Alignment"
 msgid "Middle"
@@ -1933,7 +1933,7 @@ msgstr "Vyberte bod"
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Delete"
+msgstr "Smazat"
 
 msgid "Restart selection"
 msgstr "Restartovat výběr"
@@ -2032,7 +2032,7 @@ msgid "Distance XYZ"
 msgstr "Vzdálenost XYZ"
 
 msgid "Parallel"
-msgstr "Paralelně"
+msgstr "Rovnoběžnost"
 
 msgid "Center coincidence"
 msgstr "Středová shoda"
@@ -2809,7 +2809,7 @@ msgid "Quality"
 msgstr "Kvalita"
 
 msgid "Shell"
-msgstr "Plášť"
+msgstr "Skořepina"
 
 msgid "Infill"
 msgstr "Výplň"
@@ -2824,7 +2824,7 @@ msgid "Speed"
 msgstr "Rychlost"
 
 msgid "Strength"
-msgstr "Pevnost"
+msgstr "Síla"
 
 msgid "Top solid layers"
 msgstr "Horní plné vrstvy"
@@ -3251,7 +3251,7 @@ msgid "Paste Process Settings"
 msgstr "Vložit nastavení procesu"
 
 msgid "Edit"
-msgstr "Upravit"
+msgstr "Upravit prvek"
 
 msgid "Merge with"
 msgstr "Sloučit s"
@@ -3981,7 +3981,7 @@ msgid "Innerloop"
 msgstr "Innerloop"
 
 msgid "Top"
-msgstr "Nahoře"
+msgstr "Horní"
 
 msgid "The fan controls the temperature during printing to improve print quality. The system automatically adjusts the fan's switch and speed according to different printing materials."
 msgstr "Ventilátor během tisku reguluje teplotu pro zlepšení kvality tisku. Systém automaticky upravuje zapnutí a rychlost ventilátoru podle použitého tiskového materiálu."
@@ -4929,12 +4929,12 @@ msgstr "Tisk s filamenty v AMS"
 # AI Translated
 msgctxt "Nozzle position"
 msgid "Left"
-msgstr "Levá"
+msgstr "Levý"
 
 # AI Translated
 msgctxt "Nozzle position"
 msgid "Right"
-msgstr "Pravá"
+msgstr "Pravý"
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Když dojde aktuální materiál, tiskárna bude pokračovat v tisku v tomto pořadí."
@@ -5195,7 +5195,7 @@ msgid "Rectangular"
 msgstr "Obdélníkový"
 
 msgid "Circular"
-msgstr "Kruhový"
+msgstr "Kruhové"
 
 msgid "Load shape from STL..."
 msgstr "Načíst tvar ze souboru STL..."
@@ -6542,7 +6542,7 @@ msgid "Fan Speed"
 msgstr "Rychlost ventilátoru"
 
 msgid "Flow"
-msgstr "průtok"
+msgstr "Průtok"
 
 # AI Translated
 msgid "Actual Flow"
@@ -6589,7 +6589,7 @@ msgstr "Očištění"
 
 # AI Translated
 msgid "Extrude"
-msgstr "Extruze"
+msgstr "Vysunutí"
 
 msgid "Inner wall"
 msgstr "Vnitřní stěna"
@@ -7113,13 +7113,13 @@ msgstr "Předek"
 # AI Translated
 msgctxt "Camera View"
 msgid "Back"
-msgstr "Vzadu"
+msgstr "Zpět"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
 msgctxt "Camera View"
 msgid "Top"
-msgstr "Nahoře"
+msgstr "Horní"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Bottom
@@ -7480,13 +7480,13 @@ msgid "Design"
 msgstr "Návrh"
 
 msgid "Prepare"
-msgstr "Připravit"
+msgstr "Příprava"
 
 msgid "Preview"
 msgstr "Náhled"
 
 msgid "Project"
-msgstr "Projekt"
+msgstr "Promítnutí"
 
 msgid "Yes"
 msgstr "Ano"
@@ -7714,7 +7714,7 @@ msgid "Redo"
 msgstr "Znovu provést"
 
 msgid "Cut"
-msgstr "Řezat"
+msgstr "Řez"
 
 msgid "Cut selection to clipboard"
 msgstr "Vyjmout výběr do schránky"
@@ -7843,7 +7843,7 @@ msgstr "Předvolby"
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
-msgstr "Upravit"
+msgstr "Upravit prvek"
 
 msgid "View"
 msgstr "Zobrazit"
@@ -8584,7 +8584,7 @@ msgstr "Tichý"
 # AI Translated
 msgctxt "Mode"
 msgid "Standard"
-msgstr "Standardní"
+msgstr "Norma"
 
 # AI Translated
 msgid "Sport"
@@ -9308,7 +9308,7 @@ msgstr "Horní"
 
 msgctxt "Layers"
 msgid "Bottom"
-msgstr "Spodní"
+msgstr "Dole"
 
 # AI Translated
 msgid "This setting does not specify a plugin capability type."
@@ -9617,13 +9617,13 @@ msgstr "Primární"
 #. TRN IDEX/IQEX role: the tool head prints a copy of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Copy"
-msgstr "Kopie"
+msgstr "Kopírovat"
 
 # AI Translated
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Mirror"
-msgstr "Zrcadlo"
+msgstr "Zrcadlit"
 
 # AI Translated
 #. TRN IDEX/IQEX role: multicolor partner of the Primary on the same gantry.
@@ -10979,7 +10979,7 @@ msgid "Units"
 msgstr "Jednotky"
 
 msgid "Home"
-msgstr "Domů"
+msgstr "Home"
 
 msgid "Default page"
 msgstr "Výchozí stránka"
@@ -11841,7 +11841,7 @@ msgid "Select the network plug-in version to use"
 msgstr "Vyberte verzi síťového pluginu"
 
 msgid "Developer"
-msgstr "Vývojář"
+msgstr "Vývojářský"
 
 msgid "Skip AMS blacklist check"
 msgstr "Přeskočit kontrolu blacklistu AMS"
@@ -12072,7 +12072,7 @@ msgstr "Neplatný číselný vstup."
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr "Konec"
+msgstr "End"
 
 msgid "Customize"
 msgstr "Přizpůsobit"
@@ -14379,7 +14379,7 @@ msgid "Extruder count"
 msgstr "Počet extrudérů"
 
 msgid "Capabilities"
-msgstr "Možnosti"
+msgstr "Schopnosti"
 
 msgid "Show all presets (including incompatible)"
 msgstr "Zobrazit všechny předvolby (včetně nekompatibilních)"
@@ -17384,7 +17384,7 @@ msgid "Aligned Rectilinear"
 msgstr "Zarovnaná pravoúhlá"
 
 msgid "Concentric"
-msgstr "Koncentrický"
+msgstr "Soustřednost"
 
 # AI Translated
 msgid "Spiral Inset"
@@ -21809,7 +21809,7 @@ msgid "Rectangle"
 msgstr "Obdélník"
 
 msgid "Rib"
-msgstr "Žebra"
+msgstr "Žebro"
 
 msgid "Extra rib length"
 msgstr "Dodatečná délka žeber"
@@ -24444,7 +24444,7 @@ msgid "Line"
 msgstr "Čára"
 
 msgid "Pattern"
-msgstr "Vzor"
+msgstr "Pole"
 
 msgid "Method"
 msgstr "Metoda"
@@ -24681,7 +24681,7 @@ msgstr "Testovací model"
 # AI Translated
 msgctxt "Test model"
 msgid "Standard"
-msgstr "Standardní"
+msgstr "Norma"
 
 # AI Translated
 msgctxt "Test model"
@@ -28640,7 +28640,7 @@ msgid "Up to vertex"
 msgstr "K vrcholu"
 
 msgid "End"
-msgstr "Konec"
+msgstr "End"
 
 # AI Translated
 msgid "2nd dist"
@@ -28657,12 +28657,12 @@ msgstr "Nové těleso"
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Join"
-msgstr "Sjednotit"
+msgstr "Sjednocení"
 
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Cut"
-msgstr "Odečíst"
+msgstr "Řez"
 
 # AI Translated
 msgid "Intersect"
@@ -31253,7 +31253,7 @@ msgstr "Sloučit těleso nástroje s cílem — jedno těleso bez švu"
 # AI Translated
 msgctxt "Design"
 msgid "Subtract"
-msgstr "Odečtení"
+msgstr "Odečíst"
 
 # AI Translated
 msgid "Cut the tool body out of the target"
@@ -39598,3 +39598,76 @@ msgstr "Přiřadit"
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "Model Adaptive Pressure Advance pro jeden nebo více extruderů může obsahovat neplatné hodnoty."
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr ""
+"Vynechaná oblast podložky je neplatná. Musí být jednoduchý mnohoúhelník bez "
+"vlastních průsečíků."
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr ""
+"Neplatná oblast byla odstraněna, definujte ji prosím znovu pomocí platného "
+"mnohoúhelníku."
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "Chcete zkopírovat následující parametry %1% do %2%?"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Kliknutím na tlačítko porovnání zobrazíte celou hodnotu."
+
+# AI Translated
+msgid "Process settings"
+msgstr "Nastavení procesu"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "Porovnat celé hodnoty"
+
+# AI Translated
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr ""
+"Tisknutelné oblasti extruderů nemají žádný společný průnik, takže základní "
+"věž nelze vytisknout.\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr ""
+"Úpravy: %1%   ·   N = pohled kolmo k rovině   ·   Potvrdit nebo Zrušit na "
+"panelu nástrojů"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  kliknutím na značku vazby ji vyberete"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% vybráno — Delete ji odstraní"

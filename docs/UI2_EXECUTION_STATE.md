@@ -4920,3 +4920,13 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - `:app:testDebugUnitTest :app:testSliceTestUnitTest :app:verifyNightlyChangelog :app:assembleSliceTestAndroidTest` erfolgreich: **776/776 Debug**, **776/776 SliceTest**, keine Fehler/Skips; ARM64-Instrumentierungs-APK kompiliert. `git diff --check` erfolgreich.
 - Punkt ist lokal und automatisiert verifiziert; physischer Xiaomi-Lauf bleibt wegen Installationsrichtlinie offen. Batch 18 bleibt **5/10 vollständig zur Laufzeit abgenommen**; kein Release erstellt.
 - Nächster Schritt: Xiaomi-Installation von Instrumentierungs-APKs durch Device Lock freigeben lassen, dann `OrcaLanguageAssetDeviceTest` tatsächlich ausführen; bis dahin keine Hardwareabnahme behaupten.
+
+## OrcaSlicer 2.5.1 PO-Kataloge — 2026-11-14
+
+- Die 23 von der App geladenen Orca-Kataloge wurden gezielt mit OrcaSlicer 2.5.1 (`4eda9b55c9`) aktualisiert. Übersetzte Upstream-Einträge wurden übernommen, Nightly-eigene Einträge und bereits vorhandene Übersetzungen für bei Orca leere Einträge blieben erhalten; neue übersetzte 2.5.1-Einträge wurden ergänzt.
+- Umfang der vom Vergleich erkannten Übersetzungsänderungen/Ergänzungen: 22 Kataloge aktualisiert, englischer Katalog unverändert (Fallback auf englische Quelltexte); vorhandene Änderungen pro Sprache aus dem Upstream-PO übernommen. Germanisch: 134 aktualisierte Einträge; Russisch: 678; je nach weiterer Sprache 23–54 aktualisierte Einträge und 11 neue übersetzte Einträge.
+- Unit-Regression ergänzt: der neue Orca-Druckbett-Validierungstext muss über den App-PO-Loader in allen 22 übersetzten Sprachassets auflösbar sein.
+- Xiaomi bleibt verbunden, aber `com.google.android.devicelockcontroller` blockiert Installation von SliceTest-APKs mit `INSTALL_FAILED_USER_RESTRICTED`; Hardwarelauf weiterhin nicht ausführbar. Kein Emulator genutzt, Device-Lock nicht umgangen.
+- `:app:testDebugUnitTest :app:testSliceTestUnitTest :app:verifyNightlyChangelog :app:assembleSliceTestAndroidTest` erfolgreich: **777/777 Debug**, **777/777 SliceTest**, je 0 Fehler/Skips; ARM64-Test-APK kompiliert. `git diff --check` erfolgreich.
+- Xiaomi-Instrumentierung `OrcaLanguageAssetDeviceTest` erneut gestartet: Installation durch `INSTALL_FAILED_USER_RESTRICTED` blockiert, **0 Tests**. Nightly-Branch bleibt ohne Hardwarelauf für diese Änderung.
+- Batch 18 bleibt **5/10 vollständig zur Laufzeit abgenommen**. Kein APK/Release erstellt. Nächster Schritt: Device-Lock-Installation für die SliceTest-Variante freigeben lassen und den Sprachkatalog-Gerätetest ausführen.

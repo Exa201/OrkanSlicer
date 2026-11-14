@@ -241,7 +241,7 @@ msgid "High Flow"
 msgstr "Flujo alto"
 
 msgid "Standard"
-msgstr "Estándar"
+msgstr "Norma"
 
 msgid "TPU High Flow"
 msgstr "TPU de alto flujo"
@@ -804,7 +804,7 @@ msgstr "Restablecer la rotación actual a ceros reales."
 
 msgctxt "Noun"
 msgid "Scale"
-msgstr "Escala"
+msgstr "Escalar"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -1294,7 +1294,7 @@ msgstr "Operación"
 #. TRN EmbossOperation
 #. ORCA
 msgid "Join"
-msgstr "Juntar"
+msgstr "Unir"
 
 msgid "Click to change text into object part."
 msgstr "Haga clic para cambiar el texto en la parte del objeto."
@@ -1329,7 +1329,7 @@ msgid "Name has to be unique."
 msgstr "El nombre debe ser único."
 
 msgid "OK"
-msgstr "OK"
+msgstr "Correcto"
 
 msgid "Rename style"
 msgstr "Renombrar estilo"
@@ -1455,7 +1455,7 @@ msgstr "Izquierda"
 
 msgctxt "Alignment"
 msgid "Center"
-msgstr "Centro"
+msgstr "Centrar"
 
 msgctxt "Alignment"
 msgid "Right"
@@ -1463,7 +1463,7 @@ msgstr "Derecha"
 
 msgctxt "Alignment"
 msgid "Top"
-msgstr "Arriba"
+msgstr "Superior"
 
 msgctxt "Alignment"
 msgid "Middle"
@@ -1471,7 +1471,7 @@ msgstr "Medio"
 
 msgctxt "Alignment"
 msgid "Bottom"
-msgstr "Bajo"
+msgstr "Inferior"
 
 msgid "Revert alignment."
 msgstr "Deshacer alineamiento."
@@ -1841,7 +1841,7 @@ msgstr "Seleccionar punto"
 
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Supr"
+msgstr "Eliminar"
 
 msgid "Restart selection"
 msgstr "Reiniciar selección"
@@ -1967,7 +1967,7 @@ msgstr "Saliendo del mecanismo de medición"
 
 msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Ensamblar"
+msgstr "Agrupar"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Confirme que la relación de explosión es 1 y seleccione al menos dos volúmenes."
@@ -2648,7 +2648,7 @@ msgid "Import File"
 msgstr "Importar archivo"
 
 msgid "Delete"
-msgstr "Borrar"
+msgstr "Eliminar"
 
 msgid "Choose files"
 msgstr "Elija los archivos"
@@ -2673,7 +2673,7 @@ msgid "Quality"
 msgstr "Calidad"
 
 msgid "Shell"
-msgstr "Cubierta"
+msgstr "Vaciado"
 
 msgid "Infill"
 msgstr "Relleno"
@@ -3625,7 +3625,7 @@ msgid "Color"
 msgstr "Color"
 
 msgid "Pause"
-msgstr "Pausa"
+msgstr "Pausar"
 
 msgid "Template"
 msgstr "Plantilla"
@@ -6587,7 +6587,7 @@ msgstr "Cambio de color"
 
 msgctxt "Noun"
 msgid "Print"
-msgstr "Impresión"
+msgstr "Imprimir"
 
 msgid "Time Estimation"
 msgstr "Tiempo Estimado"
@@ -6638,7 +6638,7 @@ msgstr "Calidad / Velocidad"
 
 msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Suavizar"
+msgstr "Suave"
 
 msgid "Radius"
 msgstr "Radio"
@@ -6825,7 +6825,7 @@ msgstr "Frontal"
 
 msgctxt "Camera View"
 msgid "Back"
-msgstr "Posterior"
+msgstr "Atrás"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
@@ -7184,13 +7184,13 @@ msgid "Design"
 msgstr "Diseño"
 
 msgid "Prepare"
-msgstr "Preparar"
+msgstr "Preparando"
 
 msgid "Preview"
 msgstr "Previsualización"
 
 msgid "Project"
-msgstr "Proyecto"
+msgstr "Proyectar"
 
 msgid "Yes"
 msgstr "Sí"
@@ -7406,7 +7406,7 @@ msgid "Export"
 msgstr "Exportar"
 
 msgid "Quit"
-msgstr "Salir del programa"
+msgstr "Salir"
 
 msgid "Undo"
 msgstr "Deshacer"
@@ -7541,10 +7541,10 @@ msgstr "Preferencias"
 
 msgctxt "Menu"
 msgid "Edit"
-msgstr "Edición"
+msgstr "Editar"
 
 msgid "View"
-msgstr "Vista"
+msgstr "Ver"
 
 # AI Translated
 msgid "Open Speed Dial"
@@ -8265,7 +8265,7 @@ msgstr "Silencioso"
 # AI Translated
 msgctxt "Mode"
 msgid "Standard"
-msgstr "Estándar"
+msgstr "Norma"
 
 msgid "Sport"
 msgstr "Deportivo"
@@ -9258,13 +9258,13 @@ msgstr "Principal"
 #. TRN IDEX/IQEX role: the tool head prints a copy of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Copy"
-msgstr "Copia"
+msgstr "Copiar"
 
 # AI Translated
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Mirror"
-msgstr "Espejo"
+msgstr "Reflejar"
 
 # AI Translated
 #. TRN IDEX/IQEX role: multicolor partner of the Primary on the same gantry.
@@ -10574,7 +10574,7 @@ msgid "Units"
 msgstr "Unidades"
 
 msgid "Home"
-msgstr "Página de Inicio"
+msgstr "Inicio"
 
 msgid "Default page"
 msgstr "Página por defecto"
@@ -14089,7 +14089,7 @@ msgstr "Color y tipo de filamento sincronizados desde la impresora con éxito."
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr "Aceptar"
+msgstr "Correcto"
 
 msgid "Ramming customization"
 msgstr "Personalización de Moldeado de Extremo"
@@ -17940,7 +17940,7 @@ msgid "Contour"
 msgstr "Contorno"
 
 msgid "Hole"
-msgstr "Orificio"
+msgstr "Agujero"
 
 msgid "Contour and hole"
 msgstr "Contorno y orificio"
@@ -21011,7 +21011,7 @@ msgid "Rectangle"
 msgstr "Rectángulo"
 
 msgid "Rib"
-msgstr "Costilla"
+msgstr "Nervio"
 
 msgid "Extra rib length"
 msgstr "Longitud extra del refuerzo"
@@ -23626,7 +23626,7 @@ msgid "Line"
 msgstr "Línea"
 
 msgid "Pattern"
-msgstr "Patrón"
+msgstr "Matriz"
 
 msgid "Method"
 msgstr "Método"
@@ -23861,7 +23861,7 @@ msgstr "Modelo de prueba"
 # AI Translated
 msgctxt "Test model"
 msgid "Standard"
-msgstr "Estándar"
+msgstr "Norma"
 
 # AI Translated
 msgctxt "Test model"
@@ -27545,7 +27545,7 @@ msgid "Up to vertex"
 msgstr "Hasta el vértice"
 
 msgid "End"
-msgstr "Final"
+msgstr "Fin"
 
 # AI Translated
 msgid "2nd dist"
@@ -38395,3 +38395,75 @@ msgstr "Asociar"
 
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "El modelo de Adaptive Pressure Advance de uno o más extrusores puede contener valores no válidos."
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr ""
+"El área excluida de la cama no es válida. Debe ser un polígono simple, sin "
+"autointersecciones."
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr ""
+"Se ha eliminado el área no válida; defínala de nuevo con un polígono válido."
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "¿Desea copiar los siguientes parámetros de %1% a %2%?"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Haga clic en el botón de comparación para ver el valor completo."
+
+# AI Translated
+msgid "Process settings"
+msgstr "Ajustes del proceso"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "Comparar los valores completos"
+
+# AI Translated
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr ""
+"Las áreas imprimibles de los extrusores no tienen ninguna zona en común, por"
+" lo que no se puede imprimir la torre de purga.\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr ""
+"Editando: %1%   ·   N = vista normal al plano   ·   Confirmar o Cancelar en "
+"la barra de herramientas"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  haga clic en el distintivo de una restricción para seleccionarla"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% seleccionada — Supr la elimina"

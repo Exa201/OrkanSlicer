@@ -283,7 +283,7 @@ msgid "High Flow"
 msgstr "Високий потік"
 
 msgid "Standard"
-msgstr "Стандартний"
+msgstr "Стандарт"
 
 msgid "TPU High Flow"
 msgstr "Високий потік TPU"
@@ -665,7 +665,7 @@ msgid "Paint-on fuzzy skin editing"
 msgstr "Зміна малювання шорсткої поверхні"
 
 msgid "Move"
-msgstr "Перемістити"
+msgstr "Переміщення"
 
 msgid "Please select at least one object."
 msgstr "Будь ласка, виберіть принаймні один об’єкт."
@@ -674,7 +674,7 @@ msgid "Gizmo-Move"
 msgstr "Gizmo переміщення"
 
 msgid "Rotate"
-msgstr "Повернути"
+msgstr "Поворот"
 
 msgid "Gizmo-Rotate"
 msgstr "Gizmo обертання"
@@ -684,7 +684,7 @@ msgstr "Оптимізувати орієнтацію"
 
 msgctxt "Verb"
 msgid "Scale"
-msgstr "Масштаб"
+msgstr "Масштабування"
 
 msgid "Gizmo-Scale"
 msgstr "Gizmo масштабування"
@@ -730,7 +730,7 @@ msgid "Object operations"
 msgstr "Операції з обʼєктами"
 
 msgid "Scale"
-msgstr "Масштаб"
+msgstr "Масштабування"
 
 msgid "Volume operations"
 msgstr "Операції з об’ємом"
@@ -770,7 +770,7 @@ msgid "Selection"
 msgstr "Вибір"
 
 msgid "Plate"
-msgstr "Пластина"
+msgstr "Стіл"
 
 # AI Translated
 # Needs human review: No glossary rendering yet (Ukrainian cell empty); Розподілити proposed.
@@ -856,7 +856,7 @@ msgstr "Скинути поточне обертання до нульових �
 
 msgctxt "Noun"
 msgid "Scale"
-msgstr "Масштаб"
+msgstr "Масштабування"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -1016,7 +1016,7 @@ msgstr "Вибрати всі зʼєднання"
 # AI Translated
 msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Розрізати"
+msgstr "Розріз"
 
 msgid "Rotate cut plane"
 msgstr "Поверніть площину розрізу"
@@ -1317,7 +1317,7 @@ msgid "First font"
 msgstr "Перший шрифт"
 
 msgid "Advanced"
-msgstr "Розширені"
+msgstr "Розширений"
 
 msgid "Reset all options except the text and operation"
 msgstr "Скинути всі параметри окрім тексту і операції"
@@ -1362,7 +1362,7 @@ msgstr "Операція"
 #. TRN EmbossOperation
 #. ORCA
 msgid "Join"
-msgstr "Обʼєднати"
+msgstr "Обʼєднання"
 
 msgid "Click to change text into object part."
 msgstr "Клацніть, щоб змінити текст на частині обʼєкта."
@@ -1372,7 +1372,7 @@ msgstr "Ви не можете змінити тип останньої твер
 
 msgctxt "EmbossOperation"
 msgid "Cut"
-msgstr "Вирізати"
+msgstr "Розріз"
 
 msgid "Click to change part type into negative volume."
 msgstr "Клацніть, щоб змінити тип частини на відʼємний обʼєм."
@@ -1397,7 +1397,7 @@ msgid "Name has to be unique."
 msgstr "Назва повинна бути унікальною."
 
 msgid "OK"
-msgstr "ОК"
+msgstr "OK"
 
 msgid "Rename style"
 msgstr "Перейменувати стиль"
@@ -1910,7 +1910,7 @@ msgstr "Виберіть точку"
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Delete"
+msgstr "Видалити"
 
 msgid "Restart selection"
 msgstr "Вибрати заново"
@@ -1924,7 +1924,7 @@ msgid "Cancel a feature until exit"
 msgstr "Скасувати функцію до виходу"
 
 msgid "Measure"
-msgstr "Виміряти"
+msgstr "Вимірювання"
 
 msgid "Please confirm explosion ratio = 1, and please select at least one object."
 msgstr "Підтвердіть коефіцієнт вибуху = 1 і, будь ласка, виберіть принаймні один об’єкт"
@@ -2038,7 +2038,7 @@ msgstr "Вихід з gizmo-вимірювання"
 # AI Translated
 msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Зібрати"
+msgstr "Збирання"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Будь ласка, підтвердіть коефіцієнт вибуху = 1 та виберіть принаймні два об’єми."
@@ -2776,7 +2776,7 @@ msgid "Speed"
 msgstr "Швидкість"
 
 msgid "Strength"
-msgstr "Міцність"
+msgstr "Сила"
 
 msgid "Top solid layers"
 msgstr "Верхові суцільні шари"
@@ -3093,7 +3093,7 @@ msgid "Transform"
 msgstr "Перетворення"
 
 msgid "Split"
-msgstr "Розділити"
+msgstr "Розділення"
 
 msgid "To Objects"
 msgstr "На моделі"
@@ -3193,7 +3193,7 @@ msgid "Paste Process Settings"
 msgstr "Вставити налаштування процесу"
 
 msgid "Edit"
-msgstr "Змінити"
+msgstr "Редагувати елемент"
 
 msgid "Merge with"
 msgstr "Обʼєднати з"
@@ -3735,13 +3735,13 @@ msgid "Color"
 msgstr "Колір"
 
 msgid "Pause"
-msgstr "Пауза"
+msgstr "Призупинити"
 
 msgid "Template"
 msgstr "Шаблон"
 
 msgid "Custom"
-msgstr "Власний"
+msgstr "Власні"
 
 msgid "Pause:"
 msgstr "Пауза:"
@@ -4858,12 +4858,12 @@ msgstr "Друк філаментами в AMS"
 # AI Translated
 msgctxt "Nozzle position"
 msgid "Left"
-msgstr "Ліве"
+msgstr "Ліво"
 
 # AI Translated
 msgctxt "Nozzle position"
 msgid "Right"
-msgstr "Праве"
+msgstr "Право"
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Коли поточний матеріал закінчується, принтер буде продовжувати друк у наступному порядку."
@@ -5124,7 +5124,7 @@ msgid "Rectangular"
 msgstr "Прямокутний"
 
 msgid "Circular"
-msgstr "Округлий"
+msgstr "Круговий"
 
 msgid "Load shape from STL..."
 msgstr "Завантажити форму з STL..."
@@ -6537,7 +6537,7 @@ msgid "Wipe"
 msgstr "Протирання"
 
 msgid "Extrude"
-msgstr "Екструзія"
+msgstr "Видавлювання"
 
 msgid "Inner wall"
 msgstr "Внутрішня стінка"
@@ -7065,7 +7065,7 @@ msgstr "Перед"
 
 msgctxt "Camera View"
 msgid "Back"
-msgstr "Ззаду"
+msgstr "Назад"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
@@ -7444,7 +7444,7 @@ msgid "Preview"
 msgstr "Перегляд"
 
 msgid "Project"
-msgstr "Проєкт"
+msgstr "Проєкція"
 
 msgid "Yes"
 msgstr "Так"
@@ -7669,7 +7669,7 @@ msgid "Redo"
 msgstr "Повторити"
 
 msgid "Cut"
-msgstr "Вирізати"
+msgstr "Розріз"
 
 msgid "Cut selection to clipboard"
 msgstr "Вирізати виділення в буфер обміну"
@@ -7796,10 +7796,10 @@ msgstr "Налаштування"
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
-msgstr "Редагування"
+msgstr "Редагувати елемент"
 
 msgid "View"
-msgstr "Вигляд"
+msgstr "Переглянути"
 
 # AI Translated
 msgid "Open Speed Dial"
@@ -8537,7 +8537,7 @@ msgstr "Тихий"
 # AI Translated
 msgctxt "Mode"
 msgid "Standard"
-msgstr "Стандартний"
+msgstr "Стандарт"
 
 msgid "Sport"
 msgstr "Спортивний"
@@ -9583,13 +9583,13 @@ msgstr "Основний"
 #. TRN IDEX/IQEX role: the tool head prints a copy of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Copy"
-msgstr "Копія"
+msgstr "Копіювати"
 
 # AI Translated
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Mirror"
-msgstr "Дзеркало"
+msgstr "Дзеркально"
 
 # AI Translated
 #. TRN IDEX/IQEX role: multicolor partner of the Primary on the same gantry.
@@ -10971,7 +10971,7 @@ msgid "Units"
 msgstr "Одиниці виміру"
 
 msgid "Home"
-msgstr "Домашня"
+msgstr "Home"
 
 msgid "Default page"
 msgstr "Типова сторінка"
@@ -12057,7 +12057,7 @@ msgstr "Неприпустиме числове значення."
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr "Кінець"
+msgstr "End"
 
 msgid "Customize"
 msgstr "Пристосувати"
@@ -14562,7 +14562,7 @@ msgstr ""
 
 msgctxt "Sync_AMS"
 msgid "Original"
-msgstr "Початковий"
+msgstr "Оригінал"
 
 # AI Translated
 msgid "After mapping"
@@ -14581,7 +14581,7 @@ msgstr "Підключений принтер не відповідає пото
 
 # AI Translated
 msgid "Mapping"
-msgstr "Зіставлення"
+msgstr "Накладання текстури"
 
 msgid "Overwriting"
 msgstr "Перезапис"
@@ -14696,7 +14696,7 @@ msgstr "Успішно синхронізовано колір і тип філ�
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr "ОК"
+msgstr "OK"
 
 msgid "Ramming customization"
 msgstr "Налаштування раммінгу"
@@ -17904,7 +17904,7 @@ msgstr "Вентилятор охолодження деталей вмикає�
 # AI Translated
 msgctxt "second"
 msgid "s"
-msgstr "с"
+msgstr "c"
 
 msgid "Default color"
 msgstr "Типовий колір"
@@ -20563,7 +20563,7 @@ msgid "Aligned back"
 msgstr "Вирівняний ззаду"
 
 msgid "Back"
-msgstr "Ззаду"
+msgstr "Назад"
 
 msgid "Random"
 msgstr "Випадкове"
@@ -22023,7 +22023,7 @@ msgid "Rectangle"
 msgstr "Прямокутник"
 
 msgid "Rib"
-msgstr "Ребро"
+msgstr "Ребро жорсткості"
 
 msgid "Extra rib length"
 msgstr "Довжина додаткових ребер"
@@ -24703,7 +24703,7 @@ msgid "Line"
 msgstr "Лінія"
 
 msgid "Pattern"
-msgstr "Зразок"
+msgstr "Масив"
 
 msgid "Method"
 msgstr "Метод"
@@ -24955,7 +24955,7 @@ msgstr "Тестова модель"
 # AI Translated
 msgctxt "Test model"
 msgid "Standard"
-msgstr "Стандартна"
+msgstr "Стандарт"
 
 # AI Translated
 msgctxt "Test model"
@@ -27745,7 +27745,7 @@ msgstr "Клацніть опорну площину або плоску гра�
 
 # AI Translated
 msgid "Construction"
-msgstr "Допоміжна"
+msgstr "Допоміжна геометрія"
 
 # AI Translated
 #, c-format, boost-format
@@ -27970,7 +27970,7 @@ msgstr "Поверхня (видавлювання / обертання / лоф
 
 # AI Translated
 msgid "Surface Extrude"
-msgstr "Видавлювання поверхні"
+msgstr "Поверхня видавлювання"
 
 # AI Translated
 msgid "Extrude a sketch into a sheet body (no end caps)"
@@ -27982,7 +27982,7 @@ msgstr "Спершу створіть ескіз"
 
 # AI Translated
 msgid "Surface Revolve"
-msgstr "Обертання поверхні"
+msgstr "Поверхня обертання"
 
 # AI Translated
 msgid "Revolve a sketch profile into a sheet body"
@@ -27990,7 +27990,7 @@ msgstr "Обернути профіль ескізу в поверхневе т�
 
 # AI Translated
 msgid "Surface Loft"
-msgstr "Лофт поверхні"
+msgstr "Поверхня лофта"
 
 # AI Translated
 msgid "Loft (skin) between 2+ profiles, open (no end caps)"
@@ -27998,7 +27998,7 @@ msgstr "Лофт (обтягування) між 2+ профілями, відк
 
 # AI Translated
 msgid "Surface Fill"
-msgstr "Заповнення поверхні"
+msgstr "Поверхня заповнення"
 
 # AI Translated
 msgid "Fill a sketch boundary with a smooth face"
@@ -28765,7 +28765,7 @@ msgid "Up to vertex"
 msgstr "До вершини"
 
 msgid "End"
-msgstr "Кінець"
+msgstr "End"
 
 # AI Translated
 msgid "2nd dist"
@@ -28782,12 +28782,12 @@ msgstr "Нове тіло"
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Join"
-msgstr "Приєднати"
+msgstr "Обʼєднання"
 
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Cut"
-msgstr "Вирізати"
+msgstr "Розріз"
 
 # AI Translated
 msgid "Intersect"
@@ -31403,7 +31403,7 @@ msgstr "Злити тіло-інструмент із цільовим тіло�
 # AI Translated
 msgctxt "Design"
 msgid "Subtract"
-msgstr "Віднімання"
+msgstr "Відняти"
 
 # AI Translated
 msgid "Cut the tool body out of the target"
@@ -39822,3 +39822,78 @@ msgstr "Ассоціювати"
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "Модель адаптивного Pressure Advance для одного або кількох екструдерів може містити некоректні значення."
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr ""
+"Площа виключення столу недійсна. Це має бути простий багатокутник без "
+"самоперетинів."
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr ""
+"Недійсну область видалено, задайте її знову за допомогою дійсного "
+"багатокутника."
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "Скопіювати такі параметри %1% до %2%?"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Натисніть кнопку порівняння, щоб побачити повне значення."
+
+# AI Translated
+msgid "Process settings"
+msgstr "Налаштування процесу"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "Порівняти повні значення"
+
+# AI Translated
+# Needs human review: Glossary cell for Prime tower is unsettled; used the
+# catalog's 'Підготовча вежа'.
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr ""
+"Області друку екструдерів не мають спільної ділянки, тому підготовчу вежу "
+"неможливо надрукувати.\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr ""
+"Редагування: %1%   ·   N — погляд перпендикулярно до площини   ·   "
+"«Підтвердити» або «Скасувати» на панелі інструментів"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  клацніть значок обмеження, щоб вибрати його"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% вибрано — Delete видаляє його"

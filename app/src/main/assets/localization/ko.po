@@ -784,7 +784,7 @@ msgid "Selection"
 msgstr "선택"
 
 msgid "Plate"
-msgstr "플레이트"
+msgstr "접시"
 
 # AI Translated
 msgid "Distribute"
@@ -906,7 +906,7 @@ msgid "Frustum"
 msgstr "원뿔대"
 
 msgid "Square"
-msgstr "사각형"
+msgstr "정사각형"
 
 msgid "Hexagon"
 msgstr "육각형"
@@ -1046,7 +1046,7 @@ msgid "Bulge proportion related to radius"
 msgstr "반경과 관련된 부품림 비율"
 
 msgid "Space"
-msgstr "스페이스"
+msgstr "Space"
 
 msgid "Space proportion related to radius"
 msgstr "반경과 관련된 공간 비율"
@@ -1367,7 +1367,7 @@ msgstr "작업"
 #. TRN EmbossOperation
 #. ORCA
 msgid "Join"
-msgstr "접합부"
+msgstr "결합"
 
 msgid "Click to change text into object part."
 msgstr "텍스트를 객체 부분으로 변경하려면 클릭하세요."
@@ -1402,7 +1402,7 @@ msgid "Name has to be unique."
 msgstr "이름은 고유해야 합니다."
 
 msgid "OK"
-msgstr "확인"
+msgstr "정상"
 
 msgid "Rename style"
 msgstr "스타일 이름 바꾸기"
@@ -1536,7 +1536,7 @@ msgstr "오른쪽"
 
 msgctxt "Alignment"
 msgid "Top"
-msgstr "위"
+msgstr "상부"
 
 msgctxt "Alignment"
 msgid "Middle"
@@ -1858,7 +1858,7 @@ msgstr "SVG 형상"
 
 #. TRN - Input label. Be short as possible
 msgid "Mirror"
-msgstr "반전"
+msgstr "대칭"
 
 msgid "Choose SVG file for emboss:"
 msgstr "양각을 위한 SVG 파일 선택:"
@@ -1918,7 +1918,7 @@ msgstr "위치 선택"
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Delete"
+msgstr "삭제"
 
 msgid "Restart selection"
 msgstr "다시 선택"
@@ -2017,7 +2017,7 @@ msgid "Distance XYZ"
 msgstr "XYZ 거리"
 
 msgid "Parallel"
-msgstr "평행한"
+msgstr "평행"
 
 msgid "Center coincidence"
 msgstr "중심 일치"
@@ -2048,7 +2048,7 @@ msgstr "측정 변형도구 나가기"
 # AI Translated
 msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "조립"
+msgstr "병합"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "분해 비율이 1인지 확인하고 최소 두 개의 볼륨을 선택하세요."
@@ -3966,7 +3966,7 @@ msgid "Innerloop"
 msgstr "내부 순환"
 
 msgid "Top"
-msgstr "위"
+msgstr "상부"
 
 msgid "The fan controls the temperature during printing to improve print quality. The system automatically adjusts the fan's switch and speed according to different printing materials."
 msgstr "팬은 인쇄 중 온도를 제어하여 인쇄 품질을 향상시킵니다. 시스템은 인쇄 재료에 따라 팬의 스위치와 속도를 자동으로 조정합니다."
@@ -4795,7 +4795,7 @@ msgid "%s does not support %s"
 msgstr "%s 은(는) %s 을(를) 지원하지 않습니다"
 
 msgid "Step"
-msgstr "단계"
+msgstr "증분"
 
 msgid "Unmapped"
 msgstr "매핑되지 않음"
@@ -6514,7 +6514,7 @@ msgid "Fan Speed"
 msgstr "팬 속도"
 
 msgid "Flow"
-msgstr "압출량"
+msgstr "플로우"
 
 msgid "Actual Flow"
 msgstr "실제 흐름"
@@ -6559,7 +6559,7 @@ msgid "Wipe"
 msgstr "노즐 청소"
 
 msgid "Extrude"
-msgstr "압출"
+msgstr "돌출"
 
 msgid "Inner wall"
 msgstr "내벽"
@@ -6879,7 +6879,7 @@ msgstr "품질 / 속도"
 # AI Translated
 msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "부드럽게"
+msgstr "유연"
 
 msgid "Radius"
 msgstr "반경"
@@ -7068,13 +7068,13 @@ msgstr "앞"
 
 msgctxt "Camera View"
 msgid "Back"
-msgstr "뒷면"
+msgstr "뒤로"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
 msgctxt "Camera View"
 msgid "Top"
-msgstr "위"
+msgstr "상부"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Bottom
@@ -7431,13 +7431,13 @@ msgid "Design"
 msgstr "디자인"
 
 msgid "Prepare"
-msgstr "준비 하기"
+msgstr "준비 중"
 
 msgid "Preview"
 msgstr "미리 보기"
 
 msgid "Project"
-msgstr "프로젝트"
+msgstr "투영"
 
 msgid "Yes"
 msgstr "예"
@@ -7666,7 +7666,7 @@ msgid "Redo"
 msgstr "다시 실행"
 
 msgid "Cut"
-msgstr "잘라내기"
+msgstr "자르기"
 
 msgid "Cut selection to clipboard"
 msgstr "잘라낸 항목을 클립보드에 복사"
@@ -7798,7 +7798,7 @@ msgid "Edit"
 msgstr "편집"
 
 msgid "View"
-msgstr "시점"
+msgstr "보기"
 
 # AI Translated
 msgid "Open Speed Dial"
@@ -9246,7 +9246,7 @@ msgstr "상부"
 
 msgctxt "Layers"
 msgid "Bottom"
-msgstr "하부"
+msgstr "아래"
 
 # AI Translated
 msgid "This setting does not specify a plugin capability type."
@@ -9564,7 +9564,7 @@ msgstr "복사"
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Mirror"
-msgstr "미러"
+msgstr "대칭"
 
 # AI Translated
 #. TRN IDEX/IQEX role: multicolor partner of the Primary on the same gantry.
@@ -10959,7 +10959,7 @@ msgid "Units"
 msgstr "단위"
 
 msgid "Home"
-msgstr "홈"
+msgstr "Home"
 
 msgid "Default page"
 msgstr "기본 페이지"
@@ -12103,7 +12103,7 @@ msgstr "잘못된 숫자 입력입니다."
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr "끝"
+msgstr "End"
 
 msgid "Customize"
 msgstr "사용자 정의"
@@ -14582,7 +14582,7 @@ msgid "The connected printer does not match the currently selected printer. Plea
 msgstr "연결된 프린터가 현재 선택한 프린터와 일치하지 않습니다. 선택한 프린터를 변경하세요."
 
 msgid "Mapping"
-msgstr "맵핑"
+msgstr "매핑"
 
 msgid "Overwriting"
 msgstr "덮어쓰기"
@@ -14687,7 +14687,7 @@ msgstr "프린터에서 색상과 필라멘트 유형을 성공적으로 동기�
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr "확인"
+msgstr "정상"
 
 msgid "Ramming customization"
 msgstr "채워넣기 사용자 정의"
@@ -20525,7 +20525,7 @@ msgid "Aligned back"
 msgstr "뒤쪽 정렬"
 
 msgid "Back"
-msgstr "뒷면"
+msgstr "뒤로"
 
 msgid "Random"
 msgstr "무작위"
@@ -27333,11 +27333,11 @@ msgstr "브라우저에서 이 번들 열기"
 
 # AI Translated
 msgid "Subscribed"
-msgstr "구독됨"
+msgstr "구독한 플러그인"
 
 # AI Translated
 msgid "Local"
-msgstr "로컬"
+msgstr "로컬 플러그인"
 
 # AI Translated
 msgid "Bundle folder does not exist."
@@ -28464,7 +28464,7 @@ msgid "Click control points; double-click, right-click or Enter to finish"
 msgstr "조정점 클릭, 더블 클릭하거나 마우스 오른쪽 버튼을 클릭하거나 Enter를 눌러 완료"
 
 msgid "Point"
-msgstr "가리키다"
+msgstr "점"
 
 # AI Translated
 msgid "Click to place a point"
@@ -28826,7 +28826,7 @@ msgid "Up to vertex"
 msgstr "꼭지점까지"
 
 msgid "End"
-msgstr "끝"
+msgstr "End"
 
 # AI Translated
 msgid "2nd dist"
@@ -28848,7 +28848,7 @@ msgstr "결합"
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Cut"
-msgstr "잘라내기"
+msgstr "자르기"
 
 # AI Translated
 msgid "Intersect"
@@ -39641,3 +39641,68 @@ msgstr "링크"
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "하나 이상의 압출기에 대한 적응형 Pressure Advance 모델에 잘못된 값이 포함되어 있을 수 있습니다."
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr "베드 제외 구역이 올바르지 않습니다. 자기 교차가 없는 단순 다각형이어야 합니다."
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr "올바르지 않은 구역을 제거했습니다. 올바른 다각형으로 다시 지정하세요."
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "%1%의 다음 매개변수를 %2%에 복사하시겠습니까?"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "전체 값을 보려면 비교 버튼을 클릭하세요."
+
+# AI Translated
+msgid "Process settings"
+msgstr "프로세스 설정"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "전체 값 비교"
+
+# AI Translated
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr "압출기들의 출력 가능 영역이 겹치지 않아 프라임 타워를 출력할 수 없습니다.\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr "편집 중: %1%   ·   N = 평면에 수직으로 보기   ·   도구 모음에서 확인 또는 취소"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  구속조건 배지를 클릭하여 선택"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% 선택됨 — Delete로 제거"

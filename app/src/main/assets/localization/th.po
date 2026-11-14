@@ -919,7 +919,7 @@ msgid "Frustum"
 msgstr "ฟรัสตัม"
 
 msgid "Square"
-msgstr "สี่เหลี่ยม"
+msgstr "สี่เหลี่ยมจัตุรัส"
 
 msgid "Hexagon"
 msgstr "หกเหลี่ยม"
@@ -1057,7 +1057,7 @@ msgid "Bulge proportion related to radius"
 msgstr "สัดส่วนนูนที่เกี่ยวข้องกับรัศมี"
 
 msgid "Space"
-msgstr "ช่องว่าง"
+msgstr "Space"
 
 msgid "Space proportion related to radius"
 msgstr "สัดส่วนพื้นที่สัมพันธ์กับรัศมี"
@@ -1367,7 +1367,7 @@ msgstr "การทำงาน"
 #. TRN EmbossOperation
 #. ORCA
 msgid "Join"
-msgstr "เข้าร่วม"
+msgstr "รวม"
 
 msgid "Click to change text into object part."
 msgstr "คลิกเพื่อเปลี่ยนข้อความเป็นส่วนวัตถุ"
@@ -1402,7 +1402,7 @@ msgid "Name has to be unique."
 msgstr "ชื่อต้องไม่ซ้ำ"
 
 msgid "OK"
-msgstr "ตกลง"
+msgstr "ปกติ"
 
 msgid "Rename style"
 msgstr "เปลี่ยนชื่อสไตล์"
@@ -1915,7 +1915,7 @@ msgstr "เลือกจุด"
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Delete"
+msgstr "ลบ"
 
 msgid "Restart selection"
 msgstr "เริ่มการเลือกใหม่"
@@ -2774,7 +2774,7 @@ msgid "Quality"
 msgstr "คุณภาพ"
 
 msgid "Shell"
-msgstr "ผนัง"
+msgstr "เปลือก"
 
 msgid "Infill"
 msgstr "ไส้ใน"
@@ -2789,7 +2789,7 @@ msgid "Speed"
 msgstr "ความเร็ว"
 
 msgid "Strength"
-msgstr "ความแข็งแรง"
+msgstr "ความแรง"
 
 # AI Translated
 msgid "Top solid layers"
@@ -3901,7 +3901,7 @@ msgstr "ปิด"
 # AI Translated
 msgctxt "air_duct"
 msgid "Filter"
-msgstr "ตัวกรอง"
+msgstr "กรอง"
 
 msgid "Enabling filtration redirects the right fan to filter gas, which may reduce cooling performance."
 msgstr "การเปิดใช้งานการกรองจะเปลี่ยนเส้นทางพัดลมที่เหมาะสมไปกรองก๊าซ ซึ่งอาจลดประสิทธิภาพการทำความเย็น"
@@ -4756,7 +4756,7 @@ msgid "%s does not support %s"
 msgstr "%s ไม่รองรับ %s"
 
 msgid "Step"
-msgstr "ขั้นตอน"
+msgstr "ขนาดขั้น"
 
 msgid "Unmapped"
 msgstr "ไม่ได้แมป"
@@ -5128,7 +5128,7 @@ msgid "Rectangular"
 msgstr "สี่เหลี่ยม"
 
 msgid "Circular"
-msgstr "หนังสือเวียน"
+msgstr "แบบวงกลม"
 
 msgid "Load shape from STL..."
 msgstr "โหลดรูปร่างจาก STL..."
@@ -5143,7 +5143,7 @@ msgid "Not found:"
 msgstr "ไม่พบ:"
 
 msgid "Model"
-msgstr "โมเดล"
+msgstr "รุ่น"
 
 msgid "Choose an STL file to import bed shape from:"
 msgstr "เลือกไฟล์ STL ที่จะนำเข้ารูปทรงฐานพิมพ์จาก:"
@@ -6510,7 +6510,7 @@ msgid "Wipe"
 msgstr "เช็ดหัวฉีด (Wipe)"
 
 msgid "Extrude"
-msgstr "ฉีดเส้น"
+msgstr "ยืดขึ้นรูป"
 
 msgid "Inner wall"
 msgstr "ผนังด้านใน"
@@ -6826,7 +6826,7 @@ msgstr "คุณภาพ/ความเร็ว"
 # AI Translated
 msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "ปรับให้เรียบ"
+msgstr "เรียบ"
 
 msgid "Radius"
 msgstr "รัศมี"
@@ -7014,7 +7014,7 @@ msgstr "ด้านหน้า"
 # AI Translated
 msgctxt "Camera View"
 msgid "Back"
-msgstr "ด้านหลัง"
+msgstr "กลับ"
 
 # AI Translated
 #. TRN To be shown in the main menu View->Top
@@ -7372,13 +7372,13 @@ msgid "Design"
 msgstr "ออกแบบ"
 
 msgid "Prepare"
-msgstr "เตรียมพิมพ์"
+msgstr "กำลังเตรียม"
 
 msgid "Preview"
 msgstr "พรีวิว"
 
 msgid "Project"
-msgstr "โปรเจกต์"
+msgstr "ฉาย"
 
 msgid "Yes"
 msgstr "ใช่"
@@ -7734,7 +7734,7 @@ msgid "Edit"
 msgstr "แก้ไข"
 
 msgid "View"
-msgstr "มุมมอง"
+msgstr "ดู"
 
 # AI Translated
 msgid "Open Speed Dial"
@@ -9479,13 +9479,13 @@ msgstr "หลัก"
 #. TRN IDEX/IQEX role: the tool head prints a copy of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Copy"
-msgstr "สำเนา"
+msgstr "คัดลอก"
 
 # AI Translated
 #. TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
 msgctxt "IDEX/IQEX role"
 msgid "Mirror"
-msgstr "กระจกเงา"
+msgstr "กลับด้าน"
 
 # AI Translated
 #. TRN IDEX/IQEX role: multicolor partner of the Primary on the same gantry.
@@ -10831,7 +10831,7 @@ msgid "Units"
 msgstr "หน่วย"
 
 msgid "Home"
-msgstr "หน้าแรก"
+msgstr "Home"
 
 msgid "Default page"
 msgstr "หน้าเริ่มต้น"
@@ -11890,7 +11890,7 @@ msgstr "ป้อนตัวเลขไม่ถูกต้อง"
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr "สิ้นสุด"
+msgstr "End"
 
 msgid "Customize"
 msgstr "ปรับแต่ง"
@@ -14329,7 +14329,7 @@ msgid "The connected printer does not match the currently selected printer. Plea
 msgstr "เครื่องพิมพ์ที่เชื่อมต่อไม่ตรงกับเครื่องพิมพ์ที่เลือกในปัจจุบัน กรุณาเปลี่ยนเครื่องพิมพ์ที่เลือก"
 
 msgid "Mapping"
-msgstr "การทำแผนที่"
+msgstr "การแมป"
 
 msgid "Overwriting"
 msgstr "การเขียนทับ"
@@ -14433,7 +14433,7 @@ msgstr "ซิงโครไนซ์สีและประเภทของ
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr "ตกลง"
+msgstr "ปกติ"
 
 msgid "Ramming customization"
 msgstr "การปรับแต่งการกระแทก"
@@ -17167,7 +17167,7 @@ msgid "Aligned Rectilinear"
 msgstr "จัดแนวเป็นเส้นตรง"
 
 msgid "Concentric"
-msgstr "ศูนย์กลาง"
+msgstr "ร่วมศูนย์กลาง"
 
 # AI Translated
 msgid "Spiral Inset"
@@ -21643,7 +21643,7 @@ msgid "Rectangle"
 msgstr "สี่เหลี่ยมผืนผ้า"
 
 msgid "Rib"
-msgstr "ซี่โครง"
+msgstr "ครีบ"
 
 msgid "Extra rib length"
 msgstr "ความยาวซี่โครงพิเศษ"
@@ -24299,7 +24299,7 @@ msgid "Line"
 msgstr "เส้น"
 
 msgid "Pattern"
-msgstr "ลวดลาย"
+msgstr "แพทเทิร์น"
 
 msgid "Method"
 msgstr "วิธี"
@@ -28304,7 +28304,7 @@ msgid "Up to vertex"
 msgstr "ถึงจุดยอด"
 
 msgid "End"
-msgstr "จบ"
+msgstr "End"
 
 # AI Translated
 msgid "2nd dist"
@@ -28326,7 +28326,7 @@ msgstr "รวม"
 # AI Translated
 msgctxt "Boolean Mode"
 msgid "Cut"
-msgstr "ตัดออก"
+msgstr "ตัด"
 
 # AI Translated
 msgid "Intersect"
@@ -39110,3 +39110,75 @@ msgstr "เชื่อมโยง"
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "โมเดล Adaptive Pressure Advance สำหรับชุดดันเส้นหนึ่งตัวขึ้นไปอาจมีค่าที่ไม่ถูกต้อง"
+
+# AI Translated
+msgid ""
+"The excluded bed area is invalid. It must be a simple, non-self-intersecting"
+" polygon."
+msgstr ""
+"พื้นที่ฐานพิมพ์ที่ยกเว้นไม่ถูกต้อง "
+"ต้องเป็นรูปหลายเหลี่ยมอย่างง่ายที่ไม่ตัดกันเอง"
+
+# AI Translated
+msgid ""
+"The invalid area has been removed, so please define it again using a valid "
+"polygon."
+msgstr ""
+"พื้นที่ที่ไม่ถูกต้องถูกลบแล้ว โปรดกำหนดใหม่โดยใช้รูปหลายเหลี่ยมที่ถูกต้อง"
+
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2",
+#. and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2%
+#. the list of those they are copied to, as the switch names them, e.g. "T2
+#. HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "คุณต้องการคัดลอกพารามิเตอร์ต่อไปนี้ของ %1% ไปยัง %2% หรือไม่?"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "คลิกปุ่มเปรียบเทียบเพื่อดูค่าทั้งหมด"
+
+# AI Translated
+msgid "Process settings"
+msgstr "การตั้งค่ากระบวนการ"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "เปรียบเทียบค่าทั้งหมด"
+
+# AI Translated
+msgid ""
+"The extruder printable areas share no common area, so the prime tower cannot"
+" be printed.\n"
+msgstr ""
+"พื้นที่พิมพ์ของชุดดันเส้นไม่มีส่วนที่ทับซ้อนกัน จึงไม่สามารถพิมพ์ Prime "
+"Tower ได้\n"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row
+#. shows it.
+#, boost-format
+msgid ""
+"Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in "
+"the toolbar"
+msgstr ""
+"กำลังแก้ไข: %1%   ·   N = มองตั้งฉากกับระนาบ   ·   "
+"ยืนยันหรือยกเลิกในแถบเครื่องมือ"
+
+# AI Translated
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  คลิกป้ายเงื่อนไขบังคับเพื่อเลือก"
+
+# AI Translated
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g.
+#. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "เลือก %1% แล้ว — กด Delete เพื่อนำออก"
