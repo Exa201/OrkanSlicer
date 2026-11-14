@@ -5,6 +5,50 @@ import org.junit.Test
 
 class GitHubUpdaterTest {
     @Test
+    fun `install preflight reports device policy before source permission`() {
+        assertEquals(
+            UpdateInstallBlock.DEVICE_POLICY,
+            updateInstallBlock(
+                disallowInstallApps = true,
+                disallowUnknownSources = true,
+                canRequestUnknownSources = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `install preflight distinguishes unknown source restriction and permission`() {
+        assertEquals(
+            UpdateInstallBlock.UNKNOWN_SOURCES_POLICY,
+            updateInstallBlock(
+                disallowInstallApps = false,
+                disallowUnknownSources = true,
+                canRequestUnknownSources = false,
+            ),
+        )
+        assertEquals(
+            UpdateInstallBlock.UNKNOWN_SOURCES_PERMISSION,
+            updateInstallBlock(
+                disallowInstallApps = false,
+                disallowUnknownSources = false,
+                canRequestUnknownSources = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `install preflight allows installation when device policy permits it`() {
+        assertEquals(
+            UpdateInstallBlock.NONE,
+            updateInstallBlock(
+                disallowInstallApps = false,
+                disallowUnknownSources = false,
+                canRequestUnknownSources = true,
+            ),
+        )
+    }
+
+    @Test
     fun comparesNumericVersionComponentsInsteadOfLexicographically() {
         assertEquals(1, GitHubUpdater.compareVersions("0.8.10", "0.8.9"))
         assertEquals(-1, GitHubUpdater.compareVersions("0.9.0", "0.10.0"))

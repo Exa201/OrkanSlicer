@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.UserManager
 import android.provider.Settings
 import org.json.JSONArray
 import org.json.JSONObject
@@ -25,6 +26,24 @@ internal data class NightlyReleaseCandidate(
 )
 
 enum class UpdateDownloadStatus { NONE, PENDING, RUNNING, PAUSED, COMPLETE, FAILED }
+
+internal enum class UpdateInstallBlock {
+    NONE,
+    DEVICE_POLICY,
+    UNKNOWN_SOURCES_POLICY,
+    UNKNOWN_SOURCES_PERMISSION,
+}
+
+internal fun updateInstallBlock(
+    disallowInstallApps: Boolean,
+    disallowUnknownSources: Boolean,
+    canRequestUnknownSources: Boolean,
+): UpdateInstallBlock = when {
+    disallowInstallApps -> UpdateInstallBlock.DEVICE_POLICY
+    disallowUnknownSources -> UpdateInstallBlock.UNKNOWN_SOURCES_POLICY
+    !canRequestUnknownSources -> UpdateInstallBlock.UNKNOWN_SOURCES_PERMISSION
+    else -> UpdateInstallBlock.NONE
+}
 
 data class UpdateDownloadState(
     val status: UpdateDownloadStatus = UpdateDownloadStatus.NONE,
@@ -126,7 +145,21 @@ object GitHubUpdater {
             status("Das Update ist noch nicht vollständig heruntergeladen.")
             return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !activity.packageManager.canRequestPackageInstalls()) {
+        val userManager = activity.getSystemService(Context.USER_SERVICE) as? UserManager
+        val blockedByPolicy = userManager?.hasUserRestriction(UserManager.DISALLOW_INSTALL_APPS) == true
+        val blockedUnknownSources = userManager?.hasUserRestriction(UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES) == true
+        val canRequestUnknownSources = Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
+            activity.packageManager.canRequestPackageInstalls()
+        when (updateInstallBlock(blockedByPolicy, blockedUnknownSources, canRequestUnknownSources)) {
+            UpdateInstallBlock.DEVICE_POLICY -> {
+                status("Dieses Gerät blockiert APK-Installationen durch eine Geräteverwaltung. Bitte wende dich an den Geräteadministrator oder nutze einen freigegebenen Installationsweg.")
+                return
+            }
+            UpdateInstallBlock.UNKNOWN_SOURCES_POLICY -> {
+                status("Eine Geräteverwaltung verbietet Installationen aus dieser Quelle. Bitte wende dich an den Geräteadministrator oder nutze einen freigegebenen Installationsweg.")
+                return
+            }
+            UpdateInstallBlock.UNKNOWN_SOURCES_PERMISSION -> {
             try {
                 activity.startActivity(
                     Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${activity.packageName}")),
@@ -136,6 +169,8 @@ object GitHubUpdater {
                 status("Installationsberechtigung konnte nicht geöffnet werden: ${error.localizedMessage ?: "Einstellungen prüfen"}")
             }
             return
+            }
+            UpdateInstallBlock.NONE -> Unit
         }
         try {
             val manager = activity.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
