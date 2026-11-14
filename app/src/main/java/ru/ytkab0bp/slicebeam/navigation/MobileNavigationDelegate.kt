@@ -16,6 +16,8 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.ui.OrkanSection
+import androidx.compose.ui.graphics.Color
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveWorkspaceNavigation
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceNavigationItem
@@ -130,7 +132,7 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             setContent {
                 key(navigationThemeRevision) {
-                    BeamComposeTheme {
+                    BeamComposeTheme(section = sectionForSlot(selectedNavigationSlot)) {
                         // Compact phone labels keep all destinations visible in the single row;
                         // full localized names remain in accessibility semantics.
                         val compactLabels = AdaptiveNavigationPolicy.usesCompactBottomLabels(
@@ -147,6 +149,8 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
                                 icon = getSlotIcon(slot),
                                 // Keep complete destination names available when labels are compacted.
                                 accessibilityLabel = ctx.getString(fullTitle),
+                                accent = accentForSlot(slot),
+                                onAccent = Color(0xFF09121E),
                             )
                         }
                         AdaptiveWorkspaceNavigation(
@@ -159,6 +163,22 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
                 }
             }
         }
+    }
+
+    private fun sectionForSlot(slot: Int): OrkanSection = when (slot) {
+        2 -> OrkanSection.PRINT
+        3 -> OrkanSection.FILAMENT
+        4 -> OrkanSection.PRINTER
+        5 -> OrkanSection.APP
+        else -> OrkanSection.WORKSPACE
+    }
+
+    private fun accentForSlot(slot: Int): Color = when (sectionForSlot(slot)) {
+        OrkanSection.PRINT -> OrkanSection.PRINT.accent
+        OrkanSection.FILAMENT -> OrkanSection.FILAMENT.accent
+        OrkanSection.PRINTER -> OrkanSection.PRINTER.accent
+        OrkanSection.APP -> OrkanSection.APP.accent
+        else -> OrkanSection.WORKSPACE.accent
     }
 
     private fun onNavigationItemSelected(slot: Int) {

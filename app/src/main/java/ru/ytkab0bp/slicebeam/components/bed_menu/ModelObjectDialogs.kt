@@ -3,10 +3,13 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,10 +23,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Surface
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,11 +44,13 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.withFrameNanos
 import ru.ytkab0bp.slicebeam.R
@@ -442,6 +451,7 @@ internal fun ModelObjectProcessOverridesDialog(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 internal fun ModelObjectsDialog(
     title: String,
     cancelLabel: String,
@@ -463,26 +473,44 @@ internal fun ModelObjectsDialog(
         mutableStateListOf<Int>().apply { addAll(rows.filter { it.selected }.map { it.objectIndex }) }
     }
     val orderedRows = remember(rows, order) { orderModelObjectRows(rows, order) }
+    val maxRowsHeight = (LocalConfiguration.current.screenHeightDp * 0.56f).dp.coerceIn(220.dp, 520.dp)
     var expandedGroups by remember(rows) {
         mutableStateOf(rows.filter { it.parts.size > 1 }.map { it.objectIndex }.toSet())
     }
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column {
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(0.96f).fillMaxHeight(0.90f),
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
+        ) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(title, Modifier.weight(1f), style = MaterialTheme.typography.headlineSmall)
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) {
+                        Text("×", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                androidx.compose.foundation.layout.FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    maxItemsInEachRow = 2,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
                 TextButton(
                     onClick = { groupSelectionMode = !groupSelectionMode },
-                    modifier = Modifier.heightIn(min = 48.dp).testTag("model-objects-group-selection-toggle"),
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("model-objects-group-selection-toggle"),
                 ) {
-                    Text(stringResource(if (groupSelectionMode) R.string.ModelMenuCancelGroupSelection else R.string.ModelMenuSelectGroup))
+                    Text(stringResource(if (groupSelectionMode) R.string.ModelMenuCancelGroupSelection else R.string.ModelMenuSelectGroup), textAlign = TextAlign.Center)
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
                     TextButton(
                         onClick = { orderMenuExpanded = true },
-                        modifier = Modifier.heightIn(min = 48.dp).testTag("model-objects-order-menu"),
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("model-objects-order-menu"),
                     ) {
-                        Text("${Slic3rLocalization.getString("Order By")}: ${Slic3rLocalization.getString(order.label)}")
+                        Text("${Slic3rLocalization.getString("Order By")}: ${Slic3rLocalization.getString(order.label)}", textAlign = TextAlign.Center)
                     }
                     DropdownMenu(expanded = orderMenuExpanded, onDismissRequest = { orderMenuExpanded = false }) {
                         ModelObjectOrder.entries.forEach { option ->
@@ -504,50 +532,63 @@ internal fun ModelObjectsDialog(
                     )
                 }
                 LazyColumn(
-                    Modifier.fillMaxWidth().heightIn(max = 420.dp)
+                    Modifier.weight(1f).fillMaxWidth().heightIn(min = 100.dp, max = maxRowsHeight)
                         .testTag("model-objects-dialog-rows"),
                 ) {
                     itemsIndexed(orderedRows) { index, row ->
                         val selected = row.objectIndex in stagedSelection
-                        Row(
-                            Modifier.fillMaxWidth().heightIn(min = 64.dp)
-                                .background(
-                                    if (selected) MaterialSelection else Color.Transparent,
-                                    RoundedCornerShape(10.dp),
-                                ).clickable {
+                        Column(
+                            Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                                .background(if (selected) MaterialSelection else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f), RoundedCornerShape(14.dp)),
+                        ) {
+                            Row(
+                                Modifier.fillMaxWidth().heightIn(min = 64.dp)
+                                .clickable {
                                     if (groupSelectionMode) {
                                         if (selected) stagedSelection.remove(row.objectIndex) else stagedSelection.add(row.objectIndex)
                                     } else onSelect(row.objectIndex)
                                 }.testTag("model-object-row-$index")
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Box(Modifier.size(18.dp).background(Color(row.color), CircleShape))
-                            Column(Modifier.weight(1f)) {
-                                Text(row.name, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text("T${row.tool}: ${row.material} · #${row.color.toUInt().toString(16).padStart(6, '0').takeLast(6).uppercase()}",
-                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                            TextButton(onClick = { onAssign(row.objectIndex) }, enabled = row.assignEnabled,
-                                modifier = Modifier.heightIn(min = 48.dp)) {
-                                Text(assignLabel)
-                            }
-                            if (row.parts.size > 1) TextButton(
-                                onClick = {
-                                    expandedGroups = if (row.objectIndex in expandedGroups) expandedGroups - row.objectIndex
-                                    else expandedGroups + row.objectIndex
-                                },
-                                modifier = Modifier.heightIn(min = 48.dp)
-                                    .testTag("model-object-group-toggle-$index"),
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
-                                val expanded = row.objectIndex in expandedGroups
-                                Text(
-                                    stringResource(
-                                        if (expanded) R.string.ModelObjectCollapseParts else R.string.ModelObjectExpandParts,
-                                        row.parts.size,
-                                    ),
-                                )
+                                Box(Modifier.size(20.dp).background(Color(row.color), CircleShape))
+                                Column(Modifier.weight(1f)) {
+                                    Text(row.name, fontWeight = FontWeight.Medium)
+                                    Text(
+                                        "T${row.tool}: ${row.material} · #${row.color.toUInt().toString(16).padStart(6, '0').takeLast(6).uppercase()}",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                            FlowRow(
+                                Modifier.fillMaxWidth().padding(start = 34.dp, end = 6.dp, bottom = 4.dp),
+                                maxItemsInEachRow = 2,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                TextButton(
+                                    onClick = { onAssign(row.objectIndex) },
+                                    enabled = row.assignEnabled,
+                                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                                ) { Text(assignLabel, textAlign = TextAlign.Center) }
+                                if (row.parts.size > 1) TextButton(
+                                    onClick = {
+                                        expandedGroups = if (row.objectIndex in expandedGroups) expandedGroups - row.objectIndex
+                                        else expandedGroups + row.objectIndex
+                                    },
+                                    modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                                        .testTag("model-object-group-toggle-$index"),
+                                ) {
+                                    val expanded = row.objectIndex in expandedGroups
+                                    Text(
+                                        stringResource(
+                                            if (expanded) R.string.ModelObjectCollapseParts else R.string.ModelObjectExpandParts,
+                                            row.parts.size,
+                                        ),
+                                        textAlign = TextAlign.Center,
+                                    )
+                                }
                             }
                         }
                         if (row.objectIndex in expandedGroups) {
@@ -559,59 +600,63 @@ internal fun ModelObjectsDialog(
                                         .padding(horizontal = 8.dp, vertical = 4.dp),
                                 ) {
                                     Row(
-                                        Modifier.fillMaxWidth(),
+                                        Modifier.fillMaxWidth().heightIn(min = 54.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
                                         Box(Modifier.size(14.dp).background(Color(part.color), CircleShape))
                                         Column(Modifier.weight(1f)) {
-                                            Text(part.label, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                            Text("T${part.tool}: ${part.material}", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Text(part.label, fontWeight = FontWeight.Medium)
+                                            Text("T${part.tool}: ${part.material}")
                                         }
+                                    }
+                                    FlowRow(
+                                        Modifier.fillMaxWidth(),
+                                        maxItemsInEachRow = 2,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                                    ) {
                                         TextButton(
                                             onClick = { onAssignPart(row.objectIndex, partIndex) },
                                             enabled = row.assignEnabled,
-                                            modifier = Modifier.heightIn(min = 48.dp)
+                                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
                                                 .testTag("model-object-assign-part-$index-$partIndex"),
-                                        ) { Text(stringResource(R.string.ModelObjectAssignPartFilament)) }
-                                    }
-                                    Row(
-                                        Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.End,
-                                    ) {
+                                        ) { Text(stringResource(R.string.ModelObjectAssignPartFilament), textAlign = TextAlign.Center) }
                                         TextButton(
                                             onClick = { onEditPartProcessSettings(row.objectIndex, partIndex) },
-                                            modifier = Modifier.heightIn(min = 48.dp)
+                                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
                                                 .testTag("model-object-part-process-settings-$index-$partIndex"),
-                                        ) { Text(stringResource(R.string.ModelObjectPartProcessSettings)) }
+                                        ) { Text(stringResource(R.string.ModelObjectPartProcessSettings), textAlign = TextAlign.Center) }
                                         TextButton(
                                             onClick = { onTransformPart(row.objectIndex, partIndex) },
-                                            modifier = Modifier.heightIn(min = 48.dp)
+                                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
                                                 .testTag("model-object-transform-part-$index-$partIndex"),
-                                        ) { Text(stringResource(R.string.ModelObjectPartTransform)) }
+                                        ) { Text(stringResource(R.string.ModelObjectPartTransform), textAlign = TextAlign.Center) }
                                         TextButton(
                                             onClick = { onEditPart(row.objectIndex, partIndex) },
-                                            modifier = Modifier.heightIn(min = 48.dp)
+                                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
                                                 .testTag("model-object-edit-part-$index-$partIndex"),
-                                        ) { Text(stringResource(R.string.ModelObjectEditPart)) }
+                                        ) { Text(stringResource(R.string.ModelObjectEditPart), textAlign = TextAlign.Center) }
                                     }
                                 }
                             }
                         }
                     }
                 }
+                androidx.compose.foundation.layout.FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                    maxItemsInEachRow = 2,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                ) {
+                    if (groupSelectionMode) TextButton(
+                        onClick = { onApplySelection(stagedSelection.sorted().toIntArray()) },
+                        modifier = Modifier.heightIn(min = 48.dp).testTag("model-objects-selection-confirm"),
+                    ) { Text(stringResource(R.string.ModelMenuApplySelection, stagedSelection.size), textAlign = TextAlign.Center) }
+                    TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) { Text(cancelLabel) }
+                }
             }
-        },
-        confirmButton = {
-            if (groupSelectionMode) TextButton(
-                onClick = { onApplySelection(stagedSelection.sorted().toIntArray()) },
-                modifier = Modifier.heightIn(min = 48.dp).testTag("model-objects-selection-confirm"),
-            ) { Text(stringResource(R.string.ModelMenuApplySelection, stagedSelection.size)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) { Text(cancelLabel) }
-        },
-    )
+        }
+    }
 }
 
 @Composable

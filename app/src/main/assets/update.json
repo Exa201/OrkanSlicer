@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer Nightly 2.5 · 0.8.461\n\n• Drucker-Vorschaubilder zeigen jetzt das vollständige ungeslicte Modell in Draufsicht statt der reduzierten Layeransicht.\n• Die Layerauswahl und Kameraposition werden nach der Aufnahme wiederhergestellt.",
-  "en": "OrkanSlicer Nightly 2.5 · 0.8.461\n\n• Printer thumbnails now show the complete unsliced model from above instead of the reduced layer preview.\n• Layer selection and camera position are restored after capture.",
-  "ru": "OrkanSlicer Nightly 2.5 · 0.8.461\n\n• На миниатюрах принтера теперь показана полная неслайсированная модель сверху, а не сокращённый просмотр слоёв.\n• Выбор слоёв и положение камеры восстанавливаются после снимка."
+  "de": "OrkanSlicer Nightly 2.5 · 0.8.462\n\n• Die Bereiche 3D, Druck, Filament, Drucker und App sind durch eigene Akzentfarben leichter zu unterscheiden.\n• Der Dialog Geladene Objekte zeigt lange Namen und Aktionen in einer adaptiven Vollbildansicht.\n• ACE- und Filamentslots sind ohne horizontales Wischen in bis zu vier Spalten sichtbar.",
+  "en": "OrkanSlicer Nightly 2.5 · 0.8.462\n\n• The 3D, Print, Filament, Printer, and App areas are easier to distinguish with dedicated accent colors.\n• The Loaded Objects dialog shows long names and actions in an adaptive near-full-screen view.\n• ACE and filament slots are visible in up to four columns without horizontal swiping.",
+  "ru": "OrkanSlicer Nightly 2.5 · 0.8.462\n\n• Разделы 3D, Печать, Филамент, Принтер и Приложение различаются собственными акцентными цветами.\n• Диалог загруженных объектов показывает длинные имена и действия в адаптивном полноэкранном окне.\n• Слоты ACE и филамента отображаются в четыре колонки без горизонтальной прокрутки."
 }

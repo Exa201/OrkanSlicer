@@ -41,6 +41,8 @@ data class WorkspaceNavigationItem(
     @DrawableRes val icon: Int,
     val accessibilityLabel: String,
     val compactLabel: String? = null,
+    val accent: Color? = null,
+    val onAccent: Color? = null,
 )
 
 /** Compact destinations keep their labels and full touch areas in both window shapes. */
@@ -156,6 +158,8 @@ private fun Destination(
     // The full localized name remains in the selectable's accessibility semantics.
     val displayFontScale = LocalDensity.current.fontScale.coerceAtLeast(0.1f)
     val navigationLabelSize = (14f / displayFontScale).sp
+    val accent = item.accent ?: MaterialTheme.colorScheme.primary
+    val onAccent = item.onAccent ?: MaterialTheme.colorScheme.onPrimary
     Column(
         modifier.heightIn(min = AdaptiveNavigationPolicy.NAVIGATION_BAR_HEIGHT_DP.dp)
             .selectable(selected = selected, role = Role.Tab,
@@ -172,14 +176,14 @@ private fun Destination(
     ) {
         Surface(
             shape = RoundedCornerShape(OrkanUiTokens.compactCornerRadius),
-            color = if (selected) MaterialTheme.colorScheme.primary
+            color = if (selected) accent
                 else androidx.compose.ui.graphics.Color.Transparent,
         ) {
             Box(Modifier.padding(horizontal = 10.dp, vertical = 3.dp).size(OrkanUiTokens.navigationIconSize)) {
                 Icon(
                     painterResource(item.icon), contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
-                    tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (selected) onAccent else (item.accent?.copy(alpha = 0.88f) ?: MaterialTheme.colorScheme.onSurfaceVariant),
                 )
                 if (selected && showPanelToggleIndicator) {
                     Icon(
@@ -187,7 +191,7 @@ private fun Destination(
                         contentDescription = null,
                         modifier = Modifier.align(Alignment.BottomEnd).size(12.dp)
                             .rotate(if (panelOpen) 180f else 0f),
-                        tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (selected) onAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -199,7 +203,7 @@ private fun Destination(
             textAlign = TextAlign.Center, fontSize = navigationLabelSize,
             modifier = Modifier.fillMaxWidth(),
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            color = if (selected) accent else MaterialTheme.colorScheme.onSurface,
         )
     }
 }

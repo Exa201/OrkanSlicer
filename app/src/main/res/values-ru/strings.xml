@@ -75,6 +75,7 @@
     <string name="ModelMenuMoveToPlateShort">Другая пластина</string>
     <string name="ModelMenuCenterOnBedShort">Центр</string>
     <string name="ModelMenuFillBedShort">Заполнить копиями</string>
+    <string name="ModelScaleToBuildVolumeShort">Вписать</string>
     <string name="ModelMenuArrangeShort">Расставить всё</string>
     <string name="ModelMenuPlaceGroupOnBedFailed">Не удалось безопасно разместить выбранные объекты на столе.</string>
     <string name="ModelMenuOrientAllShort">Ориент. все</string>

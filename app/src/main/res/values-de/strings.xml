@@ -309,6 +309,7 @@
     <string name="ModelMenuMoveToPlate">Ausgewähltes Modell auf andere Druckplatte verschieben</string>
     <string name="ModelMenuCenterOnBed">Ausgewähltes Objekt oder Gruppe auf der Platte zentrieren</string>
     <string name="ModelScaleToBuildVolume">Objekt ins Druckvolumen einpassen</string>
+    <string name="ModelScaleToBuildVolumeShort">Einpassen</string>
     <string name="ModelScaleToBuildVolumeDone">Objekt proportional skaliert, zentriert und auf dem Bett platziert.</string>
     <string name="ModelScaleToBuildVolumeUnsupported">Das Einpassen ist für ein einzelnes Objekt auf rechteckigen Druckplatten verfügbar.</string>
     <string name="ModelMenuPlaceGroupOnBed">Ausgewählte Objektgruppe auf die Platte ablegen</string>

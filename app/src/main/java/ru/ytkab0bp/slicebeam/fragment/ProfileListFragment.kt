@@ -43,6 +43,8 @@ import ru.ytkab0bp.slicebeam.config.ProfileNameValidator
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.ui.OrkanSection
+import ru.ytkab0bp.slicebeam.ui.components.OrkanPageHeader
 import ru.ytkab0bp.slicebeam.ui.settings.ComposeProfileSettingsStatus
 import ru.ytkab0bp.slicebeam.ui.settings.ProfileSettingsViewModel
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
@@ -237,7 +239,7 @@ abstract class ProfileListFragment : Fragment() {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
             setContent {
                 val currentThemeRevision = themeRevision
-                BeamComposeTheme(themeRevision = currentThemeRevision) {
+                BeamComposeTheme(themeRevision = currentThemeRevision, section = sectionForProfileType()) {
                     val project by TemporaryProjectSettings.uiState.collectAsState()
                     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
                     val isPortrait = AdaptiveNavigationPolicy.isPortraitWindow(
@@ -246,6 +248,14 @@ abstract class ProfileListFragment : Fragment() {
                         configuration.orientation == Configuration.ORIENTATION_PORTRAIT,
                     )
                     Column(modifier = Modifier.fillMaxSize()) {
+                        if (getProfileListType() >= 0) {
+                            OrkanPageHeader(
+                                title = ctx.getString(title),
+                                subtitle = ctx.getString(profileSubtitleResource()),
+                                iconRes = profileIconResource(),
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                            )
+                        }
                         if (TemporaryProjectSettings.active && getProfileListType() >= 0) {
                             TemporaryProjectSettingsBar(showFilamentSelector = getProfileListType() == ConfigObject.PROFILE_LIST_FILAMENT)
                         }
@@ -344,6 +354,27 @@ abstract class ProfileListFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun sectionForProfileType(): OrkanSection = when (getProfileListType()) {
+        ConfigObject.PROFILE_LIST_PRINT -> OrkanSection.PRINT
+        ConfigObject.PROFILE_LIST_FILAMENT -> OrkanSection.FILAMENT
+        ConfigObject.PROFILE_LIST_PRINTER -> OrkanSection.PRINTER
+        else -> OrkanSection.DEFAULT
+    }
+
+    private fun profileSubtitleResource(): Int = when (getProfileListType()) {
+        ConfigObject.PROFILE_LIST_PRINT -> R.string.SlotPrintConfigTooltip
+        ConfigObject.PROFILE_LIST_FILAMENT -> R.string.SlotFilamentConfigTooltip
+        ConfigObject.PROFILE_LIST_PRINTER -> R.string.SlotPrinterConfigTooltip
+        else -> R.string.SlotAppSettingsTooltip
+    }
+
+    private fun profileIconResource(): Int = when (getProfileListType()) {
+        ConfigObject.PROFILE_LIST_PRINT -> R.drawable.vk_wrench_outline_24
+        ConfigObject.PROFILE_LIST_FILAMENT -> R.drawable.vk_palette_outline_24
+        ConfigObject.PROFILE_LIST_PRINTER -> R.drawable.vk_printer_outline_24
+        else -> R.drawable.vk_gear_outline_24
     }
 
     override fun onCreate() {

@@ -2017,7 +2017,7 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
     return ComposeView(ctx).apply {
         setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
         setContent {
-            BeamComposeTheme(themeRevision = workspaceThemeRevision) {
+            BeamComposeTheme(themeRevision = workspaceThemeRevision, section = ru.ytkab0bp.slicebeam.ui.OrkanSection.WORKSPACE) {
                 WorkspaceShell(
                     portrait = portrait,
                     toolPanelExpanded = menuToolsExpanded,

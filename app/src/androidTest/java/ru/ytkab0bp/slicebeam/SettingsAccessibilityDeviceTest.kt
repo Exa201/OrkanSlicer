@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -99,6 +100,7 @@ class SettingsAccessibilityDeviceTest {
             .performClick()
         compose.runOnIdle { assertEquals(1, themeActionCount) }
         compose.onNodeWithText(context.getString(R.string.SettingsRenderQuality))
+            .performScrollTo()
             .assertIsDisplayed()
             .assertHeightIsAtLeast(48.dp)
 

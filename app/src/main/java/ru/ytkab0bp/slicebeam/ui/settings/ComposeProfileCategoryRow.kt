@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.os.ConfigurationCompat
 import ru.ytkab0bp.slicebeam.R
+import ru.ytkab0bp.slicebeam.ui.components.OrkanIconBadge
 
 /** Compose replacement for the collapsible profile category row. */
 @Composable
@@ -79,12 +80,16 @@ fun ComposeProfileCategoryRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            painter = painterResource(iconResource),
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = iconTint,
-        )
+        if (noIconTint) {
+            Icon(
+                painter = painterResource(iconResource),
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = iconTint,
+            )
+        } else {
+            OrkanIconBadge(iconResource, size = 32.dp)
+        }
         Text(
             text = localizedTitle,
             modifier = Modifier.weight(1f),

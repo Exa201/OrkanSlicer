@@ -320,6 +320,7 @@
     <string name="ModelMenuMoveToPlate">Move selected model to another plate</string>
     <string name="ModelMenuCenterOnBed">Center selected object or group on the plate</string>
     <string name="ModelScaleToBuildVolume">Scale object to build volume</string>
+    <string name="ModelScaleToBuildVolumeShort">Fit volume</string>
     <string name="ModelScaleToBuildVolumeDone">Object scaled proportionally, centered and placed on the bed.</string>
     <string name="ModelScaleToBuildVolumeUnsupported">Scale-to-fit is available for one object on rectangular build plates.</string>
     <string name="ModelMenuPlaceGroupOnBed">Place selected object group on the bed</string>

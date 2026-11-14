@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.462 — UI 2.1: farbige Bereiche und adaptive Objektansicht — 2026-11-14
+
+- Hauptbereiche erhalten eigene Akzentfarben für 3D, Druck, Filament, Drucker und App; Navigation, Profilköpfe, Einstellungsgruppen und Werkzeugkacheln folgen dem aktiven Bereich.
+- Der Dialog „Geladene Objekte“ nutzt eine adaptive, nahezu vollflächige Ansicht mit lesbaren langen Namen und getrennten Objektaktionen.
+- ACE-/Filamentslots werden in bis zu vier Spalten ohne horizontales Wischen angezeigt; Auswahl, Material und ACE-Zuordnung bleiben erkennbar.
+- Für sehr lange Aktionsbeschriftungen wird im Werkzeugraster eine kompakte, lokalisierte Kurzform verwendet.
+- Emulator-Compose-Regressionen für Objektdialog, Filamentslots, 150-%-Schrifteinstellungen und Aktionskacheln: 4/4 bestanden.
+
 ## 0.8.461 — Vollständige Drucker-Vorschaubilder — 2026-11-14
 
 - Drucker-Uploads erfassen jetzt das ungeslicte Modell in einer orthografischen Draufsicht der Druckplatte, statt den reduzierten Layerblock der G-Code-Vorschau zu übernehmen.

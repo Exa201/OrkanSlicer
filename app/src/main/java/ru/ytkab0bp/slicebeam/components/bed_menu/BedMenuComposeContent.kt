@@ -62,6 +62,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
+import ru.ytkab0bp.slicebeam.ui.LocalOrkanSection
+import ru.ytkab0bp.slicebeam.ui.OrkanSection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -300,6 +302,7 @@ private fun BedMenuActionTile(
         R.string.ModelMenuCenterOnBed -> R.string.ModelMenuCenterOnBedShort
         R.string.ModelMenuPlaceGroupOnBed -> R.string.ModelMenuPlaceGroupOnBedShort
         R.string.ModelMenuFillBed -> R.string.ModelMenuFillBedShort
+        R.string.ModelScaleToBuildVolume -> R.string.ModelScaleToBuildVolumeShort
         R.string.ModelMenuArrange -> R.string.ModelMenuArrangeShort
         R.string.ModelMenuOrientAll -> R.string.ModelMenuOrientAllShort
         R.string.ModelMenuAutoOrientSelected -> R.string.ModelMenuAutoOrientSelectedShort
@@ -332,10 +335,16 @@ private fun BedMenuActionTile(
         R.string.MenuToolbarMeasure -> R.string.MenuActionMeasureShort
         else -> action.titleRes
     }
-    val background = (if (action.selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+    val section = LocalOrkanSection.current
+    val background = (if (action.selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer)
         .copy(alpha = if (action.enabled) 1f else 0.38f)
     val foreground = (if (action.selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface)
         .copy(alpha = if (action.enabled) 1f else 0.55f)
+    val iconTint = when {
+        action.selected -> MaterialTheme.colorScheme.onPrimary
+        section != OrkanSection.DEFAULT -> section.iconAccent
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
     val interaction = if (action.toggleable) {
         Modifier.toggleable(
             value = action.selected,
@@ -437,7 +446,7 @@ private fun BedMenuActionTile(
                     Image(
                         painter = painterResource(action.iconRes),
                         contentDescription = null,
-                        colorFilter = ColorFilter.tint(foreground),
+                        colorFilter = ColorFilter.tint(iconTint),
                         modifier = Modifier.size(OrkanUiTokens.menuIconSize),
                     )
                 }
@@ -461,7 +470,7 @@ private fun BedMenuActionTile(
                 Image(
                     painter = painterResource(action.iconRes),
                     contentDescription = null,
-                    colorFilter = ColorFilter.tint(foreground),
+                    colorFilter = ColorFilter.tint(iconTint),
                     modifier = Modifier.size(OrkanUiTokens.menuIconSize),
                 )
                 Text(

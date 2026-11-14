@@ -21,8 +21,24 @@ private val LocalBeamTextScaleApplied = staticCompositionLocalOf { false }
 /** System accessibility font scale for geometry decisions, excluding the app's text-only zoom. */
 val LocalBeamLayoutFontScale = staticCompositionLocalOf { 1f }
 
+/** A stable functional accent for each primary destination; it never changes profile data. */
+enum class OrkanSection(val accent: Color, val secondary: Color, val iconAccent: Color) {
+    WORKSPACE(Color(0xFF25D4F2), Color(0xFF13AFC7), Color(0xFF087F96)),
+    PRINT(Color(0xFFFF9F43), Color(0xFFF26D3D), Color(0xFFAA4C16)),
+    FILAMENT(Color(0xFFB66BFF), Color(0xFF7B4DDB), Color(0xFF7133A8)),
+    PRINTER(Color(0xFF35D58A), Color(0xFF159B67), Color(0xFF08764D)),
+    APP(Color(0xFF7988FF), Color(0xFFAD5BFF), Color(0xFF4D55BE)),
+    DEFAULT(Color.Unspecified, Color.Unspecified, Color.Unspecified),
+}
+
+val LocalOrkanSection = staticCompositionLocalOf { OrkanSection.DEFAULT }
+
 @Composable
-fun BeamComposeTheme(themeRevision: Int = 0, content: @Composable () -> Unit) {
+fun BeamComposeTheme(
+    themeRevision: Int = 0,
+    section: OrkanSection = OrkanSection.DEFAULT,
+    content: @Composable () -> Unit,
+) {
     val inheritedDensity = LocalDensity.current
     val textScaleAlreadyApplied = LocalBeamTextScaleApplied.current
     val layoutFontScale = if (textScaleAlreadyApplied) LocalBeamLayoutFontScale.current else inheritedDensity.fontScale
@@ -61,13 +77,27 @@ fun BeamComposeTheme(themeRevision: Int = 0, content: @Composable () -> Unit) {
             onSurfaceVariant = secondary,
         )
     }
+    val sectionColors = remember(colors, section, dark) {
+        if (section == OrkanSection.DEFAULT) colors else colors.copy(
+            primary = section.accent,
+            onPrimary = Color(0xFF07111C),
+            secondary = section.secondary,
+            onSecondary = Color.White,
+            primaryContainer = if (dark) section.accent.copy(alpha = 0.22f) else section.accent.copy(alpha = 0.14f),
+            onPrimaryContainer = if (dark) Color.White else Color(0xFF141927),
+            secondaryContainer = if (dark) section.secondary.copy(alpha = 0.20f) else section.secondary.copy(alpha = 0.12f),
+            onSecondaryContainer = if (dark) Color.White else Color(0xFF141927),
+            surfaceVariant = if (dark) Color(0xFF252B3A) else Color(0xFFE9EDF5),
+        )
+    }
     CompositionLocalProvider(
         LocalDensity provides appDensity,
         LocalBeamLayoutFontScale provides layoutFontScale,
         LocalBeamThemeRevision provides themeRevision,
         LocalBeamTextScaleApplied provides true,
+        LocalOrkanSection provides section,
     ) {
-        MaterialTheme(colorScheme = colors, content = content)
+        MaterialTheme(colorScheme = sectionColors, content = content)
     }
 }
 

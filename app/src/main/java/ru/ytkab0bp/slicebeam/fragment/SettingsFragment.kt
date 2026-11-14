@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -78,6 +79,10 @@ import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.theme.BeamTheme
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.ui.OrkanSection
+import ru.ytkab0bp.slicebeam.ui.LocalOrkanSection
+import ru.ytkab0bp.slicebeam.ui.components.OrkanIconBadge
+import ru.ytkab0bp.slicebeam.ui.components.OrkanPageHeader
 import ru.ytkab0bp.slicebeam.ui.settings.SettingsMenuLayoutPolicy
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
 import ru.ytkab0bp.slicebeam.utils.ConverterStorage
@@ -117,7 +122,7 @@ class SettingsFragment : Fragment() {
         setContent {
             val revision = themeRevision
             if (revision >= 0) {
-                BeamComposeTheme(themeRevision = revision) {
+                BeamComposeTheme(themeRevision = revision, section = OrkanSection.APP) {
                     Box(Modifier.fillMaxSize()) {
                         SettingsContent(
                             expandedSections = expandedSections,
@@ -579,27 +584,12 @@ internal fun SettingsContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Column(modifier = Modifier.widthIn(max = 840.dp).fillMaxWidth()) {
-            Text(
-                text = stringResource(R.string.SlotAppSettings),
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = if (compactLayout) 20.sp else 24.sp,
-                fontWeight = FontWeight.Bold,
+            OrkanPageHeader(
+                title = stringResource(R.string.SlotAppSettings),
+                subtitle = stringResource(R.string.SettingsScreenDescription),
+                iconRes = R.drawable.vk_gear_outline_24,
+                modifier = Modifier.padding(bottom = if (compactLayout) 10.dp else 16.dp),
             )
-            if (!shortLandscapeLayout) {
-                Text(
-                    text = stringResource(R.string.SettingsScreenDescription),
-                    modifier = Modifier.fillMaxWidth().padding(
-                        top = 2.dp,
-                        bottom = if (compactLayout) 10.dp else 18.dp,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = if (compactLayout) 13.sp else 15.sp,
-                    lineHeight = if (compactLayout) 17.sp else 21.sp,
-                    maxLines = if (compactLayout) 2 else Int.MAX_VALUE,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
 
             SettingsActionRow(
                 R.drawable.magic_wand_outline_28,
@@ -844,9 +834,11 @@ internal fun SettingsSection(
 ) {
     val expanded = index in expandedSections
     val expansionStateDescription = stringResource(if (expanded) R.string.MakerCollapse else R.string.MakerExpand)
+    val accent = LocalOrkanSection.current.accent
     Card(
         modifier = Modifier.fillMaxWidth().padding(bottom = if (denseLandscape) 6.dp else if (compactLayout) 8.dp else 12.dp),
         shape = RoundedCornerShape(if (compactLayout) 26.dp else 30.dp),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.25f)),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column {
@@ -862,12 +854,7 @@ internal fun SettingsSection(
                     ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                androidx.compose.material3.Icon(
-                    painter = painterResource(iconRes),
-                    contentDescription = null,
-                    modifier = Modifier.size(if (compactLayout) 20.dp else 24.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
+                OrkanIconBadge(iconRes, size = if (compactLayout) 36.dp else 42.dp)
                 Text(
                     text = title,
                     modifier = Modifier.weight(1f).padding(start = 14.dp, end = 8.dp),
@@ -979,12 +966,16 @@ private fun SettingsActionRow(
             ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            androidx.compose.material3.Icon(
-                painter = painterResource(iconRes),
-                contentDescription = null,
-                modifier = Modifier.size(if (denseLandscape) 20.dp else if (compactLayout) 22.dp else 24.dp),
-                tint = if (destructive) foreground else MaterialTheme.colorScheme.primary,
-            )
+            if (destructive) {
+                androidx.compose.material3.Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(if (denseLandscape) 20.dp else if (compactLayout) 22.dp else 24.dp),
+                    tint = foreground,
+                )
+            } else {
+                OrkanIconBadge(iconRes, size = if (denseLandscape) 34.dp else if (compactLayout) 36.dp else 42.dp)
+            }
             Column(modifier = Modifier.weight(1f).padding(start = 12.dp, end = 8.dp)) {
                 Text(
                     text = stringResource(titleRes),
