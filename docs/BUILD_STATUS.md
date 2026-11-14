@@ -730,3 +730,10 @@ scripts/build-debug.sh
 - ARM64 Release APK `OrkanSlicerNightly25_5fa95112f4.apk`, 239,387,839 bytes, SHA-256 `e592edb4dc099eca6f3cbea5fb4b24963609f711b857815e75458ed1a5bc93c9`. GitHub asset digest matches; `.sha256` sidecar uploaded.
 - `:app:verifyNightlyChangelog :app:assembleRelease` passed. Support-interface regression checks were passed on the source commit; physical Xiaomi installation/runtime check remains unverified due the expiring MIUI USB installation confirmation.
 - Five newest prereleases retained: 0.8.458, 0.8.456, 0.8.455, 0.8.454, 0.8.453; 0.8.452 and its tag were removed.
+
+## Updater-Vorversion und zweistufiger Nightly-Ring — 2026-11-14
+
+- About-Seite kann die nächstniedrigere veröffentlichte Nightly anhand der installierten Version bestimmen und herunterladen. Downloadstatus kennzeichnet Rollback getrennt. GitHubUpdater-Auswahltest bestanden.
+- Android unterstützt das In-Place-Downgrade einer normalen App nicht verlässlich; die UI macht diese Systemgrenze deutlich. Zur Wiederherstellung kann Android eine manuelle Neuinstallation nach Datensicherung verlangen.
+- Release-Pruning wurde auf genau zwei Nightly-Prereleases eingestellt. Behalten: v0.8.458 und v0.8.456; die dazwischen älteren v0.8.455/.454/.453 samt Tags gelöscht. Das Skript `scripts/prune-nightly-releases.ps1 -WhatIf` prüft den nächsten Ring vor Ausführung.
+- Debug-Unit-Suite und Changelog-Gate erfolgreich. Die neue Funktion ist noch nicht als APK veröffentlicht.

@@ -1071,6 +1071,16 @@ SetupAboutScreen(versionName, updateStatus, downloadState, onCheckUpdate = {
             downloadState = ru.ytkab0bp.slicebeam.utils.GitHubUpdater.downloadState(this@SetupActivity)
         }
     }
+}, onCheckPreviousVersion = {
+    if (!updateRunning) {
+        updateRunning = true
+        updateStatus = "Suche nach der vorherigen Nightly-Version …"
+        ru.ytkab0bp.slicebeam.utils.GitHubUpdater.checkPreviousVersion(this@SetupActivity) { message ->
+            updateStatus = message
+            updateRunning = false
+            downloadState = ru.ytkab0bp.slicebeam.utils.GitHubUpdater.downloadState(this@SetupActivity)
+        }
+    }
 }, onInstallUpdate = {
     ru.ytkab0bp.slicebeam.utils.GitHubUpdater.installDownloaded(this@SetupActivity) { message ->
         updateStatus = message

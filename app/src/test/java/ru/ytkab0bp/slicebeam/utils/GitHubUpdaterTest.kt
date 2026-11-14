@@ -38,4 +38,18 @@ class GitHubUpdaterTest {
         assertEquals("v0.8.420", GitHubUpdater.selectNightlyRelease(releases, "0.8.419")?.tagName)
         assertEquals(null, GitHubUpdater.selectNightlyRelease(releases, "0.8.420"))
     }
+
+    @Test
+    fun previousNightlySelectionChoosesClosestOlderPublishedPrerelease() {
+        val releases = listOf(
+            NightlyReleaseCandidate("v0.8.99", prerelease = false, draft = false),
+            NightlyReleaseCandidate("v0.8.457", prerelease = true, draft = true),
+            NightlyReleaseCandidate("v0.8.456", prerelease = true, draft = false),
+            NightlyReleaseCandidate("v0.8.453", prerelease = true, draft = false),
+            NightlyReleaseCandidate("v0.8.460", prerelease = true, draft = false),
+        )
+
+        assertEquals("v0.8.456", GitHubUpdater.selectPreviousNightlyRelease(releases, "0.8.458")?.tagName)
+        assertEquals(null, GitHubUpdater.selectPreviousNightlyRelease(releases, "0.8.453"))
+    }
 }

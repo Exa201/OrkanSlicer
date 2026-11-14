@@ -32,6 +32,7 @@ data class UpdateDownloadState(
     val downloadedBytes: Long = 0L,
     val totalBytes: Long = -1L,
     val reason: Int = 0,
+    val isRollback: Boolean = false,
 ) {
     val progressPercent: Int?
         get() = if (totalBytes > 0L) {
@@ -47,6 +48,7 @@ object GitHubUpdater {
     private const val PREFS = "github_updater"
     private const val KEY_DOWNLOAD_ID = "download_id"
     private const val KEY_DOWNLOAD_VERSION = "download_version"
+    private const val KEY_DOWNLOAD_IS_ROLLBACK = "download_is_rollback"
     private val main by lazy(LazyThreadSafetyMode.SYNCHRONIZED) { Handler(Looper.getMainLooper()) }
     private val checkInProgress = AtomicBoolean(false)
     private val startupCheckTriggered = AtomicBoolean(false)
@@ -72,19 +74,27 @@ object GitHubUpdater {
         }
     }
 
+    /** Downloads the newest published Nightly whose version is older than the installed app. */
+    fun checkPreviousVersion(activity: Activity, status: (String) -> Unit) {
+        checkForUpdate(activity.applicationContext, rollback = true) { message ->
+            if (!activity.isFinishing && !activity.isDestroyed) status(message)
+        }
+    }
+
     /** Snapshot that lets the About screen recover a transfer after its system notification is gone. */
     fun downloadState(context: Context): UpdateDownloadState {
         val appContext = context.applicationContext
         val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val id = prefs.getLong(KEY_DOWNLOAD_ID, -1L)
         val version = prefs.getString(KEY_DOWNLOAD_VERSION, null)
+        val isRollback = prefs.getBoolean(KEY_DOWNLOAD_IS_ROLLBACK, false)
         if (id < 0L) return UpdateDownloadState()
         val manager = appContext.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
-            ?: return UpdateDownloadState(version = version, status = UpdateDownloadStatus.FAILED)
+            ?: return UpdateDownloadState(version = version, status = UpdateDownloadStatus.FAILED, isRollback = isRollback)
         return try {
             manager.query(DownloadManager.Query().setFilterById(id)).use { cursor ->
                 if (!cursor.moveToFirst()) {
-                    UpdateDownloadState(version = version, status = UpdateDownloadStatus.FAILED)
+                    UpdateDownloadState(version = version, status = UpdateDownloadStatus.FAILED, isRollback = isRollback)
                 } else {
                     val status = when (cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))) {
                         DownloadManager.STATUS_PENDING -> UpdateDownloadStatus.PENDING
@@ -99,11 +109,12 @@ object GitHubUpdater {
                         downloadedBytes = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)),
                         totalBytes = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)),
                         reason = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON)),
+                        isRollback = isRollback,
                     )
                 }
             }
         } catch (_: Exception) {
-            UpdateDownloadState(version = version, status = UpdateDownloadStatus.FAILED)
+            UpdateDownloadState(version = version, status = UpdateDownloadStatus.FAILED, isRollback = isRollback)
         }
     }
 
@@ -141,7 +152,7 @@ object GitHubUpdater {
         }
     }
 
-    private fun checkForUpdate(context: Context, status: ((String) -> Unit)?) {
+    private fun checkForUpdate(context: Context, rollback: Boolean = false, status: ((String) -> Unit)?) {
         if (!checkInProgress.compareAndSet(false, true)) {
             post(status, "Die Update-Prüfung läuft bereits.")
             return
@@ -150,15 +161,25 @@ object GitHubUpdater {
         Thread({
             try {
                 val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                if (hasUsableExistingDownload(context, manager)) {
-                    post(status, "Ein Update wird bereits im Hintergrund geladen oder ist heruntergeladen.")
+                if (!rollback && hasUsableExistingDownload(context, manager)) {
+                    val existingIsRollback = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                        .getBoolean(KEY_DOWNLOAD_IS_ROLLBACK, false)
+                    post(status, if (existingIsRollback) {
+                        "Der Download der vorherigen Version ist noch verfügbar. Installiere ihn oder verwende ihn, bevor du einen weiteren Download startest."
+                    } else {
+                        "Ein Update wird bereits im Hintergrund geladen oder ist heruntergeladen."
+                    })
+                    return@Thread
+                }
+                if (rollback && hasUsableExistingDownload(context, manager)) {
+                    post(status, "Ein Download ist bereits vorhanden. Installiere ihn zuerst, bevor du eine andere Version auswählst.")
                     return@Thread
                 }
 
                 val connection = open(RELEASES)
                 val releases = connection.inputStream.bufferedReader().use { JSONArray(it.readText()) }
                 connection.disconnect()
-                val release = selectNightlyRelease((0 until releases.length()).mapNotNull { index ->
+                val candidates = (0 until releases.length()).mapNotNull { index ->
                     val json = releases.optJSONObject(index) ?: return@mapNotNull null
                     NightlyReleaseCandidate(
                         json.optString("tag_name"),
@@ -166,9 +187,14 @@ object GitHubUpdater {
                         json.optBoolean("draft"),
                         json.optJSONArray("assets"),
                     )
-                }, BuildConfig.VERSION_NAME)
+                }
+                val release = if (rollback) {
+                    selectPreviousNightlyRelease(candidates, BuildConfig.VERSION_NAME)
+                } else {
+                    selectNightlyRelease(candidates, BuildConfig.VERSION_NAME)
+                }
                 if (release == null) {
-                    post(status, "Du verwendest die aktuellste veröffentlichte Version.")
+                    post(status, if (rollback) "Keine ältere Nightly-Version zum Zurücksetzen gefunden." else "Du verwendest die aktuellste veröffentlichte Version.")
                     return@Thread
                 }
                 val version = release.tagName.removePrefix("v")
@@ -199,7 +225,7 @@ object GitHubUpdater {
 
                 val request = DownloadManager.Request(Uri.parse(downloadUrl))
                     .setTitle("OrkanSlicer Nightly 2.5 $version")
-                    .setDescription("Update wird im Hintergrund geladen (${formatMegabytes(apkSize)} MB).")
+                    .setDescription(if (rollback) "Vorherige Version wird geladen (${formatMegabytes(apkSize)} MB)." else "Update wird im Hintergrund geladen (${formatMegabytes(apkSize)} MB).")
                     .setMimeType("application/vnd.android.package-archive")
                     .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                     .setAllowedOverRoaming(false)
@@ -212,8 +238,9 @@ object GitHubUpdater {
                 context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                     .putLong(KEY_DOWNLOAD_ID, id)
                     .putString(KEY_DOWNLOAD_VERSION, version)
+                    .putBoolean(KEY_DOWNLOAD_IS_ROLLBACK, rollback)
                     .apply()
-                post(status, "Version $version wird im Hintergrund geladen. Android zeigt den Download an.")
+                post(status, if (rollback) "Vorherige Version $version wird im Hintergrund geladen. Hinweis: Android kann eine Installation mit niedrigerer Version ablehnen." else "Version $version wird im Hintergrund geladen. Android zeigt den Download an.")
             } catch (e: Exception) {
                 post(status, "Update-Prüfung fehlgeschlagen: ${e.localizedMessage ?: "Verbindung prüfen"}")
             } finally {
@@ -227,15 +254,19 @@ object GitHubUpdater {
         val id = prefs.getLong(KEY_DOWNLOAD_ID, -1L)
         if (id < 0L) return false
         val downloadedVersion = prefs.getString(KEY_DOWNLOAD_VERSION, null)
-        if (downloadedVersion != null && compareVersions(downloadedVersion, BuildConfig.VERSION_NAME) <= 0) {
+        val isRollback = prefs.getBoolean(KEY_DOWNLOAD_IS_ROLLBACK, false)
+        val versionIsInstalledOrNewer = downloadedVersion != null &&
+            compareVersions(downloadedVersion, BuildConfig.VERSION_NAME) <= 0 &&
+            (!isRollback || compareVersions(downloadedVersion, BuildConfig.VERSION_NAME) == 0)
+        if (versionIsInstalledOrNewer) {
             manager.remove(id)
-            prefs.edit().remove(KEY_DOWNLOAD_ID).remove(KEY_DOWNLOAD_VERSION).apply()
+            prefs.edit().remove(KEY_DOWNLOAD_ID).remove(KEY_DOWNLOAD_VERSION).remove(KEY_DOWNLOAD_IS_ROLLBACK).apply()
             return false
         }
         val query = DownloadManager.Query().setFilterById(id)
         manager.query(query).use { cursor ->
             if (!cursor.moveToFirst()) {
-                prefs.edit().remove(KEY_DOWNLOAD_ID).remove(KEY_DOWNLOAD_VERSION).apply()
+                prefs.edit().remove(KEY_DOWNLOAD_ID).remove(KEY_DOWNLOAD_VERSION).remove(KEY_DOWNLOAD_IS_ROLLBACK).apply()
                 return false
             }
             return when (cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))) {
@@ -244,7 +275,7 @@ object GitHubUpdater {
                 DownloadManager.STATUS_PAUSED,
                 DownloadManager.STATUS_SUCCESSFUL -> true
                 else -> {
-                    prefs.edit().remove(KEY_DOWNLOAD_ID).remove(KEY_DOWNLOAD_VERSION).apply()
+                    prefs.edit().remove(KEY_DOWNLOAD_ID).remove(KEY_DOWNLOAD_VERSION).remove(KEY_DOWNLOAD_IS_ROLLBACK).apply()
                     false
                 }
             }
@@ -288,6 +319,22 @@ object GitHubUpdater {
             }
         }
         return selected
+    }
+
+    internal fun selectPreviousNightlyRelease(
+        releases: List<NightlyReleaseCandidate>,
+        installedVersion: String,
+    ): NightlyReleaseCandidate? {
+        return releases
+            .asSequence()
+            .filter { it.prerelease && !it.draft }
+            .filter { candidate ->
+                val version = candidate.tagName.removePrefix("v")
+                version.isNotBlank() && compareVersions(version, installedVersion) < 0
+            }
+            .maxWithOrNull { a, b ->
+                compareVersions(a.tagName.removePrefix("v"), b.tagName.removePrefix("v"))
+            }
     }
 
     private fun parseVersion(value: String): List<Int>? {

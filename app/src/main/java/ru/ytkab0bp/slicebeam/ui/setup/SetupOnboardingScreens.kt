@@ -137,6 +137,7 @@ internal fun SetupAboutScreen(
     updateStatus: String,
     downloadState: UpdateDownloadState,
     onCheckUpdate: () -> Unit,
+    onCheckPreviousVersion: () -> Unit,
     onInstallUpdate: () -> Unit,
     onRefreshDownload: () -> Unit,
     onClose: () -> Unit,
@@ -173,6 +174,15 @@ internal fun SetupAboutScreen(
         Button(onClick = onCheckUpdate, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(min = 52.dp)) {
             Text("Auf GitHub nach Updates suchen")
         }
+        Button(onClick = onCheckPreviousVersion, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(min = 52.dp)) {
+            Text("Vorherige Nightly-Version laden")
+        }
+        Text(
+            "Android blockiert normalerweise ein Downgrade über eine installierte Version. Wenn der Installer die Vorversion ablehnt, muss sie nach vorheriger Datensicherung manuell neu installiert werden.",
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall,
+        )
         when (downloadState.status) {
             UpdateDownloadStatus.PENDING, UpdateDownloadStatus.RUNNING, UpdateDownloadStatus.PAUSED -> {
                 val progress = downloadState.progressPercent
@@ -185,7 +195,7 @@ internal fun SetupAboutScreen(
                         val stateText = when (downloadState.status) {
                             UpdateDownloadStatus.PAUSED -> "Download pausiert${downloadState.version?.let { " · Version $it" }.orEmpty()}"
                             UpdateDownloadStatus.PENDING -> "Download wartet auf eine Verbindung${downloadState.version?.let { " · Version $it" }.orEmpty()}"
-                            else -> "Update wird im Hintergrund geladen${downloadState.version?.let { " · Version $it" }.orEmpty()}"
+                            else -> "${if (downloadState.isRollback) "Vorherige Version" else "Update"} wird im Hintergrund geladen${downloadState.version?.let { " · Version $it" }.orEmpty()}"
                         }
                         Text(stateText, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(Modifier.height(8.dp))
@@ -211,7 +221,7 @@ internal fun SetupAboutScreen(
                 ) {
                     Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                         Text(
-                            "Update ${downloadState.version?.let { "v$it " }.orEmpty()}heruntergeladen. Du kannst die Installation jederzeit von hier starten.",
+                            "${if (downloadState.isRollback) "Vorversion" else "Update"} ${downloadState.version?.let { "v$it " }.orEmpty()}heruntergeladen. Du kannst den Installer von hier öffnen.",
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                         Text(
@@ -225,7 +235,7 @@ internal fun SetupAboutScreen(
                 Button(
                     onClick = onInstallUpdate,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(min = 52.dp),
-                ) { Text("Heruntergeladenes Update installieren") }
+                    ) { Text(if (downloadState.isRollback) "Vorherige APK öffnen" else "Heruntergeladenes Update installieren") }
             }
             UpdateDownloadStatus.FAILED -> {
                 Text(
