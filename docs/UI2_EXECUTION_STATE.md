@@ -1,5 +1,12 @@
 # Nightly execution state — 2026-11-13
 
+## Fortsetzung — Support-Interfaces und Xiaomi-Prüfung (2026-11-14)
+
+- Ursache im mobilen Orca-Kern behoben: Bottom-Interface-Lagen wurden bei `Top-Interface = 0` als Basis-Support zusammengeführt. Zusätzlich zählte die Projektionslogik den Bottom-Kontakt nicht gegen die konfigurierte Interface-Lagenzahl; dadurch fehlte die Interface-Extrusion bzw. es entstanden drei statt zwei Lagen. Getrennte Top-/Bottom-Verarbeitung, Layerzählung, Dichtewahl und BottomContact-Trimming sind angepasst.
+- Verifikation auf API-36-Emulator: Bottom-Support-Regression **bestanden** (genau zwei Interface-Lagen); Top-Interface- und Tree-Support-Regression **3/3 bestanden**. Vollständige JVM-Suiten nach Kernänderung: Debug **777/777**, SliceTest **777/777**; `verifyNightlyChangelog` erfolgreich. SliceTest-ARM64-APK wurde intern gebaut, nicht veröffentlicht.
+- Xiaomi 2211133G ist online und wach. Der MIUI-Dialog „Installieren über USB“ wurde angezeigt, aber der Installations-Countdown lief ohne Bestätigung ab (`INSTALL_FAILED_USER_RESTRICTED`); daher liefen auf Xiaomi **0** Tests. Die Bestätigungssperre wurde nicht umgangen.
+- Nightly Batch 18 bleibt bei **5/10**; diese Korrektur zählt erst nach dem Hardwarelauf. Kein öffentliches APK/Release, bis 10/10 erreicht sind. Nächster Schritt: SliceTest-Installation am Xiaomi nach manueller MIUI-Bestätigung erneut starten und Bottom-/Top-/Tree-Support-Regressionen dort ausführen.
+
 ## Fortsetzung — 2026-11-14 (Support-Regression und Batch-Gate)
 
 - Den ARM64-Regressionstest für Orca-Fix `17431f363a` präzisiert: Er installiert nun das serialisierte variable Layerprofil auf dem Modell, prüft die Profil-Roundtripwerte und unterscheidet Support-Interface-Extrusion anhand der tatsächlichen G-Code-Bewegungskommentare. So kann der frühere Fehlbefund durch zusammengefasste `TYPE`-Marker den Support-Fix nicht mehr verdecken.

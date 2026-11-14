@@ -3575,13 +3575,21 @@ class NativeSliceDeviceTest {
             result = model.slice(configFile.absolutePath, output.absolutePath, null)
             val gcode = output.readText()
             assertHasExtrusion(gcode)
+            val printLayerZs = Regex("(?m)^;Z:([0-9]+(?:\\.[0-9]+)?)$")
+                .findAll(gcode)
+                .map { it.groupValues[1].toDouble() }
+                .toList()
+            assertTrue("the Orca fixture must produce the 2.16 mm variable layer; actual Z=${printLayerZs.filter { it in 1.8..2.5 }}",
+                printLayerZs.any { kotlin.math.abs(it - 2.16) < 1e-4 })
             val supportSegments = supportExtrusionSegments(gcode)
             val interfaceZs = supportSegments
                 .filter { it.type.contains("interface", ignoreCase = true) }
                 .map { kotlin.math.round(it.z * 1000.0).toLong() }
                 .distinct()
             assertEquals("two bottom-contact interface layers must survive the rounded variable gap; " +
-                "supportTypes=${supportSegments.groupBy { it.type }.mapValues { it.value.size }} interfaceZs=$interfaceZs",
+                "profile=${model.adaptiveLayerHeightProfile(0).toList()} " +
+                "supportTypes=${supportSegments.groupBy { it.type }.mapValues { it.value.size }} " +
+                "interfaceZs=$interfaceZs",
                 2, interfaceZs.size)
             Log.i("NativeSliceDeviceTest", "PASS synchronized bottom support contact interface layers=$interfaceZs")
         } finally {

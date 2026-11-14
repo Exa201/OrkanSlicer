@@ -34,7 +34,7 @@ struct SupportParameters {
 
 	    {
 	        this->num_top_interface_layers    = std::max(0, object_config.support_interface_top_layers.value);
-	        this->num_bottom_interface_layers = number_of_support_interface_bottom_layers(object_config);
+        this->num_bottom_interface_layers = std::max(0, number_of_support_interface_bottom_layers(object_config));
 	        this->has_top_contacts              = num_top_interface_layers    > 0;
 	        this->has_bottom_contacts           = num_bottom_interface_layers > 0;
             // BBS: if support interface and support base do not use the same filament, add a base layer to improve their adhesion
@@ -74,7 +74,7 @@ struct SupportParameters {
         for (auto layer : object.layers())
             this->support_layer_height_min = std::min(this->support_layer_height_min, std::max(0.01, layer->height));
         
-        if (object_config.support_interface_top_layers.value == 0) {
+        if (this->num_top_interface_layers == 0 && this->num_bottom_interface_layers == 0) {
             // No interface layers allowed, print everything with the base support pattern.
             this->support_material_interface_flow = this->support_material_flow;
         }
@@ -120,8 +120,8 @@ struct SupportParameters {
         this->raft_interface_density = std::min(1., this->raft_interface_flow.spacing() / raft_interface_spacing);
         this->support_spacing = object_config.support_base_pattern_spacing.value + this->support_material_flow.spacing();
         this->support_density = std::min(1., this->support_material_flow.spacing() / this->support_spacing);
-        if (object_config.support_interface_top_layers.value == 0) {
-            // No interface layers allowed, print everything with the base support pattern.
+        if (this->num_top_interface_layers == 0) {
+            // No top interface layers allowed; keep unused top interface parameters aligned with base support.
             this->top_interface_spacing = this->support_spacing;
             this->top_interface_density = this->support_density;
         }
@@ -133,6 +133,10 @@ struct SupportParameters {
             this->support_density > 0.95 || this->with_sheath ? ipRectilinear : ipSupportBase;
         this->interface_fill_pattern = (this->top_interface_density > 0.95 ? ipRectilinear : ipSupportBase);
         this->raft_interface_fill_pattern = this->raft_interface_density > 0.95 ? ipRectilinear : ipSupportBase;
+        const coordf_t contact_interface_density = this->num_top_interface_layers > 0 ?
+            this->top_interface_density : this->bottom_interface_density;
+        const bool zero_gap_contact_interface = this->num_top_interface_layers > 0 ?
+            this->zero_gap_interface_top : this->zero_gap_interface_bottom;
         if (object_config.support_interface_pattern == smipGrid)
             this->contact_fill_pattern = ipGrid;
         else if (object_config.support_interface_pattern == smipSpiralInset)
@@ -140,11 +144,10 @@ struct SupportParameters {
         else if (object_config.support_interface_pattern == smipRectilinearInterlaced)
             this->contact_fill_pattern = ipRectilinear;
         else
-            this->contact_fill_pattern =
-            (object_config.support_interface_pattern == smipAuto && this->zero_gap_interface_top) ||
-            object_config.support_interface_pattern == smipConcentric ?
-            ipConcentric :
-            (this->top_interface_density > 0.95 ? ipRectilinear : ipSupportBase);
+            (object_config.support_interface_pattern == smipAuto && zero_gap_contact_interface) ||
+                object_config.support_interface_pattern == smipConcentric ?
+                this->contact_fill_pattern = ipConcentric :
+                this->contact_fill_pattern = contact_interface_density > 0.95 ? ipRectilinear : ipSupportBase;
 
         this->raft_angle_1st_layer  = 0.f;
         this->raft_angle_base       = 0.f;
