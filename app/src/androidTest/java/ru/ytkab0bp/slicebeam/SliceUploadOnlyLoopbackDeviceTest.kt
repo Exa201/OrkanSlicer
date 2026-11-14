@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.json.JSONObject
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -48,7 +49,7 @@ class SliceUploadOnlyLoopbackDeviceTest {
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val config = SliceBeam.requireConfig()
         val printer = requireNotNull(config.findPrinter("Anycubic 4Max Pro 0.4 nozzle"))
-        val process = requireNotNull(config.presets?.get("print"))
+        val process = ConfigObject(requireNotNull(config.findPrint("0.16mm Standard")))
         val filament = requireNotNull(config.presets?.get("filament"))
         val modelFile = File(activity.cacheDir, "upload-only-loopback-${System.nanoTime()}.stl")
         val server = ServerSocket(0, 4, InetAddress.getByName("127.0.0.1")).apply { soTimeout = 120_000 }
@@ -56,12 +57,16 @@ class SliceUploadOnlyLoopbackDeviceTest {
         printer.put("host_type", "moonraker")
         printer.put("print_host", host)
         printer.put("printhost_apikey", "")
+        // A stepped pyramid makes a truncated layer-preview thumbnail visibly differ from the
+        // full top view. At 0.1 mm it also exceeds the performance preview's initial layer block.
+        process.put("layer_height", "0.1")
+        process.put("initial_layer_print_height", "0.1")
         // This generic Marlin fixture uses relative E; the bundled profile leaves the
         // per-layer reset empty, which the native slicer correctly rejects.
         printer.put("layer_gcode", "G92 E0")
         config.presets = ConfigObject("presets").apply {
             put("printer", printer.title)
-            put("print", process)
+            put("print", process.title)
             put("filament", filament)
         }
 
@@ -139,7 +144,7 @@ class SliceUploadOnlyLoopbackDeviceTest {
 
         try {
             Prefs.setPerformanceModeEnabled(true)
-            activity.assets.open("models/xyz_cube.stl").use { source -> modelFile.outputStream().use(source::copyTo) }
+            activity.assets.open("models/pyramid.stl").use { source -> modelFile.outputStream().use(source::copyTo) }
             val loaded = CountDownLatch(1)
             val loadedModel = AtomicReference<Model?>()
             val loadFailure = AtomicReference<Exception?>()
@@ -153,8 +158,11 @@ class SliceUploadOnlyLoopbackDeviceTest {
                     loaded.countDown()
                 }
             })
-            assertTrue("Disposable cube should load", loaded.await(60, TimeUnit.SECONDS))
+            assertTrue("Disposable pyramid should load", loaded.await(60, TimeUnit.SECONDS))
             assertEquals("Model load failure: ${loadFailure.get()}", 1, requireNotNull(loadedModel.get()).objectsCount)
+
+            val unslicedThumbnail = captureThumbnail(bed)
+            val unslicedPixels = decodePixels(unslicedThumbnail)
 
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuSlice)).assertIsDisplayed().performClick()
             compose.onNodeWithText(activity.getString(R.string.MenuSliceCurrentSettings)).assertIsDisplayed().performClick()
@@ -170,23 +178,20 @@ class SliceUploadOnlyLoopbackDeviceTest {
             expectedGcodeName.set(sliceResult.getRecommendedName())
             val viewer = requireNotNull(renderer.viewer)
             val selectedLayerRange = viewer.layersViewRange
-            if (viewer.getLayersCount() > ru.ytkab0bp.slicebeam.slic3r.GCodePreviewPolicy.DEFAULT_BLOCK_SIZE) {
-                assertTrue("Test must start with the intentionally reduced performance preview",
-                    selectedLayerRange.second - selectedLayerRange.first + 1 < viewer.getLayersCount())
-            }
-            val thumbnailBytes = AtomicReference<ByteArray?>()
-            val thumbnailReady = CountDownLatch(1)
-            activity.runOnUiThread {
-                SliceUploadController.captureWorkspacePreview(bed) { image ->
-                    thumbnailBytes.set(image)
-                    thumbnailReady.countDown()
-                }
-            }
-            assertTrue("Printer thumbnail capture should finish", thumbnailReady.await(20, TimeUnit.SECONDS))
-            val capturedThumbnail = requireNotNull(thumbnailBytes.get())
+            assertTrue("The fixture must exceed the bounded initial G-code preview",
+                viewer.getLayersCount() > ru.ytkab0bp.slicebeam.slic3r.GCodePreviewPolicy.DEFAULT_BLOCK_SIZE)
+            assertTrue("Test must start with the intentionally reduced performance preview",
+                selectedLayerRange.second - selectedLayerRange.first + 1 < viewer.getLayersCount())
+            val capturedThumbnail = captureThumbnail(bed)
             val thumbnail = requireNotNull(BitmapFactory.decodeByteArray(capturedThumbnail, 0, capturedThumbnail.size))
             assertTrue("Printer thumbnail should be bounded for upload", thumbnail.width <= 512 && thumbnail.height <= 512)
             assertTrue("Build plate thumbnail should contain rendered pixels", thumbnail.width > 1 && thumbnail.height > 1)
+            val slicedWorkspacePixels = decodePixels(capturedThumbnail)
+            assertArrayEquals(
+                "Printer thumbnail after slicing must match the full unsliced-model top view, not the reduced layer preview",
+                unslicedPixels,
+                slicedWorkspacePixels,
+            )
             thumbnail.recycle()
             compose.waitUntil(timeoutMillis = 5_000) {
                 renderer.viewer?.layersViewRange == selectedLayerRange
@@ -268,6 +273,30 @@ class SliceUploadOnlyLoopbackDeviceTest {
             if (next != '\r'.code) bytes.write(next)
         }
         return bytes.toString("US-ASCII")
+    }
+
+    private fun captureThumbnail(bed: BedFragment): ByteArray {
+        val image = AtomicReference<ByteArray?>()
+        val ready = CountDownLatch(1)
+        compose.activity.runOnUiThread {
+            SliceUploadController.captureWorkspacePreview(bed) {
+                image.set(it)
+                ready.countDown()
+            }
+        }
+        assertTrue("Printer thumbnail capture should finish", ready.await(20, TimeUnit.SECONDS))
+        return requireNotNull(image.get())
+    }
+
+    private fun decodePixels(png: ByteArray): IntArray {
+        val bitmap = requireNotNull(BitmapFactory.decodeByteArray(png, 0, png.size))
+        return try {
+            IntArray(bitmap.width * bitmap.height).also {
+                bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+            }
+        } finally {
+            bitmap.recycle()
+        }
     }
 
     private fun readHttpBody(input: InputStream, headers: Map<String, String>): ByteArray {
