@@ -1,5 +1,14 @@
 # Nightly execution state — 2026-11-13
 
+## Aktueller Fortsetzungsstand — APK-Installationsdiagnose — 2026-11-14
+
+- Maßgeblicher Branch `codex/nightly-batch11-next`, HEAD `564261f895bff9c2c34b4587eabbf8fd579fc741`, sauber nach Push auf `nightly25`.
+- GitHub-APK `v0.8.459-nightly.1` erneut heruntergeladen und geprüft: Signatur v1/v2/v3 gültig, ZIP-CRC vollständig, Paket `com.exa201.orkanslicer.nightly25`, `versionCode=494`, `arm64-v8a`, 239,656,514 Bytes; SHA-256 `d2415f21121ba5d6bb0f83c90e6ad369b58a089a8d60a210efb04fdefad26e94` stimmt mit dem Release-Digest überein.
+- Xiaomi `e7dbd22e` Android 16: Installation des geprüften APKs per ADB endet mit `INSTALL_FAILED_USER_RESTRICTED`. `dumpsys user` meldet `no_install_apps` und `no_install_unknown_sources`; `dumpsys device_policy` weist `com.google.android.devicelockcontroller` als EnforcingAdmin aus. Deshalb ist die Dateimanager-Meldung „Paket offenbar ungültig“ kein Nachweis für ein defektes Paket. Keine Gerätesperre umgangen; auf dem Xiaomi wurde die APK nicht installiert.
+- Nightly-Updater zeigt nun vor dem Öffnen des Paketinstallers getrennte Hinweise für Geräteverwaltung, durch Richtlinie gesperrte unbekannte Quellen und die normale Quellenberechtigung. `GitHubUpdaterTest`: **9/9**, 0 Fehler/Skips. Das löst die Geräteverwaltung nicht und kann eine manuell aus Downloads gestartete Installation nicht abfangen.
+- Batch 18 bleibt **5/10 laufzeitabgenommen**; die Updater-Diagnose zählt nicht als Orca-Kernpunkt. Kein neues APK/Release bis zum bestehenden 10/10-Gate. Hardwaretests am Xiaomi bleiben wegen Installationsrichtlinie nicht verfügbar; zulässige Emulator-/Quelltests können weiterlaufen.
+- Nächster konkreter Arbeitsschritt: mit dem produktiven Texture-Displacement-Kern einen sicheren Android-Editpfad mit asynchronem Bake, Abbruch und undo-fähigem Commit untersuchen/umsetzen; anschließend Native-/3MF-/Compose-Regressionen ausführen.
+
 ## Fortsetzung — Support-Interfaces und Xiaomi-Prüfung (2026-11-14)
 
 - Ursache im mobilen Orca-Kern behoben: Bottom-Interface-Lagen wurden bei `Top-Interface = 0` als Basis-Support zusammengeführt. Zusätzlich zählte die Projektionslogik den Bottom-Kontakt nicht gegen die konfigurierte Interface-Lagenzahl; dadurch fehlte die Interface-Extrusion bzw. es entstanden drei statt zwei Lagen. Getrennte Top-/Bottom-Verarbeitung, Layerzählung, Dichtewahl und BottomContact-Trimming sind angepasst.
