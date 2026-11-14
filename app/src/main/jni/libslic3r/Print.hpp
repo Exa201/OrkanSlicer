@@ -1139,6 +1139,8 @@ private:
     static StringObjectException check_multi_filament_valid(const Print &print);
 
     bool                has_tpu_filament() const;
+    bool                wipe_tower_certain_before_slicing() const;
+    StringObjectException validate_wipe_tower_layering() const;
     bool                invalidate_state_by_config_options(const ConfigOptionResolver &new_config, const std::vector<t_config_option_key> &opt_keys);
 
     void                _make_skirt();

@@ -398,6 +398,54 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test(timeout = 180_000)
+    fun incompatibleAdaptiveLayersAreAllowedWhenNoPrimeTowerToolChangeIsNeeded() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.20mm Standard"))
+        process.put("layer_height", "0.2")
+        process.put("initial_layer_print_height", "0.2")
+        process.put("precise_z_height", "1")
+        process.put("enable_prime_tower", "1")
+
+        val source = copyCube(context, "adaptive-prime-tower-no-change-tall.stl")
+        val shortSource = copyCubeScaledZ(context, "adaptive-prime-tower-no-change-short.stl", 0.55f)
+        val output = File(context.cacheDir, "adaptive-prime-tower-no-change.gcode")
+        val model = Model(source)
+        val shortModel = Model(shortSource)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.addObject(shortModel, 0)
+            model.translate(1, 35.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 1)
+            SliceBeam.genCurrentConfig(model)
+            val configFile = SliceBeam.getCurrentConfigFile()
+            model.applyAdaptiveLayerHeight(0, configFile.absolutePath, 0.5f)
+            assertTrue("the tall adaptive profile must fit the shorter object", model.fitAdaptiveLayerHeightProfileToObject(0, 1))
+            assertTrue("the two objects must have adaptive profiles", model.hasAdaptiveLayerHeight(0) && model.hasAdaptiveLayerHeight(1))
+            model.applyAdaptiveLayerHeight(1, configFile.absolutePath, 0.5f)
+            assertFalse("the independent profiles must differ", model.adaptiveLayerHeightProfile(1).contentEquals(
+                model.adaptiveLayerHeightProfile(0)))
+            SliceBeam.genCurrentConfig(model)
+
+            result = model.slice(configFile.absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertFalse("one used filament must not generate a prime tower just because the profile has multiple filaments",
+                gcode.contains("Prime tower", ignoreCase = true))
+            assertFalse("the unused filament must not appear as a tool change", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            result?.release()
+            model.release()
+            shortModel.release()
+            source.delete()
+            shortSource.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
     private fun formatGCodeDuration(seconds: Float): String {
         val days = (seconds / 86_400f).toInt()
         var remaining = seconds - days * 86_400f
