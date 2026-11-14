@@ -1,5 +1,13 @@
 # Nightly execution state — 2026-11-14
 
+## Orca Batch 19 — Fortschritt 1/10
+
+- Upstream wurde bis `3bfabc9831` aktualisiert. Portiert ist Orcas Anker-M5/M5C-Zeitheader-Fix: alle zwölf M5-, M5-All-Metal- und M5C-Düsenprofile schreiben jetzt `{print_time_total_sec}`. Der Android-Platzhalterpfad bindet den Orca-Namen an den vorhandenen Gesamtzeit-Tag.
+- Beim echten Slice-Test wurde zusätzlich entdeckt und behoben, dass Ankers relative Extrusion `G92 E0` im `layer_gcode` benötigt. Die Profile enthielten den Reset bisher nur im `before_layer_gcode`, wodurch der Android-Kern den Slice vor der Ausgabe abbrach.
+- `NativeSliceDeviceTest#ankerM5AndM5CFileHeadersReportTotalPrintTimeInSeconds`: API-36-Emulator **1/1 bestanden**; echter M5- und M5C-Profil-Slice, ausführbarer Extrusionstoolpath und numerische `;TIME:`-Gesamtzeit größer als 59 Sekunden geprüft. Xiaomi wurde als Ziel erkannt, MIUI wies die Testinstallation mit `INSTALL_FAILED_USER_RESTRICTED` ab (**0 Tests**); keine Gerätefreigabe geändert.
+- ARM64-Native-, Debug-, SliceTest- und Instrumentierungs-APK-Builds sowie `verifyNightlyChangelog` erfolgreich. Debug-/SliceTest-JVM-Suiten stehen bei **783/783**; `git diff --check` sauber.
+- Aktueller Nutzer-APK-Release bleibt 0.8.461. Batch 19 ist noch nicht am 10/10-Release-Gate; nächster Schritt: aktualisierten Orca-Upstream-Delta erneut nach Android-Aufrufpfaden und geeigneten Native-Regressionsfällen triagieren.
+
 ## Aktueller Abschlussstand — Drucker-Vorschaubild-Hotfix 0.8.461
 
 - Ursache: Upload-Thumbnails wurden per PixelCopy aus dem Slice-Viewport aufgenommen. Im Performance-Modus zeigte der Viewer absichtlich nur einen Layerblock, wodurch Drucker bzw. G-Code-Paket ein partielles Bild erhielten.

@@ -2633,6 +2633,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             PlaceholderParser::update_timestamp(top_config);
             PlaceholderParser::update_user_name(top_config);
             top_config.set_key_value("print_time_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Sec_Placeholder)));
+            // Orca's explicit total-seconds name shares the Android port's total-time tag.
+            top_config.set_key_value("print_time_total_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Sec_Placeholder)));
             top_config.set_key_value("used_filament_length", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Used_Filament_Length_Placeholder)));
             std::string top_gcode = print.placeholder_parser().process(top_gcode_template, 0, &top_config);
             if (!top_gcode.empty())

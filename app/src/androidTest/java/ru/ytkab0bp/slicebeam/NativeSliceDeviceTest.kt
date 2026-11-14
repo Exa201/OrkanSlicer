@@ -2818,6 +2818,60 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun ankerM5AndM5CFileHeadersReportTotalPrintTimeInSeconds() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+        val previousConfig = SliceBeam.CONFIG
+        val source = copyCube(context, "anker-total-time-cube.stl")
+        val output = File(context.cacheDir, "anker-total-time-cube.gcode")
+        var model: Model? = null
+        try {
+            context.assets.open("orca_profiles/Anker.ini").use {
+                SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+            }
+            val config = requireNotNull(SliceBeam.CONFIG)
+            assertEquals("all M5/M5 All-Metal/M5C profiles use Orca's total-time header", 12,
+                config.printerConfigs.count { it["file_start_gcode"] == ";TIME:{print_time_total_sec}" })
+            val activeModel = Model(source)
+            model = activeModel
+            activeModel.ensureOnBed(0)
+
+            for (printerName in listOf("Anker M5 0.4 nozzle", "Anker M5C 0.4 nozzle")) {
+                val printer = requireNotNull(config.findPrinter(printerName))
+                val process = requireNotNull(config.findPrint("0.20mm Standard"))
+                val filament = requireNotNull(config.findFilament(printer["default_filament_profile"]))
+                config.presets = ConfigObject("presets").apply {
+                    put("printer", printer.title)
+                    put("print", process.title)
+                    put("filament", filament.title)
+                }
+                SliceBeam.genCurrentConfig(activeModel)
+                output.delete()
+                val result = activeModel.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+                try {
+                    val gcode = output.readText()
+                    assertHasExtrusion(gcode)
+                    val seconds = Regex("(?m)^;TIME:(\\d+(?:\\.\\d+)?)$")
+                        .find(gcode)?.groupValues?.get(1)?.toDoubleOrNull()
+                    assertNotNull("$printerName must substitute a numeric total-duration placeholder", seconds)
+                    assertTrue("$printerName header must contain total time, beyond a seconds-component value: $seconds",
+                        requireNotNull(seconds) > 59.0)
+                } finally {
+                    result.release()
+                }
+            }
+        } finally {
+            model?.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
     fun orca25BenFab450NozzleProfilesLoadAndSliceOnTheirConfiguredBed() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application

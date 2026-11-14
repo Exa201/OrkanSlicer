@@ -1,8 +1,12 @@
 # OrcaSlicer 2.5 Android port delta audit
 
-Reviewed 2026-10-30 against official OrcaSlicer `main` commit
-`a4a51008798934b55ae766aa7cc41d61c40d11e6` and beta tag `v2.5.0-beta`
+Reviewed 2026-11-14 against official OrcaSlicer `main` commit
+`3bfabc9831622fad0785c41625b4f9a62b63ac21` and beta tag `v2.5.0-beta`
 (`345efec64c7b95a05ce5cf96df0dde66a158835c`).
+
+The 2026-11-14 upstream delta was triaged: Anker M5/M5C total print-time metadata was ported
+and verified through native Android slices. The other three commits change desktop WebKit,
+GUI text, or Catch2 test policy and have no equivalent production Android route.
 
 ## What the comparison proves
 
