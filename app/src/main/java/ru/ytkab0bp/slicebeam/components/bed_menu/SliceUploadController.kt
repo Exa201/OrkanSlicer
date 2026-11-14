@@ -678,7 +678,10 @@ object SliceUploadController {
                 return null
             }
             progress.setMessage(SliceBeam.requireInstance().getString(R.string.UploadPreparingAnycubic))
-            val rewritten = AnycubicGCodeProcessor.rewriteForExternalSpool(source, prepared)
+            val thumbnails = createAnycubicThumbnails(previewPng)
+            val rewritten = AnycubicGCodeProcessor.rewriteForExternalSpool(
+                source, prepared, thumbnails.first, thumbnails.second,
+            )
             return prepared.takeIf { rewritten }
         }
         Log.i(

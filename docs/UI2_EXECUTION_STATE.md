@@ -1,5 +1,12 @@
 # Nightly execution state — 2026-11-14
 
+## Kobra 3 externe Spule — vollständige Upload-Draufsicht
+
+- Im Kobra-3-Upload mit externer Spule lief die vorhandene Thumbnail-Aufnahme am `prepareAnycubicUpload`-Sonderzweig vorbei. Dadurch konnte der Drucker weiterhin das im G-Code eingebettete reduzierte Slicerbild erhalten.
+- Die externe Spulen-Umschreibung übernimmt jetzt dieselben beiden Anycubic-Thumbnailblöcke aus der vollständigen Workspace-Draufsicht wie der ACE-Pfad und entfernt vorhandene ältere G-Code-Thumbnailblöcke aus der Uploadkopie. Slicerquelle, Werkzeugwahl und Druckplatte werden nicht verändert.
+- `SinglePhysicalSlotOutputTest#externalSpoolUploadReplacesSlicerThumbnailWithWorkspacePreview` prüft die Ersetzung eines vorhandenen Bildes durch beide neuen Bilder und den Erhalt des Extrusionspfads. Der fokussierte Test sowie alle Tests in `SinglePhysicalSlotOutputTest` liefen erfolgreich; `git diff --check` sauber. Kein echter Druck gestartet, kein Kobra-Gerätetest ausgeführt.
+- Diese gezielte Fehlerbehebung ist kein Orca-Upstream-Port und wird nicht auf Batch 19 angerechnet. Batch 19 bleibt bei 1/10; aktuelles APK weiterhin 0.8.461. Nächster Arbeitsschritt: anhand erreichbarer Android-Pfade den nächsten bisher fehlenden Orca-Punkt bestimmen und mit Verhaltenstest portieren.
+
 ## Orca Batch 19 — Fortschritt 1/10
 
 - Die Thumbnail-Regression ist jetzt stärker: statt eines einfachen Würfel-Fixtures verwendet der Loopback-Test eine Pyramide mit 0,1-mm-Schichthöhe, erzwingt eine G-Code-Vorschau mit mehr Layern als der begrenzte Startblock und vergleicht die PNG-Pixel des ungeslicten Draufsicht-Thumbnails vor und nach dem Slice exakt. API-36-Emulator: **1/1 bestanden**; die Layerauswahl und der Slice bleiben erhalten. Xiaomi `e7dbd22e` wurde erkannt, aber die SliceTest-Installation wurde mit `INSTALL_FAILED_USER_RESTRICTED` abgewiesen (**0 Tests auf Xiaomi**). Daher meldete der zusammengefasste Gradle-Connected-Task wegen Xiaomi einen Fehler; auf Honor starteten ebenfalls 0 Tests.

@@ -336,14 +336,44 @@ class AnycubicGCodeProcessor private constructor() {
         /** Prepares single-material output for the physical external spool without ACE metadata/tool calls. */
         @JvmStatic
         @Throws(IOException::class)
-        fun rewriteForExternalSpool(source: File, destination: File): Boolean {
+        fun rewriteForExternalSpool(
+            source: File,
+            destination: File,
+            smallThumbnail: String = "",
+            largeThumbnail: String = "",
+        ): Boolean {
             var headerClosed = false
+            val replaceThumbnail = smallThumbnail.isNotBlank() || largeThumbnail.isNotBlank()
+            var inThumbnail = false
+            var wrappedThumbnail = false
             try {
                 BufferedReader(InputStreamReader(FileInputStream(source), StandardCharsets.UTF_8), 64 * 1024).use { reader ->
                     BufferedWriter(OutputStreamWriter(FileOutputStream(destination, false), StandardCharsets.UTF_8), 64 * 1024).use { writer ->
                         while (true) {
                             var line = reader.readLine() ?: break
                             val normalized = line.trim()
+                            if (replaceThumbnail) {
+                                if (inThumbnail) {
+                                    if (wrappedThumbnail) {
+                                        if (normalized.startsWith("; THUMBNAIL_BLOCK_END", ignoreCase = true)) {
+                                            inThumbnail = false
+                                            wrappedThumbnail = false
+                                        }
+                                    } else if (normalized.startsWith("; thumbnail end", ignoreCase = true)) {
+                                        inThumbnail = false
+                                    }
+                                    continue
+                                }
+                                if (normalized.startsWith("; THUMBNAIL_BLOCK_START", ignoreCase = true)) {
+                                    inThumbnail = true
+                                    wrappedThumbnail = true
+                                    continue
+                                }
+                                if (normalized.startsWith("; thumbnail begin ", ignoreCase = true)) {
+                                    inThumbnail = true
+                                    continue
+                                }
+                            }
                             // On Kobra 3 the firmware interprets even T0 as a request to
                             // initialize the detached ACE hub. A single external spool is
                             // already selected physically, so remove tool changes and ACE-only
@@ -359,7 +389,19 @@ class AnycubicGCodeProcessor private constructor() {
                             }
                             writer.write(line)
                             writer.newLine()
-                            if (line == "; HEADER_BLOCK_END") headerClosed = true
+                            if (line == "; HEADER_BLOCK_END") {
+                                headerClosed = true
+                                if (replaceThumbnail) {
+                                    if (smallThumbnail.isNotBlank()) {
+                                        writer.write(smallThumbnail)
+                                        writer.newLine()
+                                    }
+                                    if (largeThumbnail.isNotBlank()) {
+                                        writer.write(largeThumbnail)
+                                        writer.newLine()
+                                    }
+                                }
+                            }
                         }
                     }
                 }

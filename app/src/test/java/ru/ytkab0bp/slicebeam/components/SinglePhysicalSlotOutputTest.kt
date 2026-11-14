@@ -103,4 +103,29 @@ class SinglePhysicalSlotOutputTest {
             assertTrue("the model extrusion must be retained", result.contains("G1 X10 E1"))
         } finally { source.delete(); output.delete() }
     }
+
+    @Test fun externalSpoolUploadReplacesSlicerThumbnailWithWorkspacePreview() {
+        val source = File.createTempFile("external-spool-thumbnail-source", ".gcode")
+        val output = File.createTempFile("external-spool-thumbnail-output", ".gcode")
+        try {
+            source.writeText(
+                "; HEADER_BLOCK_START\n; HEADER_BLOCK_END\n" +
+                    "; THUMBNAIL_BLOCK_START\n" +
+                    "; thumbnail begin 2x2 12 top\n; T0xD\n; OLDIMAGE\n; thumbnail end\n" +
+                    "; THUMBNAIL_BLOCK_END\nG28\nG1 X10 E1\n",
+            )
+            val small = AnycubicGCodeProcessor.formatThumbnailBlock(1, 1, "U01F", false)
+            val large = AnycubicGCodeProcessor.formatThumbnailBlock(1, 1, "V1NFW", true)
+
+            assertTrue(AnycubicGCodeProcessor.rewriteForExternalSpool(source, output, small, large))
+
+            val result = output.readText()
+            assertEquals("Only the two workspace preview blocks should be sent", 2,
+                result.lines().count { it.startsWith("; thumbnail begin ") })
+            assertTrue(result.contains("; U01F"))
+            assertTrue(result.contains("; V1NFW"))
+            assertFalse("The old reduced slicer thumbnail must not remain in the upload", result.contains("OLDIMAGE"))
+            assertTrue(result.contains("G1 X10 E1"))
+        } finally { source.delete(); output.delete() }
+    }
 }
