@@ -5025,3 +5025,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Release-Ring auf zwei aktuelle Nightly-Prereleases reduziert. Derzeit behalten: 0.8.458 und 0.8.456 (0.8.457 war nicht veröffentlicht); 0.8.455, .454 und .453 samt Tags entfernt. `scripts/prune-nightly-releases.ps1` hält nach jeder künftigen Veröffentlichung die zwei zeitlich neuesten Prereleases; `-WhatIf` zeigt Löschungen vorab an.
 - `:app:testDebugUnitTest :app:verifyNightlyChangelog` erfolgreich; Updater-Tests 6/6. Der vollständige Debug-Unit-Satz lief erfolgreich. Kein neues APK gebaut/veröffentlicht: die Änderungen liegen im Code-Branch und benötigen eine signierte Release-Pipeline, bevor sie auf Geräten verfügbar sind.
 - Nächster Schritt: Release-Signaturschlüssel/Release-Pipeline sicherstellen, dann neue APK aus diesem Branch veröffentlichen; Rollback-Funktion am Gerät mit der aktuellen und Vorversion erproben.
+
+## Signaturprüfung für den Rollback-Build — 2026-11-14
+
+- `:app:assembleRelease` für Commit `ae6c6c3ffc` erfolgreich, aber das Ergebnis ist nicht signiert: Android `apksigner verify --verbose --print-certs` meldet `DOES NOT VERIFY` / `Missing META-INF/MANIFEST.MF`.
+- Dasselbe wurde am GitHub-Asset von v0.8.458 bestätigt (239,387,839 Bytes; SHA-256 `e592edb4dc099eca6f3cbea5fb4b24963609f711b857815e75458ed1a5bc93c9`): ebenfalls keine gültige APK-Signatur. Keine Release-/APK-Veröffentlichung für den neuen Updatercode vorgenommen.
+- Im Workspace ist kein Release-Keystore oder `signingConfig` vorhanden; das Xiaomi meldet aktuell kein installiertes Nightly-Paket, dessen Signatur ausgelesen werden könnte. Daher keine Debug-Signatur als Produkt-/Updatekey verwendet.
+- Blocker: ein geschützter, stabiler Release-Schlüssel und ein Release-Signing-Schritt müssen verfügbar sein, bevor ein installierbares Nightly-Artefakt gebaut oder veröffentlicht werden kann. Der Quellcode samt Tests ist auf Nightly gepusht; Debug/SliceTests und Release-Kompilierung sind erfolgreich.
