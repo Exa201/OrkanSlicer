@@ -5230,9 +5230,11 @@ class InitialProjectMenuDeviceTest {
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val firstFile = File(activity.cacheDir, "menu-multi-import-${System.nanoTime()}-a.stl")
         val secondFile = File(activity.cacheDir, "menu-multi-import-${System.nanoTime()}-b.obj")
+        val thirdFile = File(activity.cacheDir, "menu-multi-import-${System.nanoTime()}-c.amf")
         val cachedFiles = listOf(
             File(SliceBeam.getModelCacheDir(), firstFile.name),
             File(SliceBeam.getModelCacheDir(), secondFile.name),
+            File(SliceBeam.getModelCacheDir(), thirdFile.name),
         )
         val requestCode = MainActivity.REQUEST_CODE_OPEN_FILE
         val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
@@ -5265,6 +5267,25 @@ class InitialProjectMenuDeviceTest {
                 .open("models/orca-bridge-speed.obj").use { source ->
                 secondFile.outputStream().use(source::copyTo)
             }
+            thirdFile.writeText(
+                """<?xml version="1.0" encoding="UTF-8"?>
+                    <amf unit="millimeter" version="1.1">
+                      <object id="0"><mesh>
+                        <vertices>
+                          <vertex><coordinates><x>0</x><y>0</y><z>0</z></coordinates></vertex>
+                          <vertex><coordinates><x>10</x><y>0</y><z>0</z></coordinates></vertex>
+                          <vertex><coordinates><x>0</x><y>10</y><z>0</z></coordinates></vertex>
+                          <vertex><coordinates><x>0</x><y>0</y><z>10</z></coordinates></vertex>
+                        </vertices>
+                        <volume>
+                          <triangle><v1>0</v1><v2>2</v2><v3>1</v3></triangle>
+                          <triangle><v1>0</v1><v2>1</v2><v3>3</v3></triangle>
+                          <triangle><v1>0</v1><v2>3</v2><v3>2</v3></triangle>
+                          <triangle><v1>1</v1><v2>2</v2><v3>3</v3></triangle>
+                        </volume>
+                      </mesh></object>
+                    </amf>""".trimIndent(),
+            )
             assertEquals(0, bed.currentModel?.objectsCount ?: 0)
 
             openWorkspaceMenu(activity, WorkspaceDestination.PROJECT, R.string.MenuProject)
@@ -5281,9 +5302,12 @@ class InitialProjectMenuDeviceTest {
             val secondUri = FileProvider.getUriForFile(activity, authority, secondFile)
             val clipData = android.content.ClipData.newUri(
                 activity.contentResolver,
-                "selected STL and OBJ models",
+                "selected STL, OBJ, and AMF models",
                 firstUri,
-            ).apply { addItem(android.content.ClipData.Item(secondUri)) }
+            ).apply {
+                addItem(android.content.ClipData.Item(secondUri))
+                addItem(android.content.ClipData.Item(FileProvider.getUriForFile(activity, authority, thirdFile)))
+            }
             val resultIntent = Intent().apply { setClipData(clipData) }
             activity.runOnUiThread {
                 MainActivity::class.java.getDeclaredMethod(
@@ -5293,10 +5317,10 @@ class InitialProjectMenuDeviceTest {
                     .invoke(activity, requestCode, android.app.Activity.RESULT_OK, resultIntent)
             }
             compose.waitUntil(timeoutMillis = 60_000) {
-                (bed.currentModel?.objectsCount ?: 0) >= 2
+                (bed.currentModel?.objectsCount ?: 0) >= 3
             }
-            assertTrue("the selected STL and OBJ should both be imported as separate objects",
-                requireNotNull(bed.currentModel).objectsCount >= 2)
+            assertTrue("the selected STL, OBJ, and AMF should all import as separate objects",
+                requireNotNull(bed.currentModel).objectsCount >= 3)
             compose.waitUntil(timeoutMillis = 10_000) { cachedFiles.none(File::exists) }
             assertTrue("the batch importer should remove temporary cached meshes after loading",
                 cachedFiles.none(File::exists))
@@ -5304,6 +5328,7 @@ class InitialProjectMenuDeviceTest {
             launchers[requestCode] = previousLauncher
             firstFile.delete()
             secondFile.delete()
+            thirdFile.delete()
             cachedFiles.forEach(File::delete)
         }
     }
