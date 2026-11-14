@@ -1,7 +1,6 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import android.graphics.Paint
-import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,6 +32,7 @@ import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.core.view.HapticFeedbackConstantsCompat
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import kotlin.math.ceil
@@ -98,7 +98,7 @@ internal fun SteppedRuler(
                         if (result.value != dragValue) {
                             dragValue = result.value
                             latestOnValueChanged(result.value)
-                            if (Prefs.isVibrationEnabled()) view.performHapticFeedback(HapticFeedbackConstants.TEXT_HANDLE_MOVE)
+                            if (Prefs.isVibrationEnabled()) view.performHapticFeedback(HapticFeedbackConstantsCompat.TEXT_HANDLE_MOVE)
                         }
                     },
                     onDragEnd = {

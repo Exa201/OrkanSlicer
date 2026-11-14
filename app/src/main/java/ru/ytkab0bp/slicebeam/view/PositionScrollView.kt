@@ -9,7 +9,6 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.text.TextPaint
 import android.view.GestureDetector
-import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Scroller
@@ -17,6 +16,7 @@ import androidx.core.graphics.ColorUtils
 import androidx.core.math.MathUtils
 import androidx.core.util.Consumer
 import androidx.core.view.ViewCompat
+import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.dynamicanimation.animation.FloatValueHolder
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
@@ -296,7 +296,7 @@ class PositionScrollView(context: Context) : View(context), IThemeView {
             Prefs.isVibrationEnabled() && VibrationUtils.hasAmplitudeControl() &&
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1
         ) {
-            performHapticFeedback(HapticFeedbackConstants.TEXT_HANDLE_MOVE)
+            performHapticFeedback(HapticFeedbackConstantsCompat.TEXT_HANDLE_MOVE)
         }
     }
 

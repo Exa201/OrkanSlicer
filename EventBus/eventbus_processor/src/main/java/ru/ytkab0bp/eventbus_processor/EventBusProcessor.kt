@@ -146,7 +146,7 @@ class EventBusProcessor : AbstractProcessor() {
         listOf(Event::class.java.canonicalName, EventHandler::class.java.canonicalName),
     )
 
-    override fun getSupportedSourceVersion(): SourceVersion = SourceVersion.RELEASE_8
+    override fun getSupportedSourceVersion(): SourceVersion = SourceVersion.latestSupported()
 
     private enum class CannotProcessReason(val reason: String) {
         NOT_ENOUGH_ARGUMENTS("Not enough arguments!"),

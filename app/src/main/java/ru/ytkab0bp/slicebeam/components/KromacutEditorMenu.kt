@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
+import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewClientCompat
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -213,7 +214,7 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
 
     private fun webGlDeviceDetails(context: Context): String {
         val provider = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" }
+            WebViewCompat.getCurrentWebViewPackage(context)?.let { "${it.packageName} ${it.versionName}" }
         } else null
         return context.getString(
             R.string.KromacutWebGlDeviceDetails,

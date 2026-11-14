@@ -57,11 +57,11 @@ internal fun rememberGlideBitmap(
                 }
             }
             val request = requestManager.asBitmap().load(url).override(sizePx, sizePx)
-            when (shape) {
+            val transformedRequest = when (shape) {
                 GlideBitmapShape.CIRCLE -> request.circleCrop()
                 GlideBitmapShape.ROUNDED -> request.transform(CenterCrop(), RoundedCorners(cornerRadiusPx))
             }
-            request.into(target)
+            transformedRequest.into(target)
             onDispose { requestManager.clear(target) }
         }
     }
