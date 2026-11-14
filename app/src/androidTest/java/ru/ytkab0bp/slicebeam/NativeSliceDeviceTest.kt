@@ -54,6 +54,16 @@ import java.util.zip.CRC32
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test
+    fun bundledExpatRejectsEntityAmplificationBeforeExpandingUntrustedXml() {
+        val result = Native.expat_entity_amplification_guard_regression()
+        assertEquals("Expat must be built with DTD support so its entity guard is enabled", 1, result[0])
+        assertEquals("Expat's default amplification limit must remain enabled", 100, result[1])
+        assertEquals("The bounded parser threshold must remain at 8 MiB", 8 * 1024 * 1024, result[2])
+        assertEquals("The crafted expansion should be rejected", 1, result[3])
+        assertEquals("The parser should reject it specifically at the amplification guard", 1, result[4])
+    }
+
     private data class TbbWorkerSliceMeasurement(
         val cpuTicks: Map<String, Long>,
         val processorIds: Set<Int>,

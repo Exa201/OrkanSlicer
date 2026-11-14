@@ -27,6 +27,9 @@ class Native {
 
     @JvmStatic
     external fun get_print_config_def(def: PrintConfigDef): Unit
+    /** Verifies the bundled Expat build enables DTD-aware amplification protection. */
+    @JvmStatic
+    external fun expat_entity_amplification_guard_regression(): IntArray
     /** Exercises the native Auto For Match solver against four synthetic two-slot palettes. */
     @JvmStatic
     external fun filament_group_match_regression(): IntArray

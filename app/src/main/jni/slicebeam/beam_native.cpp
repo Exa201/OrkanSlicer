@@ -19,6 +19,7 @@
 #include <tbb/task_arena.h>
 
 #include <jni.h>
+#include <expat.h>
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
@@ -414,6 +415,54 @@ extern "C" {
         const auto reprap = inspect(gcfRepRapFirmware, "G10 P0 S220\nG1 X10 Y10 E1 F1200\n");
         const auto marlin = inspect(gcfMarlinFirmware, "G10 S220\nG1 X10 Y10 E1 F1200\n");
         const std::array<jint, 3> values{ reprap[0], reprap[1], marlin[0] };
+        jintArray result = env->NewIntArray(static_cast<jsize>(values.size()));
+        if (result != nullptr)
+            env->SetIntArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
+        return result;
+    }
+
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_expat_1entity_1amplification_1guard_1regression(
+            JNIEnv *env, jclass) {
+        bool has_dtd = false;
+        jint maximum_amplification = -1;
+        jint activation_threshold = -1;
+        for (const XML_Feature *feature = XML_GetFeatureList(); feature->feature != XML_FEATURE_END; ++feature) {
+            if (feature->feature == XML_FEATURE_DTD)
+                has_dtd = true;
+            else if (feature->feature == XML_FEATURE_BILLION_LAUGHS_ATTACK_PROTECTION_MAXIMUM_AMPLIFICATION_DEFAULT)
+                maximum_amplification = static_cast<jint>(feature->value);
+            else if (feature->feature == XML_FEATURE_BILLION_LAUGHS_ATTACK_PROTECTION_ACTIVATION_THRESHOLD_DEFAULT)
+                activation_threshold = static_cast<jint>(feature->value);
+        }
+
+        XML_Parser parser = XML_ParserCreate(nullptr);
+        if (parser == nullptr)
+            return nullptr;
+
+        std::string xml = "<!DOCTYPE amf [\n<!ENTITY a \"0123456789\">\n";
+        for (char entity = 'b'; entity <= 'g'; ++entity) {
+            xml += "<!ENTITY ";
+            xml += entity;
+            xml += " \"";
+            for (int repetition = 0; repetition < 10; ++repetition) {
+                xml += '&';
+                xml += static_cast<char>(entity - 1);
+                xml += ';';
+            }
+            xml += "\">\n";
+        }
+        xml += "]><amf>&g;</amf>";
+        const XML_Status status = XML_Parse(parser, xml.data(), static_cast<int>(xml.size()), XML_TRUE);
+        const XML_Error error = XML_GetErrorCode(parser);
+        XML_ParserFree(parser);
+
+        const std::array<jint, 5> values{
+            has_dtd ? 1 : 0,
+            maximum_amplification,
+            activation_threshold,
+            status == XML_STATUS_ERROR ? 1 : 0,
+            error == XML_ERROR_AMPLIFICATION_LIMIT_BREACH ? 1 : 0,
+        };
         jintArray result = env->NewIntArray(static_cast<jsize>(values.size()));
         if (result != nullptr)
             env->SetIntArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());

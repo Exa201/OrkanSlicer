@@ -97,8 +97,8 @@ include_directories(src/main/jni/libigl)
 include_directories(src/main/occt/include/${ANDROID_ABI})
 
 # Expat config
-set(EXPAT_CONTEXT_BYTES 1024)
-set(EXPAT_DTD ON)
+set(XML_CONTEXT_BYTES 1024)
+set(XML_DTD ON)
 set(XML_DEV_URANDOM ON)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/main/jni/expat/expat_config.h.cmake ${CMAKE_CURRENT_SOURCE_DIR}/src/main/jni/expat/expat_config.h)
 
