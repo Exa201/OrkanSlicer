@@ -1154,3 +1154,8 @@ This fork includes the earlier OrcaMobile/SliceBeam Kotlin UI migration, model a
 
 - Debug- und Slice-Unit-Suiten: 586/586 bestanden. Vollständige Honor-Instrumentierung: 237 Tests, keine Fehler oder Überspringungen; KromaCut-Fixture separat 3/3 bestanden.
 - Finaler Code-Commit `ba7c1b85ee33a909a7857fca42ad6a18ce735b3a`; Debug-APK `app/build/outputs/apk/debug/OrkanSlicer_ba7c1b85ee.apk` (239,126,049 Bytes, SHA-256 `90964E8769D99BE1FD1B7A41086250AE338CFAB143298E45881B915D20E5042A`). Auf Honor PTP-N49 installiert und gestartet.
+
+## 0.8.458 — Pluralisierte Orca-Texte — 2026-11-14
+
+- Der PO-Loader verarbeitet Singular- und Plural-Quelltexte sowie `msgstr[n]`-Übersetzungen der Orca-Kataloge. Pluralisierte Werkzeugmeldungen fallen dadurch nicht mehr auf englische Quelltexte zurück.
+- Parserregression und echter deutscher Orca-Katalogeintrag ergänzt.

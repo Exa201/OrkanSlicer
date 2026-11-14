@@ -4911,3 +4911,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Aktueller Xiaomi-Versuch der erweiterten Regression erneut durch `INSTALL_FAILED_USER_RESTRICTED` vor Ausführung abgebrochen (**0 Tests**). Gerät bleibt als einziges Hardwareziel gewählt; kein Emulator und keine Policy-Änderung.
 - Batch 18 bleibt **5/10 verifiziert**; Kandidaten ohne tatsächlich ausgeführten Test zählen nicht als abgenommen. Kein APK/Release aus dieser unbestätigten Änderung.
 - Nächster Schritt: Roundtrip- und Slice-Instrumentierung auf Xiaomi wiederholen, sobald MIUI/Device Lock die Testinstallation zulässt.
+
+## Orca-PO-Pluralübersetzungen — 2026-11-14
+
+- Xiaomi 2211133G / Android 16 per ADB verbunden und als Hardwareziel beibehalten; kein Emulator verwendet. Die Geräteverwaltung `com.google.android.devicelockcontroller` blockiert weiterhin Testinstallationen mit `INSTALL_FAILED_USER_RESTRICTED`; der Instrumentierungslauf `OrcaLanguageAssetDeviceTest` startete mit 0 Tests. Die Sperre wurde nicht umgangen.
+- Orca 2.5.1-Kataloge enthalten je nach Sprache aktive Pluralmeldungen; der App-PO-Loader ignorierte `msgid_plural` und `msgstr[n]`, wodurch pluralisierte Meldungen auf Englisch zurückfielen. Loader um pluralisierte Schlüssel, `msgstr[n]`-Fortsetzungen sowie Singular-/Pluralübersetzungen erweitert.
+- Neue Unit-Regression für ein synthetisches PO und einen echten deutschen Orca-Katalogeintrag.
+- `:app:testDebugUnitTest :app:testSliceTestUnitTest :app:verifyNightlyChangelog :app:assembleSliceTestAndroidTest` erfolgreich: **776/776 Debug**, **776/776 SliceTest**, keine Fehler/Skips; ARM64-Instrumentierungs-APK kompiliert. `git diff --check` erfolgreich.
+- Punkt ist lokal und automatisiert verifiziert; physischer Xiaomi-Lauf bleibt wegen Installationsrichtlinie offen. Batch 18 bleibt **5/10 vollständig zur Laufzeit abgenommen**; kein Release erstellt.
+- Nächster Schritt: Xiaomi-Installation von Instrumentierungs-APKs durch Device Lock freigeben lassen, dann `OrcaLanguageAssetDeviceTest` tatsächlich ausführen; bis dahin keine Hardwareabnahme behaupten.

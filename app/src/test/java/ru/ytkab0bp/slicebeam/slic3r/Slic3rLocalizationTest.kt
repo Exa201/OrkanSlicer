@@ -50,6 +50,33 @@ msgstr "Dateiende"
     }
 
     @Test
+    fun parsesPluralSourceAndUsesTranslatedPluralFormForPluralLookups() {
+        val localization = parse(
+            """msgid "%1${'$'}d connector is out of cut contour"
+msgid_plural "%1${'$'}d connectors are out of cut contour"
+msgstr[0] "%1${'$'}d Verbinder ist außerhalb der Schnittkontur"
+msgstr[1] "%1${'$'}d Verbinder sind außerhalb der Schnittkontur"
+
+"""
+        )
+
+        assertEquals("%1${'$'}d Verbinder ist außerhalb der Schnittkontur", localization.get("%1${'$'}d connector is out of cut contour"))
+        assertEquals("%1${'$'}d Verbinder sind außerhalb der Schnittkontur", localization.get("%1${'$'}d connectors are out of cut contour"))
+    }
+
+    @Test
+    fun actualGermanCatalogResolvesOrcaPluralSourceMessages() {
+        val fromModule = File("src/main/assets/localization/de.po")
+        val catalog = if (fromModule.isFile) fromModule else File("app/src/main/assets/localization/de.po")
+        val localization = catalog.inputStream().use(Slic3rLocalization::fromPo)
+
+        assertEquals(
+            "%1${'$'}d Verbinder sind außerhalb des Schnittkontur",
+            localization.get("%1${'$'}d connectors are out of cut contour"),
+        )
+    }
+
+    @Test
     fun actualGermanCatalogIncludesTheMobileBridgeWidthExplanation() {
         val fromModule = File("src/main/assets/localization/de.po")
         val catalog = if (fromModule.isFile) fromModule else File("app/src/main/assets/localization/de.po")
