@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.429
+
+- Wrap full printer-profile names and summaries in the 3D workspace header instead of truncating labels with ellipses.
+- Allow the header to grow only when the selected profile needs more lines, preserving build-plate space for ordinary profiles.
+- Verify complete title and summary layout at 150% text on a narrow Android 16 viewport.
+
 ## 0.8.415
 
 - Keep the Fill Bed operation from rejecting a plate just because existing placements fragment the remaining free area; retry by safely repacking existing objects when needed.

@@ -132,7 +132,9 @@ internal fun WorkspaceShell(
                 // Reserve the header height for the largest app text zoom. The
                 // reservation depends only on Android's accessibility scale, so
                 // moving the app slider cannot change the bed viewport geometry.
-                .height(WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(LocalBeamLayoutFontScale.current).dp)
+                // Keep a stable minimum for ordinary names, but permit the profile chip
+                // to wrap full localized printer names and summaries without clipping.
+                .heightIn(min = WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(LocalBeamLayoutFontScale.current).dp)
                 .padding(horizontal = 6.dp, vertical = 4.dp),
         ) {
             Box(
@@ -358,7 +360,7 @@ internal object WorkspaceShellLayoutPolicy {
     const val MIN_LANDSCAPE_SIDE_PANEL_WIDTH_DP = 360
     private const val MAX_APP_TEXT_SCALE = 1.5f
 
-    /** Stable header geometry with room for its two profile lines at the app zoom maximum. */
+    /** Stable minimum header geometry with room for the common profile title and summary. */
     @JvmStatic
     fun workspaceHeaderHeightDp(systemFontScale: Float): Int {
         val stableScale = (systemFontScale.takeIf { it.isFinite() && it > 0f } ?: 1f) * MAX_APP_TEXT_SCALE

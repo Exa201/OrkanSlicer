@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.428\n\n• Lange Druckerprofilnamen umbrechen jetzt im 3D-Kopf auf bis zu zwei Zeilen statt bereits nach einer Zeile abgeschnitten zu werden.\n• Die Profilkurzinfo darf bei schmalen Layouts ebenfalls umbrechen; die vollständigen Angaben bleiben in Profilauswahl und TalkBack verfügbar.",
-  "en": "OrkanSlicer 0.8.428\n\n• Long printer profile names now wrap to up to two lines in the 3D header instead of being cut after one line.\n• The profile summary can also wrap in narrow layouts; full details remain available in the profile picker and TalkBack.",
-  "ru": "OrkanSlicer 0.8.428\n\n• Длинные названия профилей принтера в заголовке 3D теперь переносятся на две строки вместо обрезания после одной.\n• Краткое описание профиля также переносится в узких макетах; полные сведения доступны в выборе профиля и TalkBack."
+  "de": "OrkanSlicer 0.8.429\n\n• Druckerprofilname und Kurzinfo im 3D-Kopf werden vollständig umgebrochen, statt mit Auslassungspunkten abgeschnitten zu werden.\n• Der Kopf wächst bei langen Bezeichnungen nur so weit wie nötig; die Druckplatte behält den übrigen Platz.",
+  "en": "OrkanSlicer 0.8.429\n\n• Printer profile names and summaries in the 3D header now wrap in full instead of being truncated with ellipses.\n• The header grows only as much as needed for long labels, leaving the remaining space to the build plate.",
+  "ru": "OrkanSlicer 0.8.429\n\n• Название профиля принтера и краткое описание в заголовке 3D теперь переносятся полностью без многоточия.\n• Заголовок увеличивается только настолько, насколько нужно для длинных подписей, сохраняя остальное место для стола."
 }

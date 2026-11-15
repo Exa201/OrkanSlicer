@@ -21,12 +21,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 import ru.ytkab0bp.slicebeam.ui.ColorFlow
-import ru.ytkab0bp.slicebeam.ui.OrkanIcon
 
 @Composable
 internal fun WorkspaceProfileStatus(
@@ -34,6 +34,8 @@ internal fun WorkspaceProfileStatus(
     summary: String,
     accessibilityDescription: String,
     onOpen: () -> Unit,
+    onTitleTextLayout: (TextLayoutResult) -> Unit = {},
+    onSummaryTextLayout: (TextLayoutResult) -> Unit = {},
 ) {
     val visibleTitle = if (title.isBlank()) stringResource(R.string.WorkspaceProfilesOpenLabel) else title
     Surface(
@@ -52,9 +54,6 @@ internal fun WorkspaceProfileStatus(
             ),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
-            OrkanIcon(R.drawable.printer_outline_28, null, size = OrkanUiTokens.menuIconSize,
-                accent = ColorFlow.printer, secondaryAccent = ColorFlow.model)
-            Spacer(Modifier.width(OrkanUiTokens.controlGap))
             Column(Modifier.weight(1f)) {
                 Text(
                     text = visibleTitle,
@@ -63,18 +62,17 @@ internal fun WorkspaceProfileStatus(
                     fontSize = 14.sp,
                     lineHeight = 18.sp,
                     fontWeight = FontWeight.SemiBold,
-                    // Let long printer names use a second line before truncating. The
-                    // profile picker and parent accessibility label retain the full value.
-                    maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    // The workspace chip is narrow next to the bed, plate and printer
+                    // controls. Wrap the full profile name and let the header grow for
+                    // unusually long names instead of silently replacing it with an ellipsis.
+                    onTextLayout = onTitleTextLayout,
                 )
                 Text(
                     text = summary,
                     modifier = Modifier.testTag("workspace-profile-summary"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    onTextLayout = onSummaryTextLayout,
                 )
             }
             Spacer(Modifier.width(8.dp))
