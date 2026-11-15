@@ -27,7 +27,10 @@ class ChangeLogComposeDeviceTest {
         SliceBeam.INSTANCE = app
         Prefs.init(app)
         lateinit var dialog: ChangeLogDialog
-        compose.runOnUiThread { dialog = ChangeLogDialog(compose.activity) }
+        // The test Activity belongs to the instrumentation APK; the release-note asset is
+        // packaged in the target app. Give the dialog the same application context used by
+        // the production route so this assertion exercises the actual localized asset.
+        compose.runOnUiThread { dialog = ChangeLogDialog(app) }
         val dismissed = mutableStateOf(false)
         compose.setContent {
             BeamComposeTheme {

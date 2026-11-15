@@ -12,9 +12,22 @@ This branch applies the attached design package as a native Compose visual layer
 | Objektliste | AlertDialog with object groups, assignment and part actions | Adaptive wide/full-height sheet, searchable virtual list, complete long names, preserved group actions | Replaced active dialog entry point with bounded responsive Compose Dialog; filter returns original model indices |
 | Designsystem | ThemeRepo palette plus Compose theme | Consistent tokens, semantic surfaces, local offline icons, dark and light modes | Added shared ColorFlow colors, spacing/shape/touch tokens, action/card/row primitives and multi-tone local icon wrapper. Dark renderer palette now matches ColorFlow; light palette remains intact |
 
+## Aktuelle APK-Aufnahmen
+
+Die APK 0.8.423 / Code 458 wurde direkt auf dem Android-16-Emulator gestartet. Die fünf Ansichten wurden jeweils geöffnet und als Screenshots festgehalten:
+
+| Ansicht | Aufnahme |
+|---|---|
+| 3D-Arbeitsbereich | `docs/screenshots/ui21/15-current-apk-android16-emulator.png` |
+| Druck | `docs/screenshots/ui21/16-print-route-current-apk.png` |
+| Filament | `docs/screenshots/ui21/17-filament-route-current-apk.png` |
+| Drucker | `docs/screenshots/ui21/18-printer-route-current-apk.png` |
+| App | `docs/screenshots/ui21/19-app-route-current-apk.png` |
+
 ## Verification
 
 - `:app:testDebugUnitTest`: 705/705 passed, no skips/failures.
+- Latest invocation completed successfully with all 63 Gradle tasks up-to-date; it did not force a fresh execution of the 705 tests.
 - `PrintConfigToolsDialogsDeviceTest`: 4/4 passed on Android 16 emulator; `SettingsAccessibilityDeviceTest`: 1/1 passed on emulator.
 - `:app:assembleDebug`: successful for 0.8.423 / code 458. APK installed/launched on Android 16 emulator; inspected logcat window had no fatal error. v1/v2 signature verification passed; SHA-256 `6BD2B61AF90F0EE3AB6A5D6DD27C0BE3ADA6A61AA4A9044BDEB9A570B69A8F7B`.
 - Screenshots of all five main routes, the flush-volume dialog, startup changelog, active filament summary and active printer summary are in `docs/screenshots/ui21/`.
@@ -41,3 +54,5 @@ This branch applies the attached design package as a native Compose visual layer
 - Device layout check found flush-matrix values rendered black on dark cells; text now explicitly uses `onSurface`. Search icon tint is also explicit. The recaptured dialog confirms the correction.
 - Automated connected-test task also attempted to install the instrumentation APK on the attached Xiaomi; the install was cancelled by Android (`INSTALL_FAILED_USER_RESTRICTED`). Emulator test results are successful; Xiaomi hardware is not counted as tested.
 - Remaining acceptance: manual Honor PTP-N49 at 150% font scale, physical TalkBack checks, printer upload on real hardware (without a print start), and a clean complete Slice test suite on one device. The native slice/result, repeated-slice release, safe chooser route, imported two-color 3MF list and grouped-part display have emulator evidence.
+- Latest single-emulator full instrumentation attempt planned 484 cases and stopped in case 152 after the Android system_server became unresponsive. At interruption: 134 passed, 12 failed, 5 skipped. This is not a complete-suite pass. The failures still needing isolation include stale semantic expectations and functional cases for flatten mode, group placement, mirror status, live paint, import spacing, and failed-duplicate undo/redo. The Xiaomi install was canceled by the device (`INSTALL_FAILED_USER_RESTRICTED`), so the run used only the emulator.
+- Latest Debug APK SHA-256: `E3C618D6B0FF373ADC4048381E186B35E7E970A55C9DAC5340880A87F011C2C6` (artifact `artifacts/OrkanSlicer_UI21_ColorFlow_latest_debug.apk`).
