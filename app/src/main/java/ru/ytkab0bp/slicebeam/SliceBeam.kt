@@ -8,6 +8,7 @@ import android.util.Log
 import android.util.AtomicFile
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
+import android.preference.PreferenceManager
 import com.instacart.truetime.time.TrueTimeImpl
 import ru.ytkab0bp.eventbus.EventBus
 import ru.ytkab0bp.slicebeam.boot.AppBoot
@@ -594,7 +595,9 @@ open class SliceBeam : Application() {
     @SuppressLint("ApplySharedPref")
     override fun onCreate() {
         super.onCreate()
-        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("de"))
+        val initialLanguage = PreferenceManager.getDefaultSharedPreferences(this)
+            .getString("app_language", "de") ?: "de"
+        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(initialLanguage))
         INSTANCE = this
         TemporaryProjectSettings.onChanged = { settingsChanged ->
             android.os.Handler(android.os.Looper.getMainLooper()).post {

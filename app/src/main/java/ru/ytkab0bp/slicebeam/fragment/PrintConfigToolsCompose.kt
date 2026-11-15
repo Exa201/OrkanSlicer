@@ -220,7 +220,11 @@ private fun FlushVolumeCell(
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth().testTag(tag).semantics { contentDescription = label },
             singleLine = true,
-            textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, textAlign = TextAlign.Center),
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center,
+            ),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
         )

@@ -4,6 +4,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.view.View
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +64,7 @@ import ru.ytkab0bp.slicebeam.launchAppActivityResult
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SetupActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
+import ru.ytkab0bp.slicebeam.slic3r.OrcaLanguage
 import ru.ytkab0bp.slicebeam.components.ColorChooserDialog
 import ru.ytkab0bp.slicebeam.events.BeamServerDataUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CloudUserInfoUpdatedEvent
@@ -73,6 +76,8 @@ import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.theme.BeamTheme
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.ui.ColorFlow
+import ru.ytkab0bp.slicebeam.ui.OrkanIcon
 import ru.ytkab0bp.slicebeam.ui.settings.SettingsMenuLayoutPolicy
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
 import ru.ytkab0bp.slicebeam.utils.ConverterStorage
@@ -112,7 +117,7 @@ class SettingsFragment : Fragment() {
         setContent {
             val revision = themeRevision
             if (revision >= 0) {
-                BeamComposeTheme(themeRevision = revision) {
+                BeamComposeTheme(themeRevision = revision, accentOverride = ColorFlow.app) {
                     Box(Modifier.fillMaxSize()) {
                         SettingsContent(
                             expandedSections = expandedSections,
@@ -124,9 +129,11 @@ class SettingsFragment : Fragment() {
                             converterRoot = ConverterStorage.getRootDisplayName(ctx),
                             cameraProjection = ctx.getString(if (Prefs.isOrthoProjectionEnabled()) R.string.SettingsCameraOrthographic else R.string.SettingsCameraPerspective),
                             cameraControlMode = cameraControlModeLabel(ctx, Prefs.getCameraControlMode()),
+                            appLanguage = OrcaLanguage.byTag(Prefs.getAppLanguage()).nativeName,
                             onToggleSection = ::toggleSection,
                             onMaker = ::openMaker,
                             onTheme = ::showThemePicker,
+                            onLanguage = ::showLanguagePicker,
                             onAccent = ::showAccentPicker,
                             onUiTextScale = ::showUiTextScalePicker,
                             onConverterFolder = ::chooseConverterFolder,
@@ -214,6 +221,19 @@ class SettingsFragment : Fragment() {
             Prefs.setThemeMode(which)
             (getContext() as? Activity)?.let { ThemesRepo.invalidate(it) }
             themeRevision++
+        }
+    }
+
+    private fun showLanguagePicker() {
+        val current = OrcaLanguage.byTag(Prefs.getAppLanguage())
+        showChoiceDialog(
+            title = R.string.SettingsInterfaceLanguage,
+            options = OrcaLanguage.all.map { it.nativeName },
+            selectedIndex = OrcaLanguage.all.indexOf(current).coerceAtLeast(0),
+        ) { which ->
+            val selected = OrcaLanguage.all[which]
+            Prefs.setAppLanguage(selected.tag)
+            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(selected.tag))
         }
     }
 
@@ -457,9 +477,11 @@ internal fun SettingsContent(
     converterRoot: String,
     cameraProjection: String,
     cameraControlMode: String,
+    appLanguage: String,
     onToggleSection: (Int) -> Unit,
     onMaker: () -> Unit,
     onTheme: () -> Unit,
+    onLanguage: () -> Unit,
     onAccent: () -> Unit,
     onUiTextScale: () -> Unit,
     onConverterFolder: () -> Unit,
@@ -562,6 +584,12 @@ internal fun SettingsContent(
                         R.string.SettingsInterfaceTheme,
                         value = themeName,
                         onClick = onTheme,
+                        compactLayout = compactLayout,
+                    )
+                    SettingsRow(
+                        R.string.SettingsInterfaceLanguage,
+                        value = appLanguage,
+                        onClick = onLanguage,
                         compactLayout = compactLayout,
                     )
                     SettingsRow(
@@ -732,10 +760,17 @@ internal fun SettingsSection(
 ) {
     val expanded = index in expandedSections
     val expansionStateDescription = stringResource(if (expanded) R.string.MakerCollapse else R.string.MakerExpand)
+    val sectionAccent = when (index) {
+        0, 5 -> ColorFlow.app
+        1 -> ColorFlow.print
+        2 -> ColorFlow.printer
+        3 -> ColorFlow.model
+        else -> ColorFlow.filament
+    }
     Card(
         modifier = Modifier.fillMaxWidth().padding(bottom = if (denseLandscape) 6.dp else if (compactLayout) 8.dp else 12.dp),
-        shape = RoundedCornerShape(if (compactLayout) 26.dp else 30.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column {
             Row(
@@ -750,12 +785,8 @@ internal fun SettingsSection(
                     ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                androidx.compose.material3.Icon(
-                    painter = painterResource(iconRes),
-                    contentDescription = null,
-                    modifier = Modifier.size(if (compactLayout) 20.dp else 24.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
+                OrkanIcon(iconRes, null, size = if (compactLayout) 20.dp else 24.dp,
+                    accent = sectionAccent, secondaryAccent = ColorFlow.textSecondary)
                 Text(
                     text = title,
                     modifier = Modifier.weight(1f).padding(start = 14.dp, end = 8.dp),
@@ -769,7 +800,7 @@ internal fun SettingsSection(
                     painter = painterResource(R.drawable.dropdown_24),
                     contentDescription = null,
                     modifier = Modifier.size(24.dp).rotate(if (expanded) 180f else 0f),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = sectionAccent,
                 )
             }
             if (expanded) {
@@ -794,13 +825,14 @@ private fun SettingsRow(
     onClick: () -> Unit,
     compactLayout: Boolean,
 ) {
+    val accent = MaterialTheme.colorScheme.primary
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = if (compactLayout) 52.dp else 60.dp)
             .clip(RoundedCornerShape(14.dp))
             .clickable(role = Role.Button, onClick = onClick),
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         contentColor = MaterialTheme.colorScheme.onSurface,
         shape = RoundedCornerShape(14.dp),
     ) {
@@ -829,12 +861,17 @@ private fun SettingsRow(
                 Text(
                     text = value,
                     modifier = Modifier.padding(top = 4.dp),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = accent,
                     fontSize = if (compactLayout) 13.sp else 14.sp,
                     fontWeight = FontWeight.Medium,
                 )
             }
-            Text("›", color = MaterialTheme.colorScheme.primary, fontSize = 26.sp)
+            Icon(
+                painter = painterResource(R.drawable.dropdown_24),
+                contentDescription = null,
+                modifier = Modifier.size(22.dp).rotate(270f),
+                tint = accent,
+            )
         }
     }
 }
@@ -867,12 +904,10 @@ private fun SettingsActionRow(
             ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            androidx.compose.material3.Icon(
-                painter = painterResource(iconRes),
-                contentDescription = null,
-                modifier = Modifier.size(if (denseLandscape) 20.dp else if (compactLayout) 22.dp else 24.dp),
-                tint = if (destructive) foreground else MaterialTheme.colorScheme.primary,
-            )
+            OrkanIcon(iconRes, null,
+                size = if (denseLandscape) 20.dp else if (compactLayout) 22.dp else 24.dp,
+                accent = if (destructive) foreground else MaterialTheme.colorScheme.primary,
+                secondaryAccent = ColorFlow.textSecondary)
             Column(modifier = Modifier.weight(1f).padding(start = 12.dp, end = 8.dp)) {
                 Text(
                     text = stringResource(titleRes),
@@ -892,7 +927,12 @@ private fun SettingsActionRow(
                     )
                 }
             }
-            if (!destructive) Text("›", color = MaterialTheme.colorScheme.primary, fontSize = if (compactLayout) 22.sp else 26.sp)
+            if (!destructive) Icon(
+                painter = painterResource(R.drawable.dropdown_24),
+                contentDescription = null,
+                modifier = Modifier.size(if (compactLayout) 20.dp else 22.dp).rotate(270f),
+                tint = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }

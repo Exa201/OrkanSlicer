@@ -1790,6 +1790,18 @@ extern "C" {
         return false;
     }
 
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1layer_1height_1profile(JNIEnv* env, jclass, jlong ptr, jint i) {
+        ModelRef* model = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(ptr));
+        if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size() ||
+            model->model.objects[static_cast<size_t>(i)] == nullptr)
+            return env->NewDoubleArray(0);
+        const auto& profile = model->model.objects[static_cast<size_t>(i)]->layer_height_profile.get();
+        jdoubleArray result = env->NewDoubleArray(static_cast<jsize>(profile.size()));
+        if (result != nullptr && !profile.empty())
+            env->SetDoubleArrayRegion(result, 0, static_cast<jsize>(profile.size()), profile.data());
+        return result;
+    }
+
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1create_1text_1object(
         JNIEnv* env, jclass, jlong ptr, jstring fontPath, jstring textStr, jfloat size, jfloat depth,
         jdouble px, jdouble py, jdouble pz, jdouble nx, jdouble ny, jdouble nz, jint targetObjectIndex) {
@@ -4260,6 +4272,68 @@ extern "C" {
             }
         }
         env->SetIntArrayRegion(result, 0, count, triangleCounts.data());
+        return result;
+    }
+
+    // Regression for dovetail/contour cuts: merged meshes must retain the effective
+    // per-part filament and material identity used by slicing.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_cut_1preserves_1part_1filaments_1regression(JNIEnv* env, jclass) {
+        auto add_part = [](ModelObject* object, int extruder, const std::string& material_id, double x_offset) {
+            TriangleMesh mesh = make_cube(12.5, 25., 25.);
+            mesh.translate(static_cast<float>(x_offset), 0.f, 0.f);
+            ModelVolume* volume = object->add_volume(std::move(mesh));
+            volume->config.set("extruder", extruder);
+            volume->set_material_id(material_id);
+        };
+        auto inspect_parts = [](const ModelObject* object) {
+            std::array<int, 3> values{{0, 0, 0}};
+            std::unordered_set<std::string> material_ids;
+            for (const ModelVolume* volume : object->volumes) {
+                if (!volume->is_model_part() || volume->is_cut_connector()) continue;
+                ++values[0];
+                const int extruder = volume->extruder_id();
+                if (extruder > 0 && extruder < 31) values[1] |= 1 << (extruder - 1);
+                material_ids.insert(volume->material_id());
+            }
+            values[2] = static_cast<int>(material_ids.size());
+            return values;
+        };
+
+        Model model;
+        ModelObject* object = model.add_object();
+        add_part(object, 1, "mat_blue", 0.0);
+        add_part(object, 2, "mat_white", 15.0);
+        add_part(object, 1, "mat_blue", 30.0);
+        add_part(object, 2, "mat_white", 45.0);
+        object->add_instance();
+        Cut cut(object, 0, Transform3d::Identity(), ModelObjectCutAttribute::KeepUpper | ModelObjectCutAttribute::KeepLower);
+        const ModelObjectPtrs& cut_objects = cut.perform_by_contour(object,
+            {{true, false}, {true, false}, {false, false}, {false, false}}, 0);
+
+        Model same_settings_model;
+        ModelObject* same_settings = same_settings_model.add_object();
+        same_settings->config.set("extruder", 1);
+        add_part(same_settings, 1, "", 0.0);
+        ModelVolume* restated = same_settings->add_volume(make_cube(12.5, 25., 25.));
+        restated->config.set("extruder", 1);
+        same_settings->add_instance();
+        Cut same_settings_cut(same_settings, 0, Transform3d::Identity(),
+            ModelObjectCutAttribute::KeepUpper | ModelObjectCutAttribute::KeepLower);
+        const ModelObjectPtrs& same_settings_objects = same_settings_cut.perform_by_contour(same_settings,
+            {{true, false}, {true, false}}, 0);
+
+        std::array<jint, 8> values{{static_cast<jint>(cut_objects.size()), 0, 0, 0, 0, 0, 0, 0}};
+        if (cut_objects.size() == 2) {
+            const auto upper = inspect_parts(cut_objects[0]);
+            const auto lower = inspect_parts(cut_objects[1]);
+            values[1] = upper[0]; values[2] = upper[1]; values[3] = upper[2];
+            values[4] = lower[0]; values[5] = lower[1]; values[6] = lower[2];
+        }
+        if (same_settings_objects.size() == 1)
+            values[7] = inspect_parts(same_settings_objects.front())[0];
+
+        jintArray result = env->NewIntArray(static_cast<jsize>(values.size()));
+        if (result != nullptr) env->SetIntArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
         return result;
     }
 }

@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
+import ru.ytkab0bp.slicebeam.ui.ColorFlow
+import ru.ytkab0bp.slicebeam.ui.OrkanIcon
 
 data class WorkspaceNavigationItem(
     val slot: Int,
@@ -41,6 +43,7 @@ data class WorkspaceNavigationItem(
     @DrawableRes val icon: Int,
     val accessibilityLabel: String,
     val compactLabel: String? = null,
+    val accent: Color = ColorFlow.globalDestination(slot),
 )
 
 /** Compact destinations keep their labels and full touch areas in both window shapes. */
@@ -172,22 +175,20 @@ private fun Destination(
     ) {
         Surface(
             shape = RoundedCornerShape(OrkanUiTokens.compactCornerRadius),
-            color = if (selected) MaterialTheme.colorScheme.primary
+            color = if (selected) item.accent.copy(alpha = 0.18f)
                 else androidx.compose.ui.graphics.Color.Transparent,
         ) {
             Box(Modifier.padding(horizontal = 10.dp, vertical = 3.dp).size(OrkanUiTokens.navigationIconSize)) {
-                Icon(
-                    painterResource(item.icon), contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                OrkanIcon(item.icon, null, modifier = Modifier.align(Alignment.Center),
+                    size = OrkanUiTokens.navigationIconSize, accent = item.accent,
+                    secondaryAccent = ColorFlow.textSecondary, selected = selected)
                 if (selected && showPanelToggleIndicator) {
                     Icon(
                         painter = painterResource(R.drawable.dropdown_24),
                         contentDescription = null,
                         modifier = Modifier.align(Alignment.BottomEnd).size(12.dp)
                             .rotate(if (panelOpen) 180f else 0f),
-                        tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (selected) item.accent else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -199,7 +200,7 @@ private fun Destination(
             textAlign = TextAlign.Center, fontSize = navigationLabelSize,
             modifier = Modifier.fillMaxWidth(),
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            color = if (selected) item.accent else MaterialTheme.colorScheme.onSurface,
         )
     }
 }

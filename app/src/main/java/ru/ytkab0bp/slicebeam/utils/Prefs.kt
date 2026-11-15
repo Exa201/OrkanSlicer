@@ -28,6 +28,7 @@ open class Prefs {
 
         private var mPrefs: SharedPreferences? = null
         private var lowRamDevice = false
+        private const val PREF_APP_LANGUAGE = "app_language"
 
         private fun requirePrefs(): SharedPreferences = mPrefs!!
 
@@ -46,6 +47,14 @@ open class Prefs {
         /** May be null before application bootstrap has initialized preferences. */
         @JvmStatic
         fun getPrefs(): SharedPreferences? = mPrefs
+
+        @JvmStatic
+        fun getAppLanguage(): String = requirePrefs().getString(PREF_APP_LANGUAGE, "de") ?: "de"
+
+        @JvmStatic
+        fun setAppLanguage(languageTag: String) {
+            requirePrefs().edit().putString(PREF_APP_LANGUAGE, languageTag).apply()
+        }
 
         @JvmStatic
         fun getLastCommit(): String? = requirePrefs().getString("last_commit", null)

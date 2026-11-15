@@ -319,6 +319,7 @@ public:
     // Size of an object: XYZ in scaled coordinates. The size might not be quite snug in XY plane.
     const Vec3crd&               size() const			{ return m_size; }
     const PrintObjectConfig&     config() const         { return m_config; }
+    bool                         precise_z_height() const;
     void                         configBrimWidth(double m)      {m_config.brim_width.value = m; }
     ConstLayerPtrsAdaptor        layers() const         { return ConstLayerPtrsAdaptor(&m_layers); }
     ConstSupportLayerPtrsAdaptor support_layers() const { return ConstSupportLayerPtrsAdaptor(&m_support_layers); }
@@ -1138,6 +1139,8 @@ private:
     PrintRegionConfig                       m_default_region_config;
     PrintObjectPtrs                         m_objects;
     PrintRegionPtrs                         m_print_regions;
+    // Temporary per-print override when a prime tower requires shared variable-height layers.
+    bool                                    m_precise_z_height_overridden {false};
     
     //SoftFever
     bool m_isBBLPrinter;

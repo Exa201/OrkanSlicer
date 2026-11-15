@@ -18,6 +18,11 @@
 
 namespace Slic3r {
 
+bool PrintObject::precise_z_height() const
+{
+    return m_config.precise_z_height.value && !m_print->m_precise_z_height_overridden;
+}
+
 bool PrintObject::clip_multipart_objects = true;
 bool PrintObject::infill_only_where_needed = false;
 
@@ -825,7 +830,7 @@ void PrintObject::slice()
     m_print->throw_if_canceled();
     m_typed_slices = false;
     this->clear_layers();
-    m_layers = new_layers(this, generate_object_layers(m_slicing_params, layer_height_profile, m_config.precise_z_height.value));
+    m_layers = new_layers(this, generate_object_layers(m_slicing_params, layer_height_profile, this->precise_z_height()));
     this->slice_volumes();
     m_print->throw_if_canceled();
     int firstLayerReplacedBy = 0;

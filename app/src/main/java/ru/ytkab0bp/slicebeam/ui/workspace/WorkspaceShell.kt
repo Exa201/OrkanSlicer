@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.ceil
 import androidx.compose.ui.platform.testTag
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
+import ru.ytkab0bp.slicebeam.ui.ColorFlow
 import ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale
 import androidx.compose.material3.MaterialTheme
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
@@ -109,6 +110,7 @@ internal fun WorkspaceShell(
             icon = destination.iconRes,
             accessibilityLabel = stringResource(destination.navigationTitleRes),
             compactLabel = if (compactLabels) stringResource(compactTitle) else null,
+            accent = ColorFlow.workspaceDestination(destination.ordinal),
         )
     }
     LaunchedEffect(activeMenuSlot, portrait, toolPanelExpanded) {

@@ -10,13 +10,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -27,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
+import ru.ytkab0bp.slicebeam.ui.ColorFlow
+import ru.ytkab0bp.slicebeam.ui.OrkanIcon
 
 @Composable
 internal fun WorkspaceProfileStatus(
@@ -43,8 +43,8 @@ internal fun WorkspaceProfileStatus(
             .semantics { contentDescription = accessibilityDescription }
             .clickable(role = Role.Button, onClick = onOpen),
         shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(
@@ -52,18 +52,14 @@ internal fun WorkspaceProfileStatus(
             ),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
-            Icon(
-                painter = painterResource(R.drawable.printer_outline_28),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(OrkanUiTokens.menuIconSize),
-            )
+            OrkanIcon(R.drawable.printer_outline_28, null, size = OrkanUiTokens.menuIconSize,
+                accent = ColorFlow.printer, secondaryAccent = ColorFlow.model)
             Spacer(Modifier.width(OrkanUiTokens.controlGap))
             Column(Modifier.weight(1f)) {
                 Text(
                     text = visibleTitle,
                     modifier = Modifier.testTag("workspace-profile-title"),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 14.sp,
                     lineHeight = 18.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -81,10 +77,10 @@ internal fun WorkspaceProfileStatus(
                 )
             }
             Spacer(Modifier.width(8.dp))
-            Icon(
-                painter = painterResource(R.drawable.dropdown_24),
+            androidx.compose.material3.Icon(
+                painter = androidx.compose.ui.res.painterResource(R.drawable.dropdown_24),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = ColorFlow.printer,
                 modifier = Modifier.size(18.dp),
             )
         }

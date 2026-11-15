@@ -60,11 +60,13 @@ class SettingsAccessibilityDeviceTest {
                         converterRoot = "Default",
                         cameraProjection = "Orthographic",
                         cameraControlMode = "Rotate",
+                        appLanguage = "English",
                         onToggleSection = { index ->
                             expanded.value = if (index in expanded.value) expanded.value - index else expanded.value + index
                         },
                         onMaker = {},
                         onTheme = { themeActionCount++ },
+                        onLanguage = {},
                         onAccent = {},
                         onUiTextScale = {},
                         onConverterFolder = {},

@@ -22,7 +22,7 @@ private val LocalBeamTextScaleApplied = staticCompositionLocalOf { false }
 val LocalBeamLayoutFontScale = staticCompositionLocalOf { 1f }
 
 @Composable
-fun BeamComposeTheme(themeRevision: Int = 0, content: @Composable () -> Unit) {
+fun BeamComposeTheme(themeRevision: Int = 0, accentOverride: Color? = null, content: @Composable () -> Unit) {
     val inheritedDensity = LocalDensity.current
     val textScaleAlreadyApplied = LocalBeamTextScaleApplied.current
     val layoutFontScale = if (textScaleAlreadyApplied) LocalBeamLayoutFontScale.current else inheritedDensity.fontScale
@@ -31,24 +31,26 @@ fun BeamComposeTheme(themeRevision: Int = 0, content: @Composable () -> Unit) {
         if (textScaleAlreadyApplied) inheritedDensity
         else Density(inheritedDensity.density, inheritedDensity.fontScale * textScale)
     }
-    val background = Color(ThemesRepo.getColor(android.R.attr.windowBackground))
-    val foreground = Color(ThemesRepo.getColor(android.R.attr.textColorPrimary))
-    val secondary = Color(ThemesRepo.getColor(android.R.attr.textColorSecondary))
-    val accent = Color(ensureAccentContrast(
-        ThemesRepo.getColor(android.R.attr.colorAccent),
-        background.toArgbCompat(),
-    ))
+    val requestedBackground = Color(ThemesRepo.getColor(android.R.attr.windowBackground))
+    val dark = ColorUtils.calculateLuminance(requestedBackground.toArgbCompat()) < 0.5
+    val background = if (dark) ColorFlow.background else requestedBackground
+    val foreground = if (dark) ColorFlow.textPrimary else Color(ThemesRepo.getColor(android.R.attr.textColorPrimary))
+    val secondary = if (dark) ColorFlow.textSecondary else Color(ThemesRepo.getColor(android.R.attr.textColorSecondary))
+    val accent = accentOverride ?: if (dark) ColorFlow.model else Color(ThemesRepo.getColor(android.R.attr.colorAccent))
     val onAccent = if (ColorUtils.calculateLuminance(accent.toArgbCompat()) > 0.179) Color.Black else Color.White
-    val dark = ColorUtils.calculateLuminance(background.toArgbCompat()) < 0.5
     val colors = if (dark) {
         darkColorScheme(
             primary = accent,
             onPrimary = onAccent,
             background = background,
             onBackground = foreground,
-            surface = background,
+            surface = ColorFlow.surface,
             onSurface = foreground,
             onSurfaceVariant = secondary,
+            surfaceVariant = ColorFlow.elevated,
+            outline = ColorFlow.outline,
+            error = ColorFlow.error,
+            onError = ColorFlow.background,
         )
     } else {
         lightColorScheme(

@@ -75,17 +75,17 @@ class BeamTheme {
             nameRes = R.string.SettingsInterfaceThemeDark
             colors = LIGHT.colors.clone()
 
-            // OrcaSlicer dark grey palette
-            colors.put(R.attr.dividerColor, 0xff3d3d3d.toInt())
-            colors.put(R.attr.dividerContrastColor, 0xff484848.toInt())
-            colors.put(R.attr.dialogBackground, 0xff2e2e2e.toInt())
-            colors.put(R.attr.switchThumbUncheckedColor, 0xff3a3a3a.toInt())
+            // OrkanSlicer ColorFlow dark palette. Keep the renderer's semantic toolpath colors below.
+            colors.put(R.attr.dividerColor, 0xff414b66.toInt())
+            colors.put(R.attr.dividerContrastColor, 0xff59647d.toInt())
+            colors.put(R.attr.dialogBackground, 0xff151a2f.toInt())
+            colors.put(R.attr.switchThumbUncheckedColor, 0xff78839a.toInt())
 
-            colors.put(R.attr.defaultBedColor, 0xff3a3a3a.toInt())
-            colors.put(R.attr.bedGridlinesColor, 0x80d0d0d0.toInt())
+            colors.put(R.attr.defaultBedColor, 0xff202740.toInt())
+            colors.put(R.attr.bedGridlinesColor, 0x80bcc7da.toInt())
             colors.put(R.attr.bedContourlinesColor, 0x33ffffff.toInt())
-            colors.put(R.attr.backgroundColorTop, 0xff2b2b2b.toInt())
-            colors.put(R.attr.backgroundColorBottom, 0xff1a1a1a.toInt())
+            colors.put(R.attr.backgroundColorTop, 0xff151a2f.toInt())
+            colors.put(R.attr.backgroundColorBottom, 0xff0b1020.toInt())
             colors.put(R.attr.boostyColorBottom, 0xff884725.toInt())
 
             colors.put(R.attr.xTrackColor, 0xffee0000.toInt())
@@ -95,8 +95,9 @@ class BeamTheme {
             colors.put(R.attr.snackbarBase, 0xff2d2d2d.toInt())
 
             colors.put(android.R.attr.textColorPrimary, 0xffffffff.toInt())
-            colors.put(android.R.attr.textColorSecondary, 0x99ffffff.toInt())
-            colors.put(android.R.attr.windowBackground, 0xff252525.toInt())
+            colors.put(android.R.attr.textColorSecondary, 0xffbcc7da.toInt())
+            colors.put(android.R.attr.windowBackground, 0xff0b1020.toInt())
+            colors.put(android.R.attr.colorAccent, 0xff1dbdff.toInt())
             colors.put(android.R.attr.colorControlHighlight, 0x21ffffff.toInt())
         }
     }

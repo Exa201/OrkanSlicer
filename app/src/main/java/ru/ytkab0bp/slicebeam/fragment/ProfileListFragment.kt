@@ -43,6 +43,7 @@ import ru.ytkab0bp.slicebeam.config.ProfileNameValidator
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.ui.ColorFlow
 import ru.ytkab0bp.slicebeam.ui.settings.ComposeProfileSettingsStatus
 import ru.ytkab0bp.slicebeam.ui.settings.ProfileSettingsViewModel
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
@@ -237,7 +238,13 @@ abstract class ProfileListFragment : Fragment() {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
             setContent {
                 val currentThemeRevision = themeRevision
-                BeamComposeTheme(themeRevision = currentThemeRevision) {
+                val routeAccent = when (getProfileListType()) {
+                    ConfigObject.PROFILE_LIST_PRINT -> ColorFlow.print
+                    ConfigObject.PROFILE_LIST_FILAMENT -> ColorFlow.filament
+                    ConfigObject.PROFILE_LIST_PRINTER -> ColorFlow.printer
+                    else -> ColorFlow.app
+                }
+                BeamComposeTheme(themeRevision = currentThemeRevision, accentOverride = routeAccent) {
                     val project by TemporaryProjectSettings.uiState.collectAsState()
                     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
                     val isPortrait = AdaptiveNavigationPolicy.isPortraitWindow(

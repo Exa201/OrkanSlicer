@@ -62,6 +62,31 @@ msgstr "Dateiende"
         )
     }
 
+    @Test
+    fun everySelectableOrcaLanguageHasAReadableCatalog() {
+        val assetDirectory = sequenceOf(
+            File("src/main/assets/localization"),
+            File("app/src/main/assets/localization"),
+        ).first(File::isDirectory)
+
+        assertEquals(23, OrcaLanguage.all.size)
+        assertEquals(OrcaLanguage.all.size, OrcaLanguage.all.map { it.tag.lowercase() }.toSet().size)
+        OrcaLanguage.all.forEach { language ->
+            val catalog = File(assetDirectory, "${language.assetKey}.po")
+            check(catalog.isFile && catalog.length() > 0L) {
+                "Missing Orca localization catalog for ${language.tag}: ${catalog.path}"
+            }
+            val localization = catalog.inputStream().use(Slic3rLocalization::fromPo)
+            check(localization.get("Printer").isNotBlank()) {
+                "Orca localization catalog for ${language.tag} did not load"
+            }
+        }
+        assertEquals("Deutsch", OrcaLanguage.byTag("de").nativeName)
+        assertEquals("Português (Brasil)", OrcaLanguage.byTag("pt-BR").nativeName)
+        assertEquals("简体中文", OrcaLanguage.byTag("zh-CN").nativeName)
+        assertEquals("Deutsch", OrcaLanguage.byTag("unsupported").nativeName)
+    }
+
     private fun parse(po: String): Slic3rLocalization = Slic3rLocalization.fromPo(
         ByteArrayInputStream(po.toByteArray(StandardCharsets.UTF_8))
     )

@@ -81,6 +81,7 @@ class ProfileSettingsFilterController(
                 painterResource(R.drawable.print_settings_search_24),
                 contentDescription = stringResource(R.string.ProfileSettingsSearchAndFilter),
                 modifier = Modifier.size(22.dp),
+                tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
             )
         }
     }

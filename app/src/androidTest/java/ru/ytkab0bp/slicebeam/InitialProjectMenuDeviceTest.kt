@@ -2338,6 +2338,11 @@ class InitialProjectMenuDeviceTest {
             revealMenuAction(activity, R.string.WorkspaceObjects)
             compose.onNodeWithContentDescription(activity.getString(R.string.WorkspaceObjects))
                 .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("model-objects-search").performTextReplacement("Placement T1")
+            compose.onNodeWithTag("model-object-row-1").assertIsDisplayed()
+            assertTrue("search filtering must keep original model indices",
+                compose.onAllNodesWithTag("model-object-row-0").fetchSemanticsNodes().isEmpty())
+            compose.onNodeWithTag("model-objects-search").performTextReplacement("")
             compose.onNodeWithTag("model-objects-group-selection-toggle")
                 .assertIsDisplayed().performClick()
             compose.onNodeWithTag("model-object-row-1").performClick()
