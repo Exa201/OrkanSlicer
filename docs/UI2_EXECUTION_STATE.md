@@ -1,13 +1,14 @@
 # UI 2.1 ColorFlow — Fortsetzungsstand 2026-11-15
 
-- Arbeitsbranch: `codex/ui-2.1-redesign`; gepushter HEAD `c928ef19cb`.
+- Arbeitsbranch: `codex/ui-2.1-redesign`; gepushter HEAD `80c45bd291`. Der letzte App-Code-Commit im APK ist `c928ef19cb`; der Folgeschritt `80c45bd291` ändert nur AndroidTest und Dokumentation.
 - Die Gesamtmigration bleibt **offen**. Profil- und Einstellungen-Gruppen, farbige Bereichsnavigation und Objektliste sind Teilmigrationen; 3D-Arbeitsbereich, Profileditoren und Dialoge müssen noch über alle relevanten Ansichten hinweg geprüft und vervollständigt werden.
 - Neu: Mehrfachauswahl in „Geladene Objekte“ zeigt Checkboxen. Die gesamte Objektzeile ist semantisch eine Checkbox, meldet den Toggle-Zustand an TalkBack und übernimmt die Auswahl erst bei Bestätigung.
 - Verifiziert: Debug-Unit **785/785**, SliceTest-Unit **785/785**, Changelog-Gate, Debug-APK-Build und AndroidTest-Kotlin-Kompilierung erfolgreich. `ModelObjectsAdaptiveDialogDeviceTest` **3/3** sowohl auf API-36-Emulator als auch auf Honor PTP-N49 Android 16; umfasst lange Namen/Aktionsziele bei 150 %, Teilmaterial-Suche mit tatsächlichem Scrollen sowie Checkbox-Zustand und bestätigte Objekt-IDs.
 - Nightly Debug-APK **0.8.466 / Code 501** gebaut und auf Emulator sowie Honor installiert. Changelog für 0.8.466 wurde auf Emulator bei 150 % sichtbar geprüft. Screenshots: `docs/images/ui21/emulator-changelog-0466-150.png` und `docs/images/ui21/emulator-workspace-0466-150.png`.
+- APK-Datei: `app/build/outputs/apk/debug/OrkanSlicerNightly25_c928ef19cb.apk` (252,038,854 Bytes), SHA-256 `B8C831D210A96AAA25FD9D9D0FC6AF21C4EB67C2AD67972C4814C3D1F04045B6`.
 - Für den Honor-Test musste die Testautomation die Bildschirmtastatur schließen und in der Ergebnisliste scrollen; die Suche und Teilanzeige bestanden danach ohne App-Änderung. Temporäre SliceTest-Pakete wurden nach dem Test von Emulator und Honor entfernt; die Debug-App 0.8.466 bleibt installiert.
 - Nächster konkreter Schritt: vollständige objektbezogene Dialogprüfung bei 320/360-dp und weiteren 100/130/150-%-Skalen; danach Druck-/Filament-/Druckerprofil-Detaileditoren auf echte Handler, Kontrast, Touchziele und Scrollen prüfen und fehlende ColorFlow-Flächen umsetzen.
-- Offen: vollständige Überarbeitung/Abnahme aller fünf Hauptbereiche, Dialoge, mehrsprachige Texte, Profileditoren, Hoch-/Querformat, Schriftgrößen und 48-dp-Touchziele; zusätzliche manuelle Honor-Prüfung der Arbeitsfläche und der Profilseiten. Kein Release oder Merge erstellt oder autorisiert.
+- Offen: vollständige Überarbeitung/Abnahme aller fünf Hauptbereiche, Dialoge, mehrsprachige Texte, Profileditoren, Hoch-/Querformat, Schriftgrößen und 48-dp-Touchziele; zusätzliche manuelle Honor-Prüfung der Arbeitsfläche und der Profilseiten; PR-Erstellung. Kein Release oder Merge erstellt oder autorisiert.
 
 # Nightly execution state — 2026-11-14
 
