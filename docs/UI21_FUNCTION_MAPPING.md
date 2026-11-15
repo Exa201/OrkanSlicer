@@ -1,10 +1,10 @@
 # UI 2.1 ColorFlow — Funktions-Mapping
 
-Stand: Nightly 0.8.466, Branch `codex/ui-2.1-redesign`. Diese Tabelle erfasst den realen Migrationsstand; „offen“ heißt, dass eine vollständige visuelle und funktionale Abnahme noch fehlt.
+Stand: Nightly 0.8.468, Branch `codex/ui-2.1-redesign`. Diese Tabelle erfasst den realen Migrationsstand; „offen“ heißt, dass eine vollständige visuelle und funktionale Abnahme noch fehlt.
 
 | Bereich | Vorhandene Route / Quelle | Zielkomponente | Funktionsbindung | Status |
 |---|---|---|---|---|
-| 3D-Arbeitsplatz | `BedFragment` → `WorkspaceShell`, `RendererAdapter`, `PlateTabsCompose` | ColorFlow-Workspace mit unverändertem GL-Renderer | Plattenwahl, Menüs, Renderer-Gesten und Werkzeugaktionen bleiben in `WorkspaceController`/`BedFragment` | Teilmigration; Stil- und Responsivabnahme offen |
+| 3D-Arbeitsplatz | `BedFragment` → `WorkspaceShell`, `RendererAdapter`, `PlateTabsCompose` | ColorFlow-Workspace mit unverändertem GL-Renderer | Plattenwahl, Menüs, Renderer-Gesten und Werkzeugaktionen bleiben in `WorkspaceController`/`BedFragment`; Profilstatus darf bei langen Namen umbrechen | Teilmigration; Stil- und Responsivabnahme offen |
 | Druckprofile | `PrintConfigFragment` → `ProfileSettingsComposeList` / `ComposeProfileCategoryRow` | Farblich gruppierte Profilbereiche mit kontrastreichen Titeln | Bestehender Profil-Controller, Filter, Werteditoren und Speichern | Gruppenoberfläche aktualisiert; Detaileditoren noch nicht vollständig vereinheitlicht |
 | Filamentprofile | `FilamentConfigFragment` → `ProfileSettingsComposeList`, `OwnFilamentSlotBar` | Bereichsakzent Violett, Slot-/Materialchips und Profilbereiche | Bestehende Filamentauswahl, Slotzuordnung, Editor- und Speicherrouten | Teilmigration; Slot-Matrix 1/4/8/16/24 und 3MF-Fälle noch offen |
 | Druckerprofile | `PrinterConfigFragment` → `ProfileSettingsComposeList` | Bereichsakzent Grün, Profil- und Verbindungsstatus klar trennen | Profilwerte und bestehender Verbindungscontroller | Profilgruppenoberfläche aktualisiert; Status-/Detailabnahme offen |

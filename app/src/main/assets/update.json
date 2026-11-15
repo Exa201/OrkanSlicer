@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer Nightly 2.5 · 0.8.466\n\n• Die Mehrfachauswahl in „Geladene Objekte“ zeigt Checkboxen und meldet den Auswahlzustand an TalkBack.\n• Die ganze Objektzeile schaltet die Auswahl; Modellaktionen bleiben bis zur Bestätigung unverändert.",
-  "en": "OrkanSlicer Nightly 2.5 · 0.8.466\n\n• Multi-select in Loaded Objects now shows checkboxes and exposes selection state to TalkBack.\n• Tapping the object row toggles selection; model actions remain unchanged until confirmation.",
-  "ru": "OrkanSlicer Nightly 2.5 · 0.8.466\n\n• При множественном выборе в списке объектов отображаются флажки, а состояние выбора доступно TalkBack.\n• Нажатие на строку переключает выбор; действия с моделью применяются только после подтверждения."
+  "de": "OrkanSlicer Nightly 2.5 · 0.8.468\n\n• Lange Druckernamen und Profilkurzinfos im Workspace-Status dürfen bei großer Schrift umbrechen.\n• Die Kopfzeile wächst bei Bedarf mit und schneidet den Profiltext nicht mehr ab.",
+  "en": "OrkanSlicer Nightly 2.5 · 0.8.468\n\n• Long printer names and profile summaries in the workspace status can wrap at large text sizes.\n• The header now grows as needed instead of clipping the profile text.",
+  "ru": "OrkanSlicer Nightly 2.5 · 0.8.468\n\n• Длинные названия принтеров и сведения о профиле переносятся при увеличенном размере текста.\n• Заголовок рабочей области увеличивается при необходимости и не обрезает текст профиля."
 }

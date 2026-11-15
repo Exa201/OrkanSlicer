@@ -12,6 +12,9 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -27,8 +30,8 @@ class WorkspaceProfileStatusDeviceTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
-    fun longPrinterNameStaysInCompactAccessibleStatusAtNarrowLargeText() {
-        val accessibilityLabel = "Anycubic Kobra 3 Combo printer profile, 0.4 mm nozzle"
+    fun longPrinterNameWrapsInCompactAccessibleStatusAtNarrowLargeText() {
+        val accessibilityLabel = "Anycubic Kobra 3 V2 Combo Multi Material printer profile, 0.4 mm nozzle"
         compose.setContent {
             CompositionLocalProvider(
                 LocalDensity provides Density(1f, 1.5f),
@@ -38,12 +41,14 @@ class WorkspaceProfileStatusDeviceTest {
                 },
             ) {
                 BeamComposeTheme {
-                    WorkspaceProfileStatus(
-                        title = "Anycubic Kobra 3 Combo",
-                        summary = "0.4 mm nozzle · PLA · Standard",
-                        accessibilityDescription = accessibilityLabel,
-                        onOpen = {},
-                    )
+                    Box(Modifier.width(320.dp)) {
+                        WorkspaceProfileStatus(
+                            title = "Anycubic Kobra 3 V2 Combo Multi Material",
+                            summary = "0.4 mm nozzle · PLA · Standard",
+                            accessibilityDescription = accessibilityLabel,
+                            onOpen = {},
+                        )
+                    }
                 }
             }
         }
@@ -56,6 +61,8 @@ class WorkspaceProfileStatusDeviceTest {
         titleNode.assertIsDisplayed()
         val titleHeightPx = titleNode.fetchSemanticsNode().boundsInRoot.height
         val oneLineAtLargeTextPx = with(Density(1f, 1.5f)) { 30.dp.toPx() }
-        assertTrue("Printer title expanded beyond one large-text line", titleHeightPx <= oneLineAtLargeTextPx)
+        val twoLinesAtLargeTextPx = with(Density(1f, 1.5f)) { 60.dp.toPx() }
+        assertTrue("Long printer title should wrap instead of being reduced to one truncated line", titleHeightPx > oneLineAtLargeTextPx)
+        assertTrue("Printer title should stay within two large-text lines", titleHeightPx <= twoLinesAtLargeTextPx)
     }
 }

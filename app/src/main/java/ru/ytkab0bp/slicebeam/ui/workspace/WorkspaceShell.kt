@@ -129,10 +129,10 @@ internal fun WorkspaceShell(
             modifier = modifier
             .fillMaxWidth()
                 .testTag("workspace-header")
-                // Reserve the header height for the largest app text zoom. The
-                // reservation depends only on Android's accessibility scale, so
-                // moving the app slider cannot change the bed viewport geometry.
-                .height(WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(LocalBeamLayoutFontScale.current).dp)
+                // Keep the usual compact header height, but let long localized/profile
+                // text grow it when needed. A fixed height clipped wrapped profile names
+                // at large accessibility text sizes.
+                .heightIn(min = WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(LocalBeamLayoutFontScale.current).dp)
                 .padding(horizontal = 6.dp, vertical = 4.dp),
         ) {
             Box(

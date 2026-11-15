@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.468 — UI 2.1: Workspace-Status ohne Textüberlauf — 2026-11-15
+
+- Die Kopfzeile der Arbeitsfläche wächst bei umbrochenen Profilnamen mit, statt die zweite Zeile abzuschneiden.
+- Bei üblichen Namen bleibt die bisherige kompakte Mindesthöhe erhalten; das Druckbett behält dadurch im Normalfall seine Fläche.
+- Verifiziert: Profilstatus-Test 1/1 bei 320 dp und 150 % Schrift; Debug-/SliceTest-Unit-Suiten erfolgreich.
+
+## 0.8.467 — UI 2.1: Profilnamen lesbarer — 2026-11-15
+
+- Lange Druckernamen und Profilkurzinfos dürfen im kompakten Workspace-Status umbrechen, statt als einzige sichtbare Information abgeschnitten zu werden.
+- Die Statusfläche bleibt mindestens 48 dp hoch und öffnet weiter unverändert die bestehende Profilauswahl.
+- Verifiziert: `WorkspaceProfileStatusDeviceTest` 1/1 auf API-36-Emulator bei 320 dp und 150 % Schrift.
+
 ## 0.8.466 — Objektliste: zugängliche Gruppenauswahl — 2026-11-15
 
 - Die Mehrfachauswahl zeigt jetzt pro Objekt eine Checkbox; ausgewählte Zustände sind auch für TalkBack als Checkbox-Zustand verfügbar.

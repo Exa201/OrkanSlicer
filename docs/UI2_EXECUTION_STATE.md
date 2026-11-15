@@ -1,14 +1,13 @@
 # UI 2.1 ColorFlow — Fortsetzungsstand 2026-11-15
 
-- Arbeitsbranch: `codex/ui-2.1-redesign`; gepushter HEAD `80c45bd291`. Der letzte App-Code-Commit im APK ist `c928ef19cb`; der Folgeschritt `80c45bd291` ändert nur AndroidTest und Dokumentation.
-- Die Gesamtmigration bleibt **offen**. Profil- und Einstellungen-Gruppen, farbige Bereichsnavigation und Objektliste sind Teilmigrationen; 3D-Arbeitsbereich, Profileditoren und Dialoge müssen noch über alle relevanten Ansichten hinweg geprüft und vervollständigt werden.
-- Neu: Mehrfachauswahl in „Geladene Objekte“ zeigt Checkboxen. Die gesamte Objektzeile ist semantisch eine Checkbox, meldet den Toggle-Zustand an TalkBack und übernimmt die Auswahl erst bei Bestätigung.
-- Verifiziert: Debug-Unit **785/785**, SliceTest-Unit **785/785**, Changelog-Gate, Debug-APK-Build und AndroidTest-Kotlin-Kompilierung erfolgreich. `ModelObjectsAdaptiveDialogDeviceTest` **3/3** sowohl auf API-36-Emulator als auch auf Honor PTP-N49 Android 16; umfasst lange Namen/Aktionsziele bei 150 %, Teilmaterial-Suche mit tatsächlichem Scrollen sowie Checkbox-Zustand und bestätigte Objekt-IDs.
-- Nightly Debug-APK **0.8.466 / Code 501** gebaut und auf Emulator sowie Honor installiert. Changelog für 0.8.466 wurde auf Emulator bei 150 % sichtbar geprüft. Screenshots: `docs/images/ui21/emulator-changelog-0466-150.png` und `docs/images/ui21/emulator-workspace-0466-150.png`.
-- APK-Datei: `app/build/outputs/apk/debug/OrkanSlicerNightly25_c928ef19cb.apk` (252,038,854 Bytes), SHA-256 `B8C831D210A96AAA25FD9D9D0FC6AF21C4EB67C2AD67972C4814C3D1F04045B6`.
-- Für den Honor-Test musste die Testautomation die Bildschirmtastatur schließen und in der Ergebnisliste scrollen; die Suche und Teilanzeige bestanden danach ohne App-Änderung. Temporäre SliceTest-Pakete wurden nach dem Test von Emulator und Honor entfernt; die Debug-App 0.8.466 bleibt installiert.
-- Nächster konkreter Schritt: vollständige objektbezogene Dialogprüfung bei 320/360-dp und weiteren 100/130/150-%-Skalen; danach Druck-/Filament-/Druckerprofil-Detaileditoren auf echte Handler, Kontrast, Touchziele und Scrollen prüfen und fehlende ColorFlow-Flächen umsetzen.
-- Offen: vollständige Überarbeitung/Abnahme aller fünf Hauptbereiche, Dialoge, mehrsprachige Texte, Profileditoren, Hoch-/Querformat, Schriftgrößen und 48-dp-Touchziele; zusätzliche manuelle Honor-Prüfung der Arbeitsfläche und der Profilseiten; PR-Erstellung. Kein Release oder Merge erstellt oder autorisiert.
+- Aktiver Arbeitszweig: `codex/ui-2.1-redesign`, Nightly 2.5; Ausgangs-HEAD `2b6fd9b572`. Der UI-2.1-Umbau bleibt **offen**.
+- Neu in 0.8.468 / Code 503: Profilstatus im Workspace erlaubt zwei Zeilen für Namen und Kurzinfo; die Kopfzeile wächst bei Bedarf statt den umbrochenen Text abzuschneiden. Die übliche kompakte Mindesthöhe bleibt erhalten. Das bestehende Profil-Auswahlziel und alle Domänenzustände bleiben unverändert.
+- Verifiziert: Debug-Unit **785/785**, SliceTest-Unit **785/785**; `WorkspaceProfileStatusDeviceTest` **1/1** auf API-36-Emulator bei 320 dp und 150 % Schrift; `:app:assembleDebug` erfolgreich; APK 0.8.468 auf API-36-Emulator installiert und gestartet. Version 0.8.468 / Code 503 per PackageManager bestätigt.
+- Echte Emulator-Screenshots von Workspace, Druck, Filament, Drucker und App bei 150 %: `docs/images/ui21/emulator-ui21-{workspace,print,filament,printer,app}-0468-150.png`; Changelog: `docs/images/ui21/emulator-changelog-0468-150.png`.
+- HONOR PTP-N49 war über ADB erreichbar; 0.8.468 wurde installiert und verifiziert. Die Display-Abnahme konnte nicht stattfinden, weil das Gerät beim Test am geschützten Sperrbildschirm blieb. Es wurde nicht entsperrt oder eine Gerätesperre umgangen. Emulator-Fontscale nach der Aufnahme auf **100 %** zurückgesetzt.
+- Noch nicht veröffentlicht; kein Merge. Es gibt für diesen UI-2.1-Arbeitszweig noch keinen PR.
+- Nächste Arbeit: aktuelle Debug-APK nach dem Code-Commit mit Commitkennung neu bauen, Profileditoren/Dialoge und Objektliste anhand des Designpaket-Prompts weiter prüfen, dann fehlende ColorFlow-Flächen funktional umsetzen und nach jeder zusammenhängenden Gruppe Tests ergänzen.
+- Offen: vollständige Überarbeitung/Abnahme aller fünf Hauptbereiche, Dialoge, Mehrsprachigkeit, Profilaktionen, Touchziele, 100/130/150/200-%-Schrift, kompakte/Querformat-Layouts und Honor-Sichtprüfung.
 
 # Nightly execution state — 2026-11-14
 
