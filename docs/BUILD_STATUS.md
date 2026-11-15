@@ -2,7 +2,8 @@
 
 - Branch `codex/ui-2.1-redesign`, Code 504, Paket `com.exa201.orkanslicer.nightly25`. Teilaktionen gruppierter Modellteile in einem zugänglichen Overflow-Menü; Materialfarbbeschreibung für TalkBack; responsive Dialogbreite.
 - Debug-Unit **785/785**, SliceTest-Unit **785/785**; gezielte API-36-Instrumentierung **17/17** (Objektliste, Teilaktionen, Teil-Druckwerte, Transformation, Teiltrennung und Skalierung im Bearbeiten-Menü). Debug-, SliceTest- und AndroidTest-APK-Build erfolgreich.
-- Noch nicht auf physischem HONOR/Xiaomi getestet, nicht veröffentlicht und nicht gemergt. Eine Debug-APK wird nach dem Quellcommit erneut gebaut und installiert.
+- APK `app/build/outputs/apk/debug/OrkanSlicerNightly25_ca1c75692a.apk`, **252,040,183 Bytes**, SHA-256 `3df2fc2a72f91ac7620afa463cf1790f5896c7c18c3b464fac972eb56ed18cc5`, Paket `com.exa201.orkanslicer.nightly25`, Version 0.8.469 / Code 504. Auf API-36-Emulator installiert, gestartet und per PackageManager bestätigt; Screenshot: `docs/images/ui21/emulator-ui21-workspace-0469.png`.
+- Nicht auf physischem HONOR/Xiaomi getestet, nicht veröffentlicht und nicht gemergt.
 
 ## OrkanSlicer Nightly 2.5 — Orca 2.5.0 Sprachkataloge — 2026-11-14 — 0.8.456
 
