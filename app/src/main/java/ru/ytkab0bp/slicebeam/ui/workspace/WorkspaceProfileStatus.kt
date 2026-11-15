@@ -63,16 +63,16 @@ internal fun WorkspaceProfileStatus(
                     fontSize = 14.sp,
                     lineHeight = 18.sp,
                     fontWeight = FontWeight.SemiBold,
-                    // Keep long printer names from expanding the compact workspace chrome.
-                    // The full name remains available from the parent accessibility label.
-                    maxLines = 1,
+                    // Let long printer names use a second line before truncating. The
+                    // profile picker and parent accessibility label retain the full value.
+                    maxLines = 2,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
                 Text(
                     text = summary,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }

@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -14,6 +15,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
@@ -38,12 +41,14 @@ class WorkspaceProfileStatusDeviceTest {
                 },
             ) {
                 BeamComposeTheme {
-                    WorkspaceProfileStatus(
-                        title = "Anycubic Kobra 3 Combo",
-                        summary = "0.4 mm nozzle · PLA · Standard",
-                        accessibilityDescription = accessibilityLabel,
-                        onOpen = {},
-                    )
+                    Box(Modifier.width(180.dp)) {
+                        WorkspaceProfileStatus(
+                            title = "Anycubic Kobra 3 Combo printer profile",
+                            summary = "0.4 mm nozzle · PLA · Standard profile",
+                            accessibilityDescription = accessibilityLabel,
+                            onOpen = {},
+                        )
+                    }
                 }
             }
         }
@@ -56,6 +61,9 @@ class WorkspaceProfileStatusDeviceTest {
         titleNode.assertIsDisplayed()
         val titleHeightPx = titleNode.fetchSemanticsNode().boundsInRoot.height
         val oneLineAtLargeTextPx = with(Density(1f, 1.5f)) { 30.dp.toPx() }
-        assertTrue("Printer title expanded beyond one large-text line", titleHeightPx <= oneLineAtLargeTextPx)
+        val twoLinesAtLargeTextPx = with(Density(1f, 1.5f)) { 60.dp.toPx() }
+        assertTrue("Long printer title should wrap instead of remaining ellipsized on one line",
+            titleHeightPx > oneLineAtLargeTextPx)
+        assertTrue("Printer title should remain within two lines", titleHeightPx <= twoLinesAtLargeTextPx)
     }
 }

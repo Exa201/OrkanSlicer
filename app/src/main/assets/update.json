@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.427\n\n• Der Plattenzähler bleibt bei 200 % Schrift kompakt einzeilig; die vollständige Bezeichnung bleibt für TalkBack erhalten.\n• Längere Einstellungsbeschreibungen bleiben bei sehr großer Schrift vollständig lesbar.\n• Die globale Navigation zeigt Filament vollständig und mit passender Höhe an.",
-  "en": "OrkanSlicer 0.8.427\n\n• The plate counter stays compact and on one line at 200% text; TalkBack retains its full description.\n• Longer settings descriptions remain readable at very large text sizes.\n• Global navigation shows the full Filament label at an accessible height.",
-  "ru": "OrkanSlicer 0.8.427\n\n• При масштабе текста 200% счетчик платформы остается компактным и однострочным; TalkBack сохраняет полное описание.\n• Длинные описания настроек полностью отображаются при очень крупном тексте.\n• В глобальной навигации полностью отображается название Filament."
+  "de": "OrkanSlicer 0.8.428\n\n• Lange Druckerprofilnamen umbrechen jetzt im 3D-Kopf auf bis zu zwei Zeilen statt bereits nach einer Zeile abgeschnitten zu werden.\n• Die Profilkurzinfo darf bei schmalen Layouts ebenfalls umbrechen; die vollständigen Angaben bleiben in Profilauswahl und TalkBack verfügbar.",
+  "en": "OrkanSlicer 0.8.428\n\n• Long printer profile names now wrap to up to two lines in the 3D header instead of being cut after one line.\n• The profile summary can also wrap in narrow layouts; full details remain available in the profile picker and TalkBack.",
+  "ru": "OrkanSlicer 0.8.428\n\n• Длинные названия профилей принтера в заголовке 3D теперь переносятся на две строки вместо обрезания после одной.\n• Краткое описание профиля также переносится в узких макетах; полные сведения доступны в выборе профиля и TalkBack."
 }
