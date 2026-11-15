@@ -1,5 +1,11 @@
 # UI 2.1 ColorFlow: Alt → Neu
 
+## Neuester Fix-Build
+
+- APK 0.8.424 / Code 459: [`OrkanSlicer_UI21_ColorFlow_0.8.424_459_debug.apk`](../artifacts/OrkanSlicer_UI21_ColorFlow_0.8.424_459_debug.apk), SHA-256 `28A2C6FCB7E20B9E930E71CE03555B6E14B0A7DEA9C6FB66F40752B7FED2B4AC`.
+- Gezielte Renderer-/Modell-Gerätetests: Flatten ein/aus, Flächenlegen mit Undo/Redo und Anordnen eines außerhalb liegenden Objekts jeweils 1/1 bestanden. Details und noch offene UI-2.1-Abnahmen stehen in [`UI21_EXECUTION_STATE.md`](UI21_EXECUTION_STATE.md).
+- Der vollständige UI-2.1-Umbau ist damit nicht abgeschlossen; insbesondere sind die komplette Instrumentierung, Honor 150-%-Abnahme und physische TalkBack-Prüfung offen.
+
 This branch applies the attached design package as a native Compose visual layer. Existing navigation, profile controllers, project state, GL renderer, and action handlers remain the source of truth.
 
 | Bereich | Vorhandener Einstieg | UI 2.1-Ziel | Umsetzung in diesem Stand |

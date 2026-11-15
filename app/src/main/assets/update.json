@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.423\n\n• System-Zurück schließt Druckvorbereitungs- und Bestätigungsdialoge, ohne den Slice oder Reset auszulösen.\n• Der Druckplattenzähler bleibt bei großer Schrift lesbar und erhält mehr Touchfläche.",
-  "en": "OrkanSlicer 0.8.423\n\n• System Back dismisses print-preparation and confirmation dialogs without starting a slice or reset.\n• The build plate counter remains readable with large text and has a larger touch target.",
-  "ru": "OrkanSlicer 0.8.423\n\n• Системная кнопка «Назад» закрывает диалоги подготовки печати и подтверждения, не запуская нарезку или сброс.\n• Счётчик платформы остаётся читаемым при крупном шрифте и получил увеличенную область нажатия."
+  "de": "OrkanSlicer 0.8.424\n\n• Beim Wechsel des Workspace-Menüs wird der aktive Flächenmodus sicher auf dem Renderer-Thread zurückgesetzt.\n• Das Flachlegen-Werkzeug aus dem Objekt-Kontextmenü aktualisiert danach die 3D-Ansicht.",
+  "en": "OrkanSlicer 0.8.424\n\n• Switching workspace menus now resets the active flatten mode safely on the renderer thread.\n• The lay-flat action from the object context menu refreshes the 3D view afterward.",
+  "ru": "OrkanSlicer 0.8.424\n\n• При переключении меню рабочего пространства активный режим размещения на грани безопасно сбрасывается в потоке рендерера.\n• Команда размещения на грани из контекстного меню объекта обновляет 3D-вид."
 }

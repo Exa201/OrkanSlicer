@@ -22,6 +22,8 @@ import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.FileProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
@@ -6956,27 +6958,20 @@ class InitialProjectMenuDeviceTest {
             val triangleCount = readTriangleCountOnGl(glView, 0)
 
             openSelectedObjectMenu(activity)
-            scrollMenuToIndex(6)
-            compose.waitUntil(timeoutMillis = 5_000) {
-                compose.onAllNodesWithText(activity.getString(R.string.ModelMenuFlattenShort))
-                    .fetchSemanticsNodes().isNotEmpty()
-            }
-            val flatten = compose.onNodeWithText(activity.getString(R.string.ModelMenuFlattenShort))
-                .performScrollTo().assertIsDisplayed().assertIsEnabled()
+            revealMenuAction(activity, R.string.ModelMenuFlatten)
+            val flatten = compose.onNodeWithTag("workspace-menu-action-${R.string.ModelMenuFlatten}")
+                .assertIsDisplayed().assertIsEnabled()
             flatten.performClick()
-            compose.waitUntil(timeoutMillis = 5_000) {
-                readRendererBooleanOnGl(glView, "isInFlattenMode")
-            }
+            flatten.assertIsOn()
+            assertEquals("flatten action must still target the selected object", 0,
+                readSelectedObjectOnGl(glView))
             assertTrue("Flatten action should activate the renderer's flatten interaction mode",
                 readRendererBooleanOnGl(glView, "isInFlattenMode"))
             assertEquals("entering Flatten mode must not edit the mesh", triangleCount,
                 readTriangleCountOnGl(glView, 0))
 
-            compose.onNodeWithText(activity.getString(R.string.ModelMenuFlattenShort))
-                .performScrollTo().performClick()
-            compose.waitUntil(timeoutMillis = 5_000) {
-                !readRendererBooleanOnGl(glView, "isInFlattenMode")
-            }
+            flatten.performClick()
+            flatten.assertIsOff()
             assertFalse("second Flatten action should leave the renderer interaction mode",
                 readRendererBooleanOnGl(glView, "isInFlattenMode"))
             assertEquals("leaving Flatten mode must preserve the mesh", triangleCount,

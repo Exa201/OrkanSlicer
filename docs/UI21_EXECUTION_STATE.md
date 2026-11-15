@@ -1,5 +1,16 @@
 # UI 2.1 ColorFlow — Ausführungsstand (15.11.2026)
 
+## Aktueller Fix-Build (0.8.424 / Code 459)
+
+- Der letzte Fixstand wurde als Debug-APK gebaut: [`OrkanSlicer_UI21_ColorFlow_0.8.424_459_debug.apk`](../artifacts/OrkanSlicer_UI21_ColorFlow_0.8.424_459_debug.apk). SHA-256: `28A2C6FCB7E20B9E930E71CE03555B6E14B0A7DEA9C6FB66F40752B7FED2B4AC`; APK-Signaturen v1 und v2 verifiziert. Das APK stimmt per SHA-256 mit `app/build/outputs/apk/debug/OrkanSlicer_935922b859.apk` überein.
+- Auf Android 16 Emulator installiert und gestartet. Versionsabfrage bestätigt Paketversion 0.8.424 / Code 459. Im geprüften Logcat-Fenster kein OrkanSlicer-Fatal-Fehler oder ANR.
+- Renderer-Flächenmodus: Beim Menüwechsel erfolgt das Zurücksetzen auf dem GL-Renderer-Thread; der Objekt-Kontextbefehl „Flachlegen“ fordert nach der Modusänderung ein Rendern an. Der Flatten-Gerätetest sucht jetzt die Aktion über ihre stabile Semantik/Test-ID statt über einen alten Menü-Scrollindex und prüft Ein/Aus, Auswahl, Rendererzustand sowie unveränderte Dreiecksanzahl.
+- Gezielte Android-16-Emulatorprüfungen: Flatten ein/aus 1/1, Flächenlegen mit Undo/Redo 1/1, Anordnen eines außerhalb liegenden Objekts 1/1 und Changelog/System-Zurück 1/1 bestanden. Das sind Einzeltests, kein vollständiger Instrumentierungssuite-Pass.
+- `:app:testDebugUnitTest`: 705/705 bestanden, 0 fehlgeschlagen, 0 übersprungen. `assembleDebug`, `assembleSliceTest` und `assembleSliceTestAndroidTest` erfolgreich.
+- Aktuelles Gerätebild: [`20-current-apk-0.8.424.png`](screenshots/ui21/20-current-apk-0.8.424.png). Der frühere abgebrochene Instrumentierungslauf mit 134 bestanden / 12 fehlgeschlagen / 5 übersprungen bleibt unvollständig und wird nicht als bestanden gewertet.
+- Xiaomi-Installation bleibt durch `INSTALL_FAILED_USER_RESTRICTED` blockiert; Honor-Abnahme bei 150 % Schrift und physische TalkBack-Prüfung sind offen. UI 2.1 bleibt insgesamt in Arbeit. Kein Release und kein Merge.
+- **Nächster konkreter Schritt:** UI-2.1-Abnahme auf dem Emulator in noch nicht geprüften Profil-/Einstellungs- und Modellaktionen fortführen; danach Instrumentierungsfehler einzeln isolieren. Für Honor-Hardware bleibt eine erfolgreiche ADB-Installation Voraussetzung.
+
 ## Aktueller Durchgang (15.11.2026)
 
 - Der aktuelle Debug-Build wurde erneut erzeugt und lokal abgelegt: `artifacts/OrkanSlicer_UI21_ColorFlow_latest_debug.apk`, Version 0.8.423 / Code 458. SHA-256: `E3C618D6B0FF373ADC4048381E186B35E7E970A55C9DAC5340880A87F011C2C6`. Die APK-Signatur v1/v2 ist gültig. Auf dem Android-16-Emulator wurde genau diese Version installiert und gestartet.

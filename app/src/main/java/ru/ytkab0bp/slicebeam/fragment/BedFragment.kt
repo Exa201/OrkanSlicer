@@ -1017,8 +1017,10 @@ Toast.makeText(ctx, R.string.ModelContextAutoOriented, Toast.LENGTH_SHORT).show(
         }
     },
     {
-        glView?.let { viewport -> viewport.queueEvent({ viewport.renderer.setInFlattenMode(true)
-viewport.requestRender() }) }
+        glView?.let { viewport -> viewport.queueEvent {
+            viewport.renderer.setInFlattenMode(true)
+            viewport.requestRender()
+        } }
     },
     { glView?.selectAllModels({ updateModel()
 Toast.makeText(ctx, R.string.ModelContextSelectedAll, Toast.LENGTH_SHORT).show() })
@@ -2016,10 +2018,12 @@ ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 glView!!.requestRender()
 }
 private fun selectMenu(slot: Int, routeChanged: Boolean = slot != workspaceController.selectedDestinationSlot) {
-if (glView!!.renderer.resetFlattenMode())
-{
-glView!!.requestRender()
-SliceBeam.EVENT_BUS.fireEvent(FlattenModeResetEvent())
+val viewport = glView
+viewport?.queueEvent {
+    if (viewport.renderer.resetFlattenMode()) {
+        viewport.requestRender()
+        ViewUtils.postOnMainThread { SliceBeam.EVENT_BUS.fireEvent(FlattenModeResetEvent()) }
+    }
 }
 val transitionGeneration = ++workspaceNavigationTransitionGeneration
 workspaceController.updateNavigationTransitionInProgress(routeChanged)
