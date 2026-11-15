@@ -5858,7 +5858,7 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 5_000) { result.previewSelection?.blockSize == 25 }
             assertEquals("layer preview control must update the active G-code range policy", 25,
                 result.previewSelection?.blockSize)
-            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            activity.onBackPressedDispatcher.onBackPressed()
             compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceToolPanelAttached("slice-layer-preview") }
 
             scrollMenuToIndex(4)
