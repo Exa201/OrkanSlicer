@@ -3461,7 +3461,7 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 ## UI 2.1 — zusätzliche Einstellungs- und Profilaktionen — 2026-11-15
 
 - Auf Android 16 liefen `SettingsAccessibilityDeviceTest` (1/1), `SettingsMenuActionDeviceTest` (8/8) und `ProfileNumericOptionDeviceTest` (3/3) erfolgreich.
-- `PrintProfileDropdownIntegrationDeviceTest#savingPrinterBedSurfaceDraftPersistsOnlyAfterSaveConfirmation` bestand 1/1. Die Teständerung am Druckbettprofil wurde nach der Bestätigung geprüft und der ursprüngliche Fixturewert im `finally`-Pfad wiederhergestellt.
-- Damit sind ausgewählte App-Menüaktionen, Profilnavigation, numerische Profileingabe sowie ein Druckerprofil-Speichervorgang nachgewiesen. Das ersetzt keine vollständige Abnahme sämtlicher Einstellungsseiten, Profiltypen, Speichern/Abbrechen-Aktionen oder realer Geräte.
+- `PrintProfileDropdownIntegrationDeviceTest#savingPrinterBedSurfaceDraftPersistsOnlyAfterSaveConfirmation` und `#savingFilamentNumericDraftPersistsOnlyAfterSaveConfirmation` bestanden jeweils 1/1. Die Änderungen an Druckbett- und Filamentprofilen wurden nach Bestätigung geprüft und die ursprünglichen Fixturewerte jeweils im `finally`-Pfad wiederhergestellt.
+- Damit sind ausgewählte App-Menüaktionen, Profilnavigation, numerische Profileingabe sowie je ein tatsächlicher Drucker- und Filamentprofil-Speichervorgang nachgewiesen. Das ersetzt keine vollständige Abnahme sämtlicher Einstellungsseiten, Profiltypen, Speichern/Abbrechen-Aktionen oder realer Geräte.
 - APK unverändert: 0.8.427 / Code 462, Debug-Build aus `275d7daa2a`; SHA-256 `F197F96154B8F8A7C76195E7937036D30F515CD55C8DE80CFC085ED7C9DE5DB2`. Es gab in dieser Runde keine Quellcodeänderung und daher keinen neuen APK-Build.
 - Nächster Schritt: auf Honor/Xiaomi und bei 200 % Schrift die noch offenen Unterseiten/Dialogszenarien und TalkBack-Fokusfolge prüfen; anschließend die globalen Menü- und Profilaktionen systematisch vervollständigen.
