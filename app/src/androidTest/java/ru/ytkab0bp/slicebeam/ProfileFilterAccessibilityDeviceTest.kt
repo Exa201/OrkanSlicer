@@ -9,6 +9,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -23,6 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.fragment.ProfileSettingsFilterController
 import ru.ytkab0bp.slicebeam.ui.settings.ProfileFilterBar
 
 /** Verifies profile search/filter actions and toggle state with large text on a narrow display. */
@@ -84,5 +86,20 @@ class ProfileFilterAccessibilityDeviceTest {
             .assertIsDisplayed()
             .performTextInput("  layer height  ")
         compose.runOnIdle { assertEquals("layer height", submittedQuery) }
+    }
+
+    @Test
+    fun profileSearchToggleHasAnAccessibleTouchTargetAtLargeTextScale() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val controller = ProfileSettingsFilterController(-1, false, null, Runnable {}, Runnable {})
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 1.5f)) {
+                BeamComposeTheme { controller.ToggleContent() }
+            }
+        }
+        compose.onNodeWithContentDescription(context.getString(R.string.ProfileSettingsSearchAndFilter))
+            .assertIsDisplayed()
+            .assertWidthIsAtLeast(48.dp)
+            .assertHeightIsAtLeast(48.dp)
     }
 }

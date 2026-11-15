@@ -6,6 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedIconButton
@@ -19,6 +21,7 @@ import ru.ytkab0bp.slicebeam.slic3r.Slic3rLocalization
 import ru.ytkab0bp.slicebeam.ui.settings.ProfileFilterBar
 import ru.ytkab0bp.slicebeam.ui.settings.ProfileSettingsFilter
 import ru.ytkab0bp.slicebeam.ui.settings.ProfileSettingsViewModel
+import ru.ytkab0bp.slicebeam.ui.ColorFlow
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import java.util.HashSet
 import java.util.function.BooleanSupplier
@@ -76,12 +79,19 @@ class ProfileSettingsFilterController(
             onClick = ::toggleFilters,
             modifier = Modifier.size(48.dp),
             shape = RoundedCornerShape(10.dp),
+            colors = IconButtonDefaults.outlinedIconButtonColors(
+                containerColor = ColorFlow.elevated,
+                contentColor = ColorFlow.textPrimary,
+                disabledContainerColor = ColorFlow.surface,
+                disabledContentColor = ColorFlow.disabled,
+            ),
+            border = BorderStroke(1.dp, ColorFlow.outline),
         ) {
             Icon(
                 painterResource(R.drawable.print_settings_search_24),
                 contentDescription = stringResource(R.string.ProfileSettingsSearchAndFilter),
                 modifier = Modifier.size(22.dp),
-                tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
+                tint = ColorFlow.textPrimary,
             )
         }
     }
