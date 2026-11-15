@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.463 — Nightly-Menüwischen und Kollisionswarnungen — 2026-11-15
+
+- Werkzeugaktionen folgen im Hochformat einer Leserichtung von links nach rechts. Ab fünf Aktionen erscheinen zwei Reihen; weitere Aktionen werden vertikal gescrollt, ohne einen zusätzlichen Pfeil.
+- G-Code-Bewegungen werden gegen 3D-Kollisionsvolumen geprüft. Die Prüfung berücksichtigt Düsenbelegung, Höhenbereich und unbekannte Z-Positionen nach Homing; erkannte Konflikte ergänzen eine kritische Slice-Warnung mit Zeilen- und Extruderangabe.
+- Der Menü-Instrumentierungstest prüft nun tatsächliche vertikale Wischgesten bei 320/360/400 dp und 100–150 % Text statt eines horizontalen Wischs.
+- Verifiziert: Kollisionspfad-Regression 1/1 auf Honor PTP-N49 Android 16; Menü-Wischtest 1/1 auf Android-16-Emulator. Der Honor-Compose-Lauf konnte bei gesperrtem Bildschirm keine UI-Hierarchie starten.
+
 ## 0.8.462 — UI 2.1: farbige Bereiche und adaptive Objektansicht — 2026-11-14
 
 - Hauptbereiche erhalten eigene Akzentfarben für 3D, Druck, Filament, Drucker und App; Navigation, Profilköpfe, Einstellungsgruppen und Werkzeugkacheln folgen dem aktiven Bereich.

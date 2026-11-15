@@ -43,6 +43,9 @@ class Native {
     external fun scarf_ramp_regression(): DoubleArray
     @JvmStatic
     external fun bed_exclude_volumes_regression(): DoubleArray
+    /** Checks nozzle-aware G-code travel segments against configured 3D collision volumes. */
+    @JvmStatic
+    external fun bed_exclude_path_checker_regression(): IntArray
     @JvmStatic
     external fun bed_exclude_area_validation_regression(): IntArray
     /** Handles overlapping, touching, separated, and unrestricted extruder printable areas safely. */

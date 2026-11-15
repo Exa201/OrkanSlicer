@@ -6,6 +6,7 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/GCode/ExclusionVolumePathCheck.hpp"
 
 #include <cstdint>
 #include <algorithm>
@@ -239,6 +240,17 @@ class Print;
         std::vector<double> extruder_heights;
         //BBS: add toolpath_outside
         bool toolpath_outside;
+        bool exclusion_volume_path_checked { false };
+        bool exclusion_volume_path_conflict { false };
+        bool exclusion_volume_travel_conflict { false };
+        bool exclusion_volume_extrusion_conflict { false };
+        bool exclusion_volume_other_motion_conflict { false };
+        unsigned int exclusion_volume_conflict_gcode_id { 0 };
+        size_t exclusion_volume_conflict_move_id { 0 };
+        EMoveType exclusion_volume_conflict_move_type { EMoveType::Noop };
+        int exclusion_volume_conflict_extruder_id { -1 };
+        size_t exclusion_volume_conflict_region_id { 0 };
+        bool exclusion_volume_conflict_used_unknown_z { false };
         //BBS: add object_label_enabled
         bool label_object_enabled;
         //BBS : extra retraction when change filament,experiment func
@@ -289,6 +301,17 @@ class Print;
             bed_exclude_area = other.bed_exclude_area;
             wrapping_exclude_area = other.wrapping_exclude_area;
             toolpath_outside = other.toolpath_outside;
+            exclusion_volume_path_checked = other.exclusion_volume_path_checked;
+            exclusion_volume_path_conflict = other.exclusion_volume_path_conflict;
+            exclusion_volume_travel_conflict = other.exclusion_volume_travel_conflict;
+            exclusion_volume_extrusion_conflict = other.exclusion_volume_extrusion_conflict;
+            exclusion_volume_other_motion_conflict = other.exclusion_volume_other_motion_conflict;
+            exclusion_volume_conflict_gcode_id = other.exclusion_volume_conflict_gcode_id;
+            exclusion_volume_conflict_move_id = other.exclusion_volume_conflict_move_id;
+            exclusion_volume_conflict_move_type = other.exclusion_volume_conflict_move_type;
+            exclusion_volume_conflict_extruder_id = other.exclusion_volume_conflict_extruder_id;
+            exclusion_volume_conflict_region_id = other.exclusion_volume_conflict_region_id;
+            exclusion_volume_conflict_used_unknown_z = other.exclusion_volume_conflict_used_unknown_z;
             label_object_enabled = other.label_object_enabled;
             long_retraction_when_cut = other.long_retraction_when_cut;
             timelapse_warning_code = other.timelapse_warning_code;
@@ -796,6 +819,10 @@ class Print;
         AxisCoords m_start_position; // mm
         AxisCoords m_end_position; // mm
         AxisCoords m_origin; // mm
+        std::array<bool, 3> m_axis_position_known { false, false, false };
+        std::array<bool, 3> m_axis_origin_known { true, true, true };
+        bool m_processing_homing_move { false };
+        ExclusionVolumePathChecker m_exclusion_volume_path_checker;
         CachedPosition m_cached_position;
         bool m_wiping;
         bool m_flushing; // mark a section with real flush
@@ -893,6 +920,7 @@ class Print;
                                               const std::vector<int>      &filament_map,
                                               const std::vector<std::set<int>>& unprintable_filament_types );
         void apply_config(const PrintConfig& config);
+        void configure_exclusion_volume_path_check(const PrintConfig& config);
         void set_print(Print* print) { m_print = print; }
 
         DynamicConfig export_config_for_render() const;
@@ -965,6 +993,9 @@ class Print;
         void process_G1(const std::array<std::optional<double>, 4>& axes = { std::nullopt, std::nullopt, std::nullopt, std::nullopt },
             const std::optional<double>& feedrate = std::nullopt, G1DiscretizationOrigin origin = G1DiscretizationOrigin::G1,
             const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt);
+        void update_position_known_from_move(const std::array<std::optional<double>, 4>& axes, G1DiscretizationOrigin origin);
+        void update_position_known_from_move(const GCodeReader::GCodeLine& line);
+        void update_exclusion_volume_path_check_result();
 
         // Arc Move
         void process_G2_G3(const GCodeReader::GCodeLine& line, bool clockwise);

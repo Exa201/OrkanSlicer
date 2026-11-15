@@ -2142,6 +2142,15 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun bedCollisionVolumesCheckTravelByHeightAndPhysicalNozzle() {
+        assertArrayEquals(
+            "G-code path checks must respect volume height, per-nozzle ownership and unknown Z without treating material keepouts as collisions",
+            intArrayOf(1, 0, 0, 1, 1, 1, 0),
+            Native.bed_exclude_path_checker_regression(),
+        )
+    }
+
+    @Test
     fun bedCollisionVolumesConstrainArrangementOnlyForIntersectingHeightAndNozzle() {
         val actual = Native.bed_exclude_arrangement_regression()
         assertArrayEquals("blocked, Z-disjoint, nozzle-disjoint, nozzle-match: ${actual.contentToString()}",

@@ -26,6 +26,7 @@ import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performSemanticsAction
@@ -830,11 +831,19 @@ class FilamentPaletteComposeDeviceTest {
                 assertTrue("Action $index starts outside $width dp viewport at ${scale}x", action.right <= viewport.right)
             }
             val context = InstrumentationRegistry.getInstrumentation().targetContext
-            compose.onNodeWithTag("workspace-menu-actions-grid").performTouchInput {
-                swipeLeft(startX = width * 0.9f, endX = width * 0.1f)
+            // The action host is a vertical grid. Use a real up-swipe and repeat
+            // on narrow layouts until the next row reaches the viewport.
+            val nextRowDescription = context.getString(actionTitles[8])
+            repeat(8) {
+                if (compose.onAllNodesWithContentDescription(nextRowDescription)
+                        .fetchSemanticsNodes().isEmpty()
+                ) {
+                    compose.onNodeWithTag("workspace-menu-actions-grid")
+                        .performTouchInput { swipeUp() }
+                    compose.waitForIdle()
+                }
             }
-            compose.waitForIdle()
-            compose.onNodeWithContentDescription(context.getString(actionTitles[8])).assertIsDisplayed()
+            compose.onNodeWithContentDescription(nextRowDescription).assertIsDisplayed()
             compose.onAllNodesWithContentDescription(context.getString(R.string.WorkspaceMoreTitle))
                 .assertCountEquals(0)
             compose.onNode(hasScrollToIndexAction()).performScrollToIndex(actionTitles.lastIndex)

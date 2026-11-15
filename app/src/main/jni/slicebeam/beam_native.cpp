@@ -50,6 +50,7 @@
 #include "libslic3r/CSGMesh/PerformCSGMeshBooleans.hpp"
 #include <libslic3r/SVG.hpp>
 #include <libslic3r/GCode.hpp>
+#include <libslic3r/GCode/ExclusionVolumePathCheck.hpp>
 #include <libslic3r/ShortestPath.hpp>
 #include <libslic3r/Print.hpp>
 #include <libslic3r/Utils.hpp>
@@ -5952,6 +5953,62 @@ extern "C" {
                 double(second_per.size()), min_x_mm(second_per.at(0)), min_x_mm(offset_regions.at(0))};
             jdoubleArray result = env->NewDoubleArray(14);
             if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 14, values);
+            return result;
+        } catch (const std::exception &error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
+    }
+
+    // Exercises Orca's final-motion collision checker against height-bounded,
+    // per-nozzle volumes without treating legacy material keepouts as collisions.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1exclude_1path_1checker_1regression(JNIEnv* env, jclass)
+    {
+        try {
+            using namespace Slic3r;
+            DynamicPrintConfig dynamic = DynamicPrintConfig::full_print_config();
+            dynamic.set_deserialize_strict({
+                {"printable_height", "100"}, {"nozzle_diameter", "0.4,0.4"},
+                {"filament_map", "1,2"},
+                {"filament_diameter", "1.75,1.75"},
+                {"bed_exclude_area", "50x10,60x10,60x20,50x20"}
+            });
+            dynamic.set_key_value("bed_exclude_volume_mode",
+                new ConfigOptionEnum<BedExcludeVolumeMode>(BedExcludeVolumeMode::PerExtruder));
+            dynamic.set_key_value("bed_exclude_volumes", new ConfigOptionString(""));
+            dynamic.set_key_value("extruder_bed_exclude_volumes", new ConfigOptionStrings({
+                "..10;10x10,20x10,20x20,10x20", "30..;30x10,40x10,40x20,30x20"}));
+            PrintConfig config;
+            config.apply(dynamic, true);
+            config.filament_map.values = {1, 2};
+
+            auto process_gcode = [&](const std::string &gcode) {
+                GCodeProcessor processor;
+                processor.initialize_result_moves();
+                processor.apply_config(config);
+                processor.configure_exclusion_volume_path_check(config);
+                processor.process_buffer(gcode);
+                processor.finalize(false);
+                return std::array<jint, 3>{
+                    processor.get_result().exclusion_volume_travel_conflict ? 1 : 0,
+                    processor.get_result().exclusion_volume_conflict_used_unknown_z ? 1 : 0,
+                    processor.get_result().exclusion_volume_conflict_extruder_id
+                };
+            };
+
+            const auto low_crossing = process_gcode("G90\nG1 X5 Y15 Z5 F6000\nG1 X25 Y15 Z5 F6000\n");
+            const auto above_volume = process_gcode("G90\nG1 X5 Y15 Z15 F6000\nG1 X25 Y15 Z15 F6000\n");
+            const auto other_nozzle = process_gcode("T1\nG90\nG1 X5 Y15 Z5 F6000\nG1 X25 Y15 Z5 F6000\n");
+            const auto nozzle_one_crossing = process_gcode("T1\nG90\nG1 X25 Y15 Z35 F6000\nG1 X45 Y15 Z35 F6000\n");
+            const auto unknown_z = process_gcode("G28 Z\nG90\nG1 X5 Y15 F6000\nG1 X25 Y15 F6000\n");
+            const jint values[] = {
+                low_crossing[0], above_volume[0], other_nozzle[0], nozzle_one_crossing[0],
+                unknown_z[0], unknown_z[1], low_crossing[2],
+            };
+            jintArray result = env->NewIntArray(static_cast<jsize>(std::size(values)));
+            if (result != nullptr)
+                env->SetIntArrayRegion(result, 0, static_cast<jsize>(std::size(values)), values);
             return result;
         } catch (const std::exception &error) {
             jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");

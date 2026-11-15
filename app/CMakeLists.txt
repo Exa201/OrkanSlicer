@@ -926,6 +926,8 @@ add_library(slic3r
         src/main/jni/libslic3r/GCode/ConflictChecker.hpp
         src/main/jni/libslic3r/GCode/CoolingBuffer.cpp
         src/main/jni/libslic3r/GCode/CoolingBuffer.hpp
+        src/main/jni/libslic3r/GCode/ExclusionVolumePathCheck.cpp
+        src/main/jni/libslic3r/GCode/ExclusionVolumePathCheck.hpp
         src/main/jni/libslic3r/GCode/TimelapsePosPicker.cpp
         src/main/jni/libslic3r/GCode/TimelapsePosPicker.hpp
         src/main/jni/libslic3r/GCode.cpp
