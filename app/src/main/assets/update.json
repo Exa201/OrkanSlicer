@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.422\n\n• System-Zurück schließt Bestätigungs- und Hinweisdialoge zuverlässig, ohne die bestätigungspflichtige Aktion auszuführen.\n• Der Druckplattenzähler bleibt bei großer Schrift lesbar und erhält mehr Touchfläche.",
-  "en": "OrkanSlicer 0.8.422\n\n• System Back now reliably dismisses confirmation and information dialogs without triggering the protected action.\n• The build plate counter remains readable with large text and has a larger touch target.",
-  "ru": "OrkanSlicer 0.8.422\n\n• Системная кнопка «Назад» надёжно закрывает диалоги, не выполняя требующее подтверждения действие.\n• Счётчик платформы остаётся читаемым при крупном шрифте и получил увеличенную область нажатия."
+  "de": "OrkanSlicer 0.8.423\n\n• System-Zurück schließt Druckvorbereitungs- und Bestätigungsdialoge, ohne den Slice oder Reset auszulösen.\n• Der Druckplattenzähler bleibt bei großer Schrift lesbar und erhält mehr Touchfläche.",
+  "en": "OrkanSlicer 0.8.423\n\n• System Back dismisses print-preparation and confirmation dialogs without starting a slice or reset.\n• The build plate counter remains readable with large text and has a larger touch target.",
+  "ru": "OrkanSlicer 0.8.423\n\n• Системная кнопка «Назад» закрывает диалоги подготовки печати и подтверждения, не запуская нарезку или сброс.\n• Счётчик платформы остаётся читаемым при крупном шрифте и получил увеличенную область нажатия."
 }

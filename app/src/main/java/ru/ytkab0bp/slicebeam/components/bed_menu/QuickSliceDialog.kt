@@ -1,5 +1,6 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
+import androidx.activity.compose.BackHandler
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -133,6 +134,7 @@ internal fun QuickSliceDialogContent(
     onDismiss: () -> Unit,
     onStart: (selectedPrinter: Int, selectedFilament: Int, settings: QuickSliceProfileSettings) -> Unit,
 ) {
+    BackHandler(onBack = onDismiss)
     var selectedPrinter by remember(options) { mutableIntStateOf(options.selectedPrinter) }
     var selectedFilament by remember(options) { mutableIntStateOf(options.selectedFilament) }
     var selectedQuality by remember(options) { mutableIntStateOf(options.selectedQuality) }

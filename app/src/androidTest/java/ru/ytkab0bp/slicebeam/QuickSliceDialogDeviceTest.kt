@@ -1,7 +1,8 @@
 package ru.ytkab0bp.slicebeam
 
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -23,7 +24,7 @@ import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 @RunWith(AndroidJUnit4::class)
 class QuickSliceDialogDeviceTest {
     @get:Rule
-    val compose = createComposeRule()
+    val compose = createAndroidComposeRule<ComponentActivity>()
 
     private fun options() = QuickSliceDialogOptions(
         printerNames = listOf("Printer"),
@@ -104,7 +105,8 @@ class QuickSliceDialogDeviceTest {
             }
         }
 
-        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        compose.activity.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
 
         assertTrue(dismissed)
         assertTrue(!started)
