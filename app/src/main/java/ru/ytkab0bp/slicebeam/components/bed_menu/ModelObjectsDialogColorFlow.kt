@@ -100,27 +100,39 @@ internal fun ModelObjectsDialog(
                         val row = rows[index]
                         val selected = index in stagedSelection
                         Column {
-                            Row(Modifier.fillMaxWidth().heightIn(min = OrkanDesignTokens.touchTarget)
+                            Column(Modifier.fillMaxWidth()
                                 .background(if (selected) ColorFlow.model.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surfaceVariant,
-                                    RoundedCornerShape(OrkanDesignTokens.controlRadius))
-                                .clickable {
-                                    if (groupSelectionMode) { if (selected) stagedSelection.remove(index) else stagedSelection.add(index) }
-                                    else onSelect(index)
-                                }.testTag("model-object-row-$index").padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Box(Modifier.size(20.dp).background(Color(row.color), CircleShape))
-                                Column(Modifier.weight(1f)) {
-                                    Text(row.name, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                    Text("T${row.tool}: ${row.material} · #${row.color.toUInt().toString(16).padStart(6, '0').takeLast(6).uppercase()}",
-                                        maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    RoundedCornerShape(OrkanDesignTokens.controlRadius))) {
+                                Row(Modifier.fillMaxWidth().heightIn(min = OrkanDesignTokens.touchTarget)
+                                    .clickable {
+                                        if (groupSelectionMode) { if (selected) stagedSelection.remove(index) else stagedSelection.add(index) }
+                                        else onSelect(index)
+                                    }.testTag("model-object-row-$index").padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Box(Modifier.size(20.dp).background(Color(row.color), CircleShape))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(row.name, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                        Text("T${row.tool}: ${row.material} · #${row.color.toUInt().toString(16).padStart(6, '0').takeLast(6).uppercase()}",
+                                            maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
                                 }
-                                TextButton(onClick = { onAssign(index) }, enabled = row.assignEnabled,
-                                    modifier = Modifier.heightIn(min = 48.dp)) { Text(assignLabel) }
-                                if (row.parts.size > 1) TextButton(
-                                    onClick = { expandedGroups = if (index in expandedGroups) expandedGroups - index else expandedGroups + index },
-                                    modifier = Modifier.heightIn(min = 48.dp).testTag("model-object-group-toggle-$index")) {
-                                    val expanded = index in expandedGroups
-                                    Text(stringResource(if (expanded) R.string.ModelObjectCollapseParts else R.string.ModelObjectExpandParts, row.parts.size))
+                                // Actions get a dedicated line so long translated labels and large
+                                // accessibility text never compress the object name into a sliver.
+                                Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 2.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    TextButton(onClick = { onAssign(index) }, enabled = row.assignEnabled,
+                                        modifier = Modifier.weight(1f).heightIn(min = OrkanDesignTokens.touchTarget)
+                                            .testTag("model-object-assign-$index")) {
+                                        Text(assignLabel, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    }
+                                    if (row.parts.size > 1) TextButton(
+                                        onClick = { expandedGroups = if (index in expandedGroups) expandedGroups - index else expandedGroups + index },
+                                        modifier = Modifier.weight(1f).heightIn(min = OrkanDesignTokens.touchTarget)
+                                            .testTag("model-object-group-toggle-$index")) {
+                                        val expanded = index in expandedGroups
+                                        Text(stringResource(if (expanded) R.string.ModelObjectCollapseParts else R.string.ModelObjectExpandParts, row.parts.size),
+                                            maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    }
                                 }
                             }
                             if (index in expandedGroups) row.parts.forEachIndexed { partIndex, part ->
@@ -136,14 +148,17 @@ internal fun ModelObjectsDialog(
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
                                     }
-                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalAlignment = Alignment.CenterVertically) {
                                         TextButton(onClick = { onTransformPart(index, partIndex) },
-                                            modifier = Modifier.heightIn(min = 48.dp).testTag("model-object-transform-part-$index-$partIndex")) {
-                                            Text(stringResource(R.string.ModelObjectPartTransform))
+                                            modifier = Modifier.weight(1f).heightIn(min = OrkanDesignTokens.touchTarget)
+                                                .testTag("model-object-transform-part-$index-$partIndex")) {
+                                            Text(stringResource(R.string.ModelObjectPartTransform), maxLines = 2, overflow = TextOverflow.Ellipsis)
                                         }
                                         TextButton(onClick = { onEditPart(index, partIndex) },
-                                            modifier = Modifier.heightIn(min = 48.dp).testTag("model-object-edit-part-$index-$partIndex")) {
-                                            Text(stringResource(R.string.ModelObjectEditPart))
+                                            modifier = Modifier.weight(1f).heightIn(min = OrkanDesignTokens.touchTarget)
+                                                .testTag("model-object-edit-part-$index-$partIndex")) {
+                                            Text(stringResource(R.string.ModelObjectEditPart), maxLines = 2, overflow = TextOverflow.Ellipsis)
                                         }
                                     }
                                 }
