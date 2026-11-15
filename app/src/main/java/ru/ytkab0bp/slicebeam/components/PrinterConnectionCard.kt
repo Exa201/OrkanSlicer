@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -37,32 +38,46 @@ fun PrinterConnectionCard(
 ) {
     val displayHost = PrinterWebOriginPolicy.dashboardUrl(configuredHost)
     val openWebDescription = stringResource(R.string.PrinterOpenWebDescription)
+    val stackDetails = LocalConfiguration.current.screenWidthDp < 560 ||
+        ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current >= 1.35f
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(OrkanUiTokens.compactCornerRadius),
         color = MaterialTheme.colorScheme.surfaceVariant,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
     ) {
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.PrinterConnectionTitle),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            Text(
+                text = stringResource(R.string.PrinterConnectionTitle),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (stackDetails) {
                 Text(
                     text = displayHost ?: stringResource(R.string.PrinterWebHostMissing),
                     style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    softWrap = true,
                 )
             }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (!stackDetails) {
+                    Text(
+                        text = displayHost ?: stringResource(R.string.PrinterWebHostMissing),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
             OutlinedButton(
                 onClick = onOpenWeb,
                 modifier = Modifier
@@ -79,6 +94,7 @@ fun PrinterConnectionCard(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(stringResource(R.string.PrinterOpenWebShort), maxLines = 1)
+            }
             }
         }
     }

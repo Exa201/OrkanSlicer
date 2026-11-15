@@ -4,6 +4,16 @@
 - Profilfilter-Instrumentierung auf API 36: **3/3** bestanden, einschließlich 320 dp Breite und 200 % Schriftgröße. AndroidTest-APK-Build und `verifyNightlyChangelog` erfolgreich.
 - Debug-APK `app/build/outputs/apk/debug/OrkanSlicerNightly25_0fb34f181a.apk`, SHA-256 `b6bd08a2e1575a3109944a6c17ae1eedef647107ff3ea24e6d0c4b8a4f80bd52`. Paketmanager bestätigt auf dem Emulator Version **0.8.470 / Code 505**. Physische Geräte nicht getestet; kein Release und kein Merge.
 
+## OrkanSlicer Nightly 2.5 — HONOR UI-Abnahme und Profil-Lesbarkeit — 2026-11-15 — 0.8.472
+
+- Branch `codex/ui-2.1-redesign`, Paket `com.exa201.orkanslicer.nightly25`, Version **0.8.472 / Code 507**. Ausschließlich Nightly 2.5 verwendet.
+- HONOR Magic7 Pro (PTP-N49, Android 16) ist bei **480 dp / 150 % Schrift** geprüft. Installation und PackageManager-Version bestätigt; 3D, Druck, Filament, Drucker und App geöffnet und als Gerätescreenshots gesichert. Die Druckerkarte zeigt nun den vollständigen Hinweis „Bitte zuerst einen Druckerhost eintragen.“; zuvor war er abgeschnitten. Startlog ohne erkannte Crash-/ANR-/OOM-Marker.
+- Auf dem HONOR bestanden die fokussierten Compose-Instrumentierungen **2/2**: lange Kategoriebezeichnungen bei 320 dp/200 % bleiben sichtbar/auswählbar; Druckerhost-Hinweis und Web-Aktion bleiben bei 480 dp/150 % sichtbar und bedienbar. Vollständige Debug- und SliceTest-Unit-Suiten: jeweils **786/786**, 0 Fehler, 0 Skips. Debug-, SliceTest- und AndroidTest-APK-Build sowie `verifyNightlyChangelog` erfolgreich.
+- Druckerkarte stapelt Status und Web-Aktion bei schmalem Layout/großer Schrift. Profilkategorien werden nicht mehr nach zwei Zeilen abgeschnitten; große Schrift bleibt zweispaltig.
+- Debug-APK: `app/build/outputs/apk/debug/OrkanSlicerNightly25_5e379e99bf.apk`, **SHA-256 `622cbb036418d6071186cc70611f1e334c28cdda2925503406a9e653b4fc1225`**. Der Pfadname enthält den Git-HEAD vor dem Commit; APK-Manifest bestätigt 0.8.472 / 507.
+- HONOR-Screenshots (480 dp / 150 %): `docs/images/ui21/honor-nightly-0.8.472-{workspace,print,filament,printer,app}-480dp-150.png`. Profil-/Drucker-Layout-XML liegt lokal als Testnachweis, wird nicht in den Screenshot-Bericht aufgenommen.
+- Kein Druck gestartet, keine Profile gespeichert oder geändert. Kein Release und kein Merge.
+
 ## OrkanSlicer Nightly 2.5 — UI 2.1 Teilaktionen — 2026-11-15 — 0.8.469
 
 - Branch `codex/ui-2.1-redesign`, Code 504, Paket `com.exa201.orkanslicer.nightly25`. Teilaktionen gruppierter Modellteile in einem zugänglichen Overflow-Menü; Materialfarbbeschreibung für TalkBack; responsive Dialogbreite.

@@ -1,3 +1,14 @@
+# UI 2.1 ColorFlow — aktueller Nightly-Fortsetzungsstand — 2026-11-15
+
+- Arbeitskopie und Branch: OrkanSlicer Nightly 2.5, `codex/ui-2.1-redesign`; Stable wird nicht verwendet. Aktuelle installierte Nightly-App **0.8.472 / Code 507**.
+- Neu: Profilkategorien umbrechen vollständig; Drucker-Verbindungshinweis stapelt sich bei 480 dp/großer Schrift oberhalb der Web-Aktion. Der sichtbare Honor-Fehler „Bitte zuerst einen Druckerhost eintragen.“ war abgeschnitten und ist behoben.
+- Gerätetest: HONOR Magic7 Pro / Android 16 / 480 dp / 150 %: 0.8.472 installiert, PackageManager geprüft, App gestartet, fünf Hauptbereiche geöffnet und fotografiert; keine Crash-/ANR-/OOM-Marker in den geprüften Startlogs. Fokussierte UI-Instrumentierung auf dem Honor **2/2** (320 dp/200 %-Kategorien, 480 dp/150 %-Druckerkarte und Web-Aktion).
+- Vollständige Unit-Suiten nach 0.8.472: Debug **786/786**, SliceTest **786/786**, ohne Fehler/Skips. Debug-, SliceTest- und AndroidTest-Build plus Changelog-Prüfung bestanden.
+- APK `app/build/outputs/apk/debug/OrkanSlicerNightly25_5e379e99bf.apk`, SHA-256 `622cbb036418d6071186cc70611f1e334c28cdda2925503406a9e653b4fc1225`.
+- Screenshots aus echter HONOR-Ausführung bei 480 dp/150 %: `docs/images/ui21/honor-nightly-0.8.472-{workspace,print,filament,printer,app}-480dp-150.png`.
+- Der vollständige UI-2.1-Auftrag ist weiterhin offen: weitere Profileditoren, Dialoge/Objektliste, vollständige Interaktions-/Speichern-/Zurücksetzen-Matrix, Querformat, 1/4/8/16/24-Filamentslots, Mehrplattenfälle und Offline-Abnahme müssen noch vollständig geprüft werden. Kein Release/Merge.
+- Nächster konkreter Schritt: auf Nightly weiter mit der Filament-Seite bei 1/4/8/16/24 Slots und anschließend Profilaktionen (Profilwechsel, Bearbeiten, Speichern, Zurücksetzen) am Emulator/HONOR abnehmen.
+
 # UI 2.1 ColorFlow — Fortsetzungsstand 2026-11-15
 
 - Nightly 0.8.469 / Code 504: Die vier Aktionen je gruppiertem Modellteil sind in einem beschrifteten Overflow-Menü gebündelt; Farbfelder sind für TalkBack mit Material, Werkzeugnummer und Farbcode beschrieben. Auf großen Geräten ist die Objektliste auf 720 dp begrenzt; selektierte Objekte haben eine sichtbare Akzentumrandung.

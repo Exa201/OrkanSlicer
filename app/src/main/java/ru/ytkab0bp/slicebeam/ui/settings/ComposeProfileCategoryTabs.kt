@@ -23,7 +23,8 @@ import androidx.compose.ui.unit.sp
 fun ProfileCategoryTabs(labels: List<String>, selectedIndex: Int, onSelected: (Int) -> Unit) {
     if (labels.isEmpty()) return
     // Ordinary phone widths use one scrollable row; large accessibility text can wrap.
-    val stacked = ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current >= 1.35f
+    val fontScale = ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current
+    val stacked = ProfileCategoryTabsLayoutPolicy.usesStackedRows(fontScale)
     if (stacked) {
         Column(
             modifier = Modifier.widthIn(max = 1200.dp).fillMaxWidth(),
@@ -84,9 +85,11 @@ private fun ProfileCategoryTab(
         text = {
             Text(
                 text = label,
-                maxLines = 2,
+                // Profile groups can have long localized names (especially in German and
+                // Russian). Let the tab grow to its content instead of silently hiding the
+                // end of a category name at large accessibility font sizes.
                 softWrap = true,
-                overflow = TextOverflow.Ellipsis,
+                overflow = TextOverflow.Clip,
                 textAlign = TextAlign.Center,
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
@@ -95,4 +98,8 @@ private fun ProfileCategoryTab(
             )
         },
     )
+}
+
+internal object ProfileCategoryTabsLayoutPolicy {
+    fun usesStackedRows(fontScale: Float): Boolean = fontScale.isFinite() && fontScale >= 1.35f
 }

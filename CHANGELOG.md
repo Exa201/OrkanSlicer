@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.472 — UI 2.1: Druckerverbindung bei großer Schrift — 2026-11-15
+
+- Die Druckerverbindungskarte ordnet Status und Web-Aktion auf schmalen Displays oder bei großer Schrift untereinander an.
+- Der vollständige Hinweis zum fehlenden Druckerhost bleibt bei 480 dp und 150 % sichtbar; die Web-Aktion behält ihre 48-dp-Touchfläche.
+- Der fehlende Druckerhost-Hinweis bleibt auf dem HONOR Magic7 Pro bei 480 dp und 150 % Schrift vollständig sichtbar.
+
+## 0.8.471 — UI 2.1: Profilkategorien vollständig lesbar — 2026-11-15
+
+- Lange lokalisierte Namen der Druck-, Filament- und Druckerkategorien werden in den Profilreitern nicht mehr am Zeilenende abgeschnitten.
+- Bei großer Schrift wechseln die Kategorien in ein zweispaltiges Raster; die Tabs wachsen mit dem gesamten Namen und bleiben antippbar.
+- 320-dp-/200-%-Compose-Instrumentierung und Layout-Policy-Test ergänzt.
+
 ## 0.8.470 — UI 2.1: Profilfilter bei 200 % lesbar — 2026-11-15
 
 - Die Such-/Filter-Kopfzeile und die Qualitätsstufen dürfen bei sehr großer Schrift auf schmalen Displays mehrzeilig wachsen.
