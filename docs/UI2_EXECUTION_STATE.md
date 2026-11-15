@@ -1,11 +1,11 @@
 # UI 2.1 ColorFlow — Fortsetzungsstand 2026-11-15
 
-- Arbeitsbranch: `codex/ui-2.1-redesign`; Ausgangscommit `bbe0aa8bf5`.
-- Designvorgaben aus `OrkanSlicer_Designpaket_NEU.zip` gelesen. Die vollständige Redesign-Abnahme ist **offen**; dieser Schritt ist die gemeinsame Compose-Grundlage und die erste konsistente Anwendung auf App-Einstellungen.
-- Umgesetzt: Dark-ColorFlow-Oberflächenfarben und Bereichsakzente zentralisiert; wiederverwendbare `OrkanAccordion`- und `OrkanSettingRow`-Komponenten angelegt und App-Einstellungsgruppen/-Wertezeilen darauf umgestellt. Light Theme, Settings-Handler, gespeicherte Profile und Datenwege unverändert.
-- Geprüft: `:app:compileDebugKotlin` und `:app:testDebugUnitTest` erfolgreich nach Korrektur eines Semantikimports. Aktueller Unit-Zähler muss aus dem letzten XML-Bericht ausgelesen werden. Ein vorhandener Emulator-Screenshot zeigt den aktuellen Nightly-Vorstand, wurde vor dem Theme-Patch aufgenommen und gilt daher nicht als visueller Nachweis für 0.8.464.
+- Arbeitsbranch: `codex/ui-2.1-redesign`; Ausgangscommit `bbe0aa8bf5`, UI-Grundlagencommit `2fae2b4fd3`; weitere Profil-/Navigationsergänzung ist verifiziert und wird als nächster Commit gesichert.
+- Designvorgaben aus `OrkanSlicer_Designpaket_NEU.zip` gelesen. Die vollständige Redesign-Abnahme ist **offen**; dieser Schritt konsolidiert die Compose-Grundlage und aktualisiert App-Einstellungen, gemeinsame Druck-/Filament-/Drucker-Profilkategorien und die Arbeitsbereich-Navigation.
+- Umgesetzt: Dark-ColorFlow-Oberflächenfarben und Bereichsakzente zentralisiert; App-Einstellungsgruppen und Wertezeilen nutzen `OrkanAccordion`/`OrkanSettingRow`; Profilgruppen zeigen schwach farbige Flächen und kontrastreiche Überschriften; Workspace-Navigationslabels haben bei 150 % eine passende einzeilige Zeilenhöhe. Light Theme, Settings-Handler, gespeicherte Profile und Datenwege bleiben erhalten.
+- Geprüft: Debug-Unit **785/785**; API-36-Emulator: `SettingsAccessibilityDeviceTest` **1/1**, `ProfileSettingsImeDeviceTest` **12/12**, `AdaptiveWorkspaceNavigationDeviceTest` **4/4** (inklusive Labelgrenzen innerhalb der 56-dp-Zeile bei 150 % Schrift). Changelog-Validierung erfolgreich. Screenshots vor der letzten Profil-/Navigationskorrektur werden nach dem finalen Debug-Build ersetzt.
 - Version für den nächsten Build: **0.8.464 / Code 499**; `CHANGELOG.md` und `app/src/main/assets/update.json` aktualisiert.
-- Nächster konkreter Schritt: Debug-APK 0.8.464 bauen, auf API-36-Emulator installieren und App-/Druck-/Filament-/Drucker-/Workspace-Seiten sowie App-Einstellungen visuell erfassen; anschließend die nächste Hauptseite mit dem gemeinsamen System migrieren. Honor bleibt für UI-Abnahme nach Entsperrung vorgesehen.
+- Nächster konkreter Schritt: Änderungen committen, Debug-APK 0.8.464 mit dem Commit-Hash bauen, auf API-36-Emulator installieren und Screenshots der fünf Hauptseiten aktualisieren. Danach Workspace/Objektliste und die Druck-/Filament-/Drucker-Einstellungsinhalte weiter angleichen. Honor bleibt für UI-Abnahme nach Entsperrung vorgesehen.
 - Offen: vollständige Umsetzung und Mapping-Tabelle für alle fünf Hauptseiten, Objektliste und relevante Dialoge; Screenshots aller Seiten, 150-%-Honor-Validierung, Funktions-/Navigationstests, PR-Aktualisierung. Kein Release oder Merge autorisiert.
 
 # Nightly execution state — 2026-11-14

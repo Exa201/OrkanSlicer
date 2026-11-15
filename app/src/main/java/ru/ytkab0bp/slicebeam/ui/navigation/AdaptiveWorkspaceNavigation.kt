@@ -200,7 +200,11 @@ private fun Destination(
             if (compactRail) item.compactLabel ?: item.label else bottomLabel,
             maxLines = 1,
             softWrap = false, overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center, fontSize = navigationLabelSize,
+            textAlign = TextAlign.Center,
+            fontSize = navigationLabelSize,
+            // Text's default Material line height scales with system font size even
+            // though this compact label is deliberately normalized to one line.
+            lineHeight = navigationLabelSize * 1.2f,
             modifier = Modifier.fillMaxWidth(),
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             color = if (selected) accent else MaterialTheme.colorScheme.onSurface,

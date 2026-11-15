@@ -60,7 +60,9 @@ fun ComposeProfileCategoryRow(
         animationSpec = spring(stiffness = Spring.StiffnessHigh, dampingRatio = Spring.DampingRatioNoBouncy),
         label = "profile-category-chevron",
     )
-    val textColor = accentColor?.let(::Color) ?: MaterialTheme.colorScheme.onSurface
+    // Keep category titles at the theme's full text contrast; color is reserved for
+    // badges and accents so section-specific hues never make labels hard to read.
+    val textColor = MaterialTheme.colorScheme.onSurface
     val iconTint = if (noIconTint) Color.Unspecified else {
         accentColor?.let(::Color) ?: MaterialTheme.colorScheme.onSurfaceVariant
     }

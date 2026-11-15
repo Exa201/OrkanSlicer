@@ -3,8 +3,9 @@
 ## 0.8.464 — UI 2.1 ColorFlow-Grundsystem — 2026-11-15
 
 - Compose erhält die ColorFlow-Farbflächen für den Dunkelmodus: tiefes Navy als Hintergrund, abgestufte Kartenflächen und helle Sekundärtexte. Das bestehende Light Theme bleibt unverändert; Bereichsakzente und gespeicherte Profile bleiben erhalten.
-- Die App-Einstellungen verwenden jetzt gemeinsame zugängliche Akkordeon- und Wertezeilen mit konsistenten Radien und mindestens 48 dp Touchhöhe. Vorhandene Aktionen, Zustände und Speicherpfade wurden beibehalten.
-- Debug-Kotlin-Compile und Debug-Unit-Suite erfolgreich; visueller Emulatorabgleich und Geräteeinbau folgen in dieser Redesign-Stufe.
+- App-Einstellungen und Druck-/Filament-/Druckerprofil-Kategorien verwenden abgestimmte Flächenfarben, kontrastreiche Kategorieüberschriften sowie gemeinsame zugängliche Akkordeon- und Wertezeilen mit mindestens 48 dp Touchhöhe.
+- Die Beschriftungen der unteren Arbeitsbereichsnavigation behalten bei 150 % Schriftgröße eine stabile einzeilige Zeilenhöhe und werden nicht mehr vertikal abgeschnitten.
+- Vorhandene Aktionen, Profilzustände und Speichervorgänge bleiben erhalten. Verifiziert: Debug-Unit 785/785; Android-16-Emulator Einstellungen 1/1, Profile 12/12, Navigation 4/4.
 
 ## 0.8.463 — Nightly-Menüwischen und Kollisionswarnungen — 2026-11-15
 

@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -113,7 +114,11 @@ class AdaptiveWorkspaceNavigationDeviceTest {
             assertEquals("navigation items must share one row", firstTop,
                 node.fetchSemanticsNode().boundsInRoot.top, 0.5f)
         }
-        compose.onNodeWithText(context.getString(R.string.MenuOptionsCompact)).assertIsDisplayed()
+        items.forEach { item ->
+            val label = requireNotNull(item.compactLabel)
+            val bounds = compose.onNodeWithText(label).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            assertTrue("large-text navigation label '$label' must stay inside its 56 dp row", bounds.top >= 0f && bounds.bottom <= 56f)
+        }
     }
 
     @Test

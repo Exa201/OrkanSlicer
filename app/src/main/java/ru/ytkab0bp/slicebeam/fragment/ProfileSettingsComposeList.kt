@@ -46,7 +46,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.ColorUtils
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.cloud.CloudController
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
@@ -388,19 +387,16 @@ private fun ProfileSettingsRow(
     onEditorStateChanged: (Boolean) -> Unit,
 ) {
     val accentColor = decoration.accentColor.takeIf { it != 0 }?.let(ThemesRepo::getColor)
-    val backgroundColor = if (accentColor != null) {
-        Color(ColorUtils.setAlphaComponent(accentColor, 0x22))
-    } else {
-        Color(ColorUtils.setAlphaComponent(
-            ThemesRepo.getColor(android.R.attr.colorControlHighlight),
-            0x10,
-        ))
+    val sectionAccent = ru.ytkab0bp.slicebeam.ui.LocalOrkanSection.current.let { section ->
+        if (section == ru.ytkab0bp.slicebeam.ui.OrkanSection.DEFAULT) MaterialTheme.colorScheme.primary
+        else section.accent
     }
+    val backgroundColor = (accentColor?.let(::Color) ?: sectionAccent).copy(alpha = 0.10f)
     val shape = RoundedCornerShape(
-        topStart = if (decoration.startsSection) 28.dp else 0.dp,
-        topEnd = if (decoration.startsSection) 28.dp else 0.dp,
-        bottomEnd = if (decoration.endsSection) 28.dp else 0.dp,
-        bottomStart = if (decoration.endsSection) 28.dp else 0.dp,
+        topStart = if (decoration.startsSection) 18.dp else 0.dp,
+        topEnd = if (decoration.startsSection) 18.dp else 0.dp,
+        bottomEnd = if (decoration.endsSection) 18.dp else 0.dp,
+        bottomStart = if (decoration.endsSection) 18.dp else 0.dp,
     )
     val rowTestTag = wrapper.optionEl?.optionDef?.key
         ?.takeIf { it.isNotBlank() }
