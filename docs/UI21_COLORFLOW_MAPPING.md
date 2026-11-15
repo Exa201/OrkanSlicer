@@ -23,4 +23,5 @@ Dieses Mapping hält die sichtbare Oberfläche und den bestehenden Handler getre
 - Die gespeicherten MMU-Filamentslots bestehen den Roundtrip 1/4/8/16/24; das definierte Produktlimit von 16 wird korrekt eingehalten, 1/1.
 - Rotationstest auf Android 16: Workspace mit Modell/Renderer und alle Hauptziele einschließlich Maker/App-Einstellungen über Hoch-/Querformatwechsel erhalten, 1/1.
 - Werkzeugmenü bei 320/360/400 dp und 100/130/150 % Schrift: sichtbare Kacheln passen in den Bereich, Touchziele bleiben mindestens 48 dp, Paging/Scrollen erreicht spätere Einträge, 1/1.
+- Menüanpassung vollständig 4/4: Ausblenden, Drag-Reihenfolge und Persistenz sowie Kamera-Menü bei schmaler Breite, großer Schrift und Querformat.
 - Dieses Redesign bleibt in Arbeit; keine Release- oder Merge-Freigabe.
