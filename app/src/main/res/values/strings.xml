@@ -22,7 +22,7 @@
     <string name="NavigationPreview">Preview</string>
     <string name="NavigationPreviewCompact" translatable="false">3D</string>
     <string name="NavigationPrintCompact">Print</string>
-    <string name="NavigationFilamentCompact">Fil.</string>
+    <string name="NavigationFilamentCompact">Filament</string>
     <string name="NavigationPrinterCompact">Printer</string>
     <string name="NavigationAppCompact">App</string>
     <string name="SlotPrintConfig">Print</string>

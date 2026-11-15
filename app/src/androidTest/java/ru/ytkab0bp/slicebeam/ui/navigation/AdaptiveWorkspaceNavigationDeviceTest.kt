@@ -139,7 +139,9 @@ class AdaptiveWorkspaceNavigationDeviceTest {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f, 1.5f)) {
                 BeamComposeTheme {
-                    Box(Modifier.width(320.dp).height(56.dp)) {
+                    Box(Modifier.width(320.dp).height(
+                        AdaptiveNavigationPolicy.navigationBarHeightDp(1.5f, items.size).dp,
+                    )) {
                         AdaptiveWorkspaceNavigation(
                             items = items,
                             selectedSlot = MobileNavigationPolicy.PREVIEW_SLOT,
@@ -161,6 +163,7 @@ class AdaptiveWorkspaceNavigationDeviceTest {
             assertEquals("global navigation items must remain on one row", firstTop,
                 node.fetchSemanticsNode().boundsInRoot.top, 0.5f)
         }
+        compose.onNodeWithText(context.getString(R.string.NavigationFilamentCompact)).assertIsDisplayed()
     }
 
     @Test

@@ -24,7 +24,12 @@ object AdaptiveNavigationPolicy {
 
     @JvmStatic
     @Suppress("UNUSED_PARAMETER")
-    fun navigationBarHeightDp(fontScale: Float, itemCount: Int): Int = NAVIGATION_BAR_HEIGHT_DP
+    fun navigationBarHeightDp(fontScale: Float, itemCount: Int): Int {
+        // The global five-destination bar has fixed width columns. Give scaled labels
+        // enough vertical room instead of clipping their lower half at large text sizes.
+        val scale = fontScale.coerceIn(1f, 2f)
+        return (NAVIGATION_BAR_HEIGHT_DP + ((scale - 1f) * 32f)).toInt()
+    }
 
     /** Wider rail space preserves system text scaling and readable destination names. */
     @JvmStatic

@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.425\n\n• Raycast-Treffer werden vor jeder Werkzeugabfrage zurückgesetzt; dadurch verwenden Malen, Flächenplatzierung und Modellwerkzeuge keine veralteten Treffer mehr.\n• Spiegeln funktioniert auch nach Undo und Redo mit dem wiederhergestellten Modell.",
-  "en": "OrkanSlicer 0.8.425\n\n• Raycast hits are cleared before each tool query, preventing stale hits in painting, surface placement, and model tools.\n• Mirroring now works after undo and redo with the restored model.",
-  "ru": "OrkanSlicer 0.8.425\n\n• Результаты raycast очищаются перед каждым запросом инструмента, поэтому окрашивание, размещение на поверхности и инструменты модели не используют устаревшие попадания.\n• Зеркальное отражение работает после отмены и повтора с восстановленной моделью."
+  "de": "OrkanSlicer 0.8.426\n\n• Die globale Navigation zeigt Filament vollständig an und vergrößert ihre Höhe bei großer Systemschrift, damit Beschriftungen nicht abgeschnitten werden.\n• Raycast-Treffer werden vor jeder Werkzeugabfrage zurückgesetzt; Spiegeln funktioniert nach Undo und Redo.",
+  "en": "OrkanSlicer 0.8.426\n\n• Global navigation now shows the full Filament label and grows for large system text so labels are not clipped.\n• Raycast hits are cleared before each tool query; mirroring works after undo and redo.",
+  "ru": "OrkanSlicer 0.8.426\n\n• В глобальной навигации полностью отображается название Filament, а высота увеличивается при крупном системном шрифте.\n• Результаты raycast очищаются перед запросом инструмента; зеркальное отражение работает после отмены и повтора."
 }
