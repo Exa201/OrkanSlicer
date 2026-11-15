@@ -24,6 +24,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -46,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -56,6 +58,7 @@ import androidx.compose.runtime.withFrameNanos
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rLocalization
+import ru.ytkab0bp.slicebeam.ui.components.OrkanIconBadge
 import java.util.Locale
 
 internal data class ModelObjectRow(
@@ -97,6 +100,14 @@ internal data class ModelObjectPartRow(
     val material: String,
     val color: Int,
 )
+
+private data class ModelObjectListEntry(
+    val parentIndex: Int,
+    val row: ModelObjectRow,
+    val partIndex: Int? = null,
+) {
+    val key: String = if (partIndex == null) "object:${row.objectIndex}" else "part:${row.objectIndex}:$partIndex"
+}
 
 /** Uses Orca's loaded schema so the editor only offers patterns supported by this bundled core. */
 internal fun modelSparseInfillPatternOptions(): List<Pair<String, String>> = runCatching {
@@ -469,13 +480,35 @@ internal fun ModelObjectsDialog(
     var groupSelectionMode by remember(rows) { mutableStateOf(false) }
     var orderMenuExpanded by remember(rows) { mutableStateOf(false) }
     var order by remember(rows) { mutableStateOf(ModelObjectOrder.ORIGINAL) }
+    var searchQuery by remember(rows) { mutableStateOf("") }
     val stagedSelection = remember(rows) {
         mutableStateListOf<Int>().apply { addAll(rows.filter { it.selected }.map { it.objectIndex }) }
     }
-    val orderedRows = remember(rows, order) { orderModelObjectRows(rows, order) }
+    val orderedRows = remember(rows, order, searchQuery) {
+        val query = searchQuery.trim()
+        orderModelObjectRows(rows, order).filter { row ->
+            query.isEmpty() || row.name.contains(query, ignoreCase = true) ||
+                row.material.contains(query, ignoreCase = true) ||
+                row.parts.any { part ->
+                    part.label.contains(query, ignoreCase = true) || part.material.contains(query, ignoreCase = true)
+                }
+        }
+    }
     val maxRowsHeight = (LocalConfiguration.current.screenHeightDp * 0.56f).dp.coerceIn(220.dp, 520.dp)
     var expandedGroups by remember(rows) {
         mutableStateOf(rows.filter { it.parts.size > 1 }.map { it.objectIndex }.toSet())
+    }
+    val visibleEntries = remember(orderedRows, expandedGroups) {
+        buildList {
+            orderedRows.forEachIndexed { parentIndex, row ->
+                add(ModelObjectListEntry(parentIndex, row))
+                if (row.objectIndex in expandedGroups) {
+                    row.parts.indices.forEach { partIndex ->
+                        add(ModelObjectListEntry(parentIndex, row, partIndex))
+                    }
+                }
+            }
+        }
     }
     Dialog(
         onDismissRequest = onDismiss,
@@ -489,11 +522,30 @@ internal fun ModelObjectsDialog(
         ) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(title, Modifier.weight(1f), style = MaterialTheme.typography.headlineSmall)
+                    OrkanIconBadge(R.drawable.vk_cube_box_outline_24, size = 42.dp)
+                    Text(
+                        title,
+                        Modifier.weight(1f).padding(start = 12.dp),
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
                     IconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) {
                         Text("×", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp).testTag("model-objects-search"),
+                    singleLine = true,
+                    placeholder = { Text(stringResource(R.string.ModelObjectsSearchHint)) },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.print_settings_search_24),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    },
+                )
                 androidx.compose.foundation.layout.FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     maxItemsInEachRow = 2,
@@ -535,67 +587,87 @@ internal fun ModelObjectsDialog(
                     Modifier.weight(1f).fillMaxWidth().heightIn(min = 100.dp, max = maxRowsHeight)
                         .testTag("model-objects-dialog-rows"),
                 ) {
-                    itemsIndexed(orderedRows) { index, row ->
-                        val selected = row.objectIndex in stagedSelection
-                        Column(
-                            Modifier.fillMaxWidth().padding(vertical = 3.dp)
-                                .background(if (selected) MaterialSelection else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f), RoundedCornerShape(14.dp)),
-                        ) {
-                            Row(
-                                Modifier.fillMaxWidth().heightIn(min = 64.dp)
-                                .clickable {
-                                    if (groupSelectionMode) {
-                                        if (selected) stagedSelection.remove(row.objectIndex) else stagedSelection.add(row.objectIndex)
-                                    } else onSelect(row.objectIndex)
-                                }.testTag("model-object-row-$index")
-                                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                Box(Modifier.size(20.dp).background(Color(row.color), CircleShape))
-                                Column(Modifier.weight(1f)) {
-                                    Text(row.name, fontWeight = FontWeight.Medium)
-                                    Text(
-                                        "T${row.tool}: ${row.material} · #${row.color.toUInt().toString(16).padStart(6, '0').takeLast(6).uppercase()}",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                            FlowRow(
-                                Modifier.fillMaxWidth().padding(start = 34.dp, end = 6.dp, bottom = 4.dp),
-                                maxItemsInEachRow = 2,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
-                            ) {
-                                TextButton(
-                                    onClick = { onAssign(row.objectIndex) },
-                                    enabled = row.assignEnabled,
-                                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                                ) { Text(assignLabel, textAlign = TextAlign.Center) }
-                                if (row.parts.size > 1) TextButton(
-                                    onClick = {
-                                        expandedGroups = if (row.objectIndex in expandedGroups) expandedGroups - row.objectIndex
-                                        else expandedGroups + row.objectIndex
-                                    },
-                                    modifier = Modifier.weight(1f).heightIn(min = 48.dp)
-                                        .testTag("model-object-group-toggle-$index"),
-                                ) {
-                                    val expanded = row.objectIndex in expandedGroups
-                                    Text(
-                                        stringResource(
-                                            if (expanded) R.string.ModelObjectCollapseParts else R.string.ModelObjectExpandParts,
-                                            row.parts.size,
-                                        ),
-                                        textAlign = TextAlign.Center,
-                                    )
-                                }
-                            }
+                    if (orderedRows.isEmpty()) {
+                        item(key = "search-empty") {
+                            Text(
+                                stringResource(R.string.ModelObjectsSearchEmpty),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
+                                    .testTag("model-objects-search-empty"),
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
-                        if (row.objectIndex in expandedGroups) {
-                            row.parts.forEachIndexed { partIndex, part ->
+                    } else {
+                        itemsIndexed(visibleEntries, key = { _, entry -> entry.key }) { _, entry ->
+                            val row = entry.row
+                            val index = entry.parentIndex
+                            val partIndex = entry.partIndex
+                            if (partIndex == null) {
+                                val selected = row.objectIndex in stagedSelection
+                                Column(
+                                    Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                                        .background(
+                                            if (selected) MaterialSelection
+                                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f),
+                                            RoundedCornerShape(14.dp),
+                                        ),
+                                ) {
+                                    Row(
+                                        Modifier.fillMaxWidth().heightIn(min = 64.dp)
+                                            .clickable {
+                                                if (groupSelectionMode) {
+                                                    if (selected) stagedSelection.remove(row.objectIndex)
+                                                    else stagedSelection.add(row.objectIndex)
+                                                } else onSelect(row.objectIndex)
+                                            }.testTag("model-object-row-$index")
+                                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        Box(Modifier.size(20.dp).background(Color(row.color), CircleShape))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(row.name, fontWeight = FontWeight.Medium)
+                                            Text(
+                                                "T${row.tool}: ${row.material} · #${row.color.toUInt().toString(16).padStart(6, '0').takeLast(6).uppercase()}",
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                    }
+                                    FlowRow(
+                                        Modifier.fillMaxWidth().padding(start = 34.dp, end = 6.dp, bottom = 4.dp),
+                                        maxItemsInEachRow = 2,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                                    ) {
+                                        TextButton(
+                                            onClick = { onAssign(row.objectIndex) },
+                                            enabled = row.assignEnabled,
+                                            modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                                        ) { Text(assignLabel, textAlign = TextAlign.Center) }
+                                        if (row.parts.size > 1) TextButton(
+                                            onClick = {
+                                                expandedGroups = if (row.objectIndex in expandedGroups) expandedGroups - row.objectIndex
+                                                else expandedGroups + row.objectIndex
+                                            },
+                                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                                                .testTag("model-object-group-toggle-$index"),
+                                        ) {
+                                            val expanded = row.objectIndex in expandedGroups
+                                            Text(
+                                                stringResource(
+                                                    if (expanded) R.string.ModelObjectCollapseParts else R.string.ModelObjectExpandParts,
+                                                    row.parts.size,
+                                                ),
+                                                textAlign = TextAlign.Center,
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                val part = row.parts[partIndex]
                                 Column(
                                     Modifier.fillMaxWidth().padding(start = 28.dp, end = 8.dp, bottom = 4.dp)
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
                                         .testTag("model-object-part-row-$index-$partIndex")
                                         .padding(horizontal = 8.dp, vertical = 4.dp),
                                 ) {
@@ -607,7 +679,7 @@ internal fun ModelObjectsDialog(
                                         Box(Modifier.size(14.dp).background(Color(part.color), CircleShape))
                                         Column(Modifier.weight(1f)) {
                                             Text(part.label, fontWeight = FontWeight.Medium)
-                                            Text("T${part.tool}: ${part.material}")
+                                            Text("T${part.tool}: ${part.material}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
                                     }
                                     FlowRow(

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.465 — UI 2.1 Objektliste und Teile-Suche — 2026-11-15
+
+- „Geladene Objekte“ bietet jetzt eine Suche über Objektnamen, Bauteile und Filamentmaterial; die Treffer behalten Gruppierung, Materialzuweisung und bestehende Aktionen.
+- Objekt- und Teilzeilen werden einzeln über eine LazyColumn aufgebaut. Große Multipart-Modelle müssen dadurch nicht mehr vollständig auf einmal in Compose gerendert werden.
+- Der Dialogkopf verwendet das ColorFlow-Iconsystem; keine Modell- oder Druckdaten werden durch die Suche geändert.
+- Verifiziert: Debug-Unit 785/785, SliceTest-Unit 785/785; `ModelObjectsAdaptiveDialogDeviceTest` 2/2 auf API-36-Emulator. Honor-UI-Test wegen gesperrtem Gerät ohne Compose-Hierarchie nicht abgenommen.
+
 ## 0.8.464 — UI 2.1 ColorFlow-Grundsystem — 2026-11-15
 
 - Compose erhält die ColorFlow-Farbflächen für den Dunkelmodus: tiefes Navy als Hintergrund, abgestufte Kartenflächen und helle Sekundärtexte. Das bestehende Light Theme bleibt unverändert; Bereichsakzente und gespeicherte Profile bleiben erhalten.
