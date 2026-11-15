@@ -23,11 +23,11 @@ val LocalBeamLayoutFontScale = staticCompositionLocalOf { 1f }
 
 /** A stable functional accent for each primary destination; it never changes profile data. */
 enum class OrkanSection(val accent: Color, val secondary: Color, val iconAccent: Color) {
-    WORKSPACE(Color(0xFF25D4F2), Color(0xFF13AFC7), Color(0xFF087F96)),
-    PRINT(Color(0xFFFF9F43), Color(0xFFF26D3D), Color(0xFFAA4C16)),
-    FILAMENT(Color(0xFFB66BFF), Color(0xFF7B4DDB), Color(0xFF7133A8)),
-    PRINTER(Color(0xFF35D58A), Color(0xFF159B67), Color(0xFF08764D)),
-    APP(Color(0xFF7988FF), Color(0xFFAD5BFF), Color(0xFF4D55BE)),
+    WORKSPACE(OrkanUiTokens.workspaceCyan, Color(0xFF13AFC7), Color(0xFF087F96)),
+    PRINT(OrkanUiTokens.printOrange, Color(0xFFF26D3D), Color(0xFFAA4C16)),
+    FILAMENT(OrkanUiTokens.filamentViolet, Color(0xFF7B4DDB), Color(0xFF7133A8)),
+    PRINTER(OrkanUiTokens.printerGreen, Color(0xFF159B67), Color(0xFF08764D)),
+    APP(OrkanUiTokens.appBlueViolet, Color(0xFFAD5BFF), Color(0xFF4D55BE)),
     DEFAULT(Color.Unspecified, Color.Unspecified, Color.Unspecified),
 }
 
@@ -60,11 +60,12 @@ fun BeamComposeTheme(
         darkColorScheme(
             primary = accent,
             onPrimary = onAccent,
-            background = background,
+            background = OrkanUiTokens.darkBackground,
             onBackground = foreground,
-            surface = background,
-            onSurface = foreground,
-            onSurfaceVariant = secondary,
+            surface = OrkanUiTokens.darkSurface,
+            onSurface = Color.White,
+            onSurfaceVariant = OrkanUiTokens.textSecondaryDark,
+            surfaceVariant = OrkanUiTokens.darkSurfaceElevated,
         )
     } else {
         lightColorScheme(

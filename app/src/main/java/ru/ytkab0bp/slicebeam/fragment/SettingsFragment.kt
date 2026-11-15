@@ -83,6 +83,8 @@ import ru.ytkab0bp.slicebeam.ui.OrkanSection
 import ru.ytkab0bp.slicebeam.ui.LocalOrkanSection
 import ru.ytkab0bp.slicebeam.ui.components.OrkanIconBadge
 import ru.ytkab0bp.slicebeam.ui.components.OrkanPageHeader
+import ru.ytkab0bp.slicebeam.ui.components.OrkanAccordion
+import ru.ytkab0bp.slicebeam.ui.components.OrkanSettingRow
 import ru.ytkab0bp.slicebeam.ui.settings.SettingsMenuLayoutPolicy
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
 import ru.ytkab0bp.slicebeam.utils.ConverterStorage
@@ -834,55 +836,15 @@ internal fun SettingsSection(
 ) {
     val expanded = index in expandedSections
     val expansionStateDescription = stringResource(if (expanded) R.string.MakerCollapse else R.string.MakerExpand)
-    val accent = LocalOrkanSection.current.accent
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(bottom = if (denseLandscape) 6.dp else if (compactLayout) 8.dp else 12.dp),
-        shape = RoundedCornerShape(if (compactLayout) 26.dp else 30.dp),
-        border = BorderStroke(1.dp, accent.copy(alpha = 0.25f)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(role = Role.Button) { onToggle(index) }
-                    .semantics { stateDescription = expansionStateDescription }
-                    .heightIn(min = if (compactLayout) 48.dp else 56.dp)
-                    .padding(
-                        horizontal = if (compactLayout) 12.dp else 14.dp,
-                        vertical = if (denseLandscape) 6.dp else if (compactLayout) 9.dp else 14.dp,
-                    ),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OrkanIconBadge(iconRes, size = if (compactLayout) 36.dp else 42.dp)
-                Text(
-                    text = title,
-                    modifier = Modifier.weight(1f).padding(start = 14.dp, end = 8.dp),
-                    maxLines = if (compactLayout) 1 else 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = if (compactLayout) 14.sp else 16.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Icon(
-                    painter = painterResource(R.drawable.dropdown_24),
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp).rotate(if (expanded) 180f else 0f),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (expanded) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(
-                        start = if (compactLayout) 10.dp else 12.dp,
-                        end = if (compactLayout) 10.dp else 12.dp,
-                        bottom = if (compactLayout) 10.dp else 12.dp,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
-                ) { content() }
-            }
-        }
-    }
+    OrkanAccordion(
+        iconRes = iconRes,
+        title = title,
+        expanded = expanded,
+        stateDescriptionText = expansionStateDescription,
+        modifier = Modifier.padding(bottom = if (denseLandscape) 6.dp else if (compactLayout) 8.dp else 12.dp),
+        content = content,
+        onToggle = { onToggle(index) },
+    )
 }
 
 @Composable
@@ -893,49 +855,12 @@ private fun SettingsRow(
     onClick: () -> Unit,
     compactLayout: Boolean,
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = if (compactLayout) 52.dp else 60.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .clickable(role = Role.Button, onClick = onClick),
-        color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        shape = RoundedCornerShape(14.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(
-                horizontal = if (compactLayout) 12.dp else 14.dp,
-                vertical = if (compactLayout) 9.dp else 12.dp,
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
-                Text(
-                    text = stringResource(titleRes),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = if (compactLayout) 15.sp else 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                if (description != null) {
-                    Text(
-                        text = description,
-                        modifier = Modifier.padding(top = 3.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = if (compactLayout) 12.sp else 13.sp,
-                    )
-                }
-                Text(
-                    text = value,
-                    modifier = Modifier.padding(top = 4.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = if (compactLayout) 13.sp else 14.sp,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-            Text("›", color = MaterialTheme.colorScheme.primary, fontSize = 26.sp)
-        }
-    }
+    OrkanSettingRow(
+        title = stringResource(titleRes),
+        description = description,
+        value = value,
+        onClick = onClick,
+    )
 }
 
 @Composable

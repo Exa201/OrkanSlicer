@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.464 — UI 2.1 ColorFlow-Grundsystem — 2026-11-15
+
+- Compose erhält die ColorFlow-Farbflächen für den Dunkelmodus: tiefes Navy als Hintergrund, abgestufte Kartenflächen und helle Sekundärtexte. Das bestehende Light Theme bleibt unverändert; Bereichsakzente und gespeicherte Profile bleiben erhalten.
+- Die App-Einstellungen verwenden jetzt gemeinsame zugängliche Akkordeon- und Wertezeilen mit konsistenten Radien und mindestens 48 dp Touchhöhe. Vorhandene Aktionen, Zustände und Speicherpfade wurden beibehalten.
+- Debug-Kotlin-Compile und Debug-Unit-Suite erfolgreich; visueller Emulatorabgleich und Geräteeinbau folgen in dieser Redesign-Stufe.
+
 ## 0.8.463 — Nightly-Menüwischen und Kollisionswarnungen — 2026-11-15
 
 - Werkzeugaktionen folgen im Hochformat einer Leserichtung von links nach rechts. Ab fünf Aktionen erscheinen zwei Reihen; weitere Aktionen werden vertikal gescrollt, ohne einen zusätzlichen Pfeil.

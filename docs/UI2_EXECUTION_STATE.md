@@ -1,3 +1,13 @@
+# UI 2.1 ColorFlow — Fortsetzungsstand 2026-11-15
+
+- Arbeitsbranch: `codex/ui-2.1-redesign`; Ausgangscommit `bbe0aa8bf5`.
+- Designvorgaben aus `OrkanSlicer_Designpaket_NEU.zip` gelesen. Die vollständige Redesign-Abnahme ist **offen**; dieser Schritt ist die gemeinsame Compose-Grundlage und die erste konsistente Anwendung auf App-Einstellungen.
+- Umgesetzt: Dark-ColorFlow-Oberflächenfarben und Bereichsakzente zentralisiert; wiederverwendbare `OrkanAccordion`- und `OrkanSettingRow`-Komponenten angelegt und App-Einstellungsgruppen/-Wertezeilen darauf umgestellt. Light Theme, Settings-Handler, gespeicherte Profile und Datenwege unverändert.
+- Geprüft: `:app:compileDebugKotlin` und `:app:testDebugUnitTest` erfolgreich nach Korrektur eines Semantikimports. Aktueller Unit-Zähler muss aus dem letzten XML-Bericht ausgelesen werden. Ein vorhandener Emulator-Screenshot zeigt den aktuellen Nightly-Vorstand, wurde vor dem Theme-Patch aufgenommen und gilt daher nicht als visueller Nachweis für 0.8.464.
+- Version für den nächsten Build: **0.8.464 / Code 499**; `CHANGELOG.md` und `app/src/main/assets/update.json` aktualisiert.
+- Nächster konkreter Schritt: Debug-APK 0.8.464 bauen, auf API-36-Emulator installieren und App-/Druck-/Filament-/Drucker-/Workspace-Seiten sowie App-Einstellungen visuell erfassen; anschließend die nächste Hauptseite mit dem gemeinsamen System migrieren. Honor bleibt für UI-Abnahme nach Entsperrung vorgesehen.
+- Offen: vollständige Umsetzung und Mapping-Tabelle für alle fünf Hauptseiten, Objektliste und relevante Dialoge; Screenshots aller Seiten, 150-%-Honor-Validierung, Funktions-/Navigationstests, PR-Aktualisierung. Kein Release oder Merge autorisiert.
+
 # Nightly execution state — 2026-11-14
 
 ## Hochformat-Menüraster und Scrollgesten

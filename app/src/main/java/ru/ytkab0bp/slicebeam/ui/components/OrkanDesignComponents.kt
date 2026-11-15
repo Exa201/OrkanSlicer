@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,21 +19,29 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.LocalOrkanSection
 import ru.ytkab0bp.slicebeam.ui.OrkanSection
+import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 
 /** Colorful, decorative vector badge; the surrounding label provides the accessible name. */
 @Composable
@@ -123,7 +134,7 @@ fun OrkanSectionCard(
     }
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
         border = BorderStroke(1.dp, accent.copy(alpha = 0.24f)),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
@@ -137,6 +148,142 @@ fun OrkanSectionCard(
                 Text(title, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
             }
             content()
+        }
+    }
+}
+
+/** A settings row with a consistent hit target and room for long localized labels. */
+@Composable
+fun OrkanSettingRow(
+    title: String,
+    value: String? = null,
+    description: String? = null,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = OrkanUiTokens.touchTarget)
+            .clip(RoundedCornerShape(OrkanUiTokens.compactCornerRadius))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = RoundedCornerShape(OrkanUiTokens.compactCornerRadius),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+                description?.takeIf(String::isNotBlank)?.let {
+                    Text(
+                        it,
+                        modifier = Modifier.padding(top = 2.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (value != null) {
+                Text(
+                    value,
+                    modifier = Modifier.weight(0.8f, fill = false),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Text("›", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleLarge)
+        }
+    }
+}
+
+/** A reusable accessible accordion surface for settings groups and profile categories. */
+@Composable
+fun OrkanAccordion(
+    @DrawableRes iconRes: Int,
+    title: String,
+    expanded: Boolean,
+    stateDescriptionText: String,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+    onToggle: () -> Unit,
+) {
+    val accent = LocalOrkanSection.current.let {
+        if (it == OrkanSection.DEFAULT) MaterialTheme.colorScheme.primary else it.accent
+    }
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.28f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = OrkanUiTokens.touchTarget)
+                    .clickable(role = Role.Button, onClick = onToggle)
+                    .semantics { stateDescription = stateDescriptionText }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OrkanIconBadge(iconRes, size = 40.dp)
+                Text(
+                    title,
+                    modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Icon(
+                    painter = painterResource(R.drawable.dropdown_24),
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp).rotate(if (expanded) 180f else 0f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (expanded) {
+                HorizontalDivider(color = accent.copy(alpha = 0.18f))
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) { content() }
+            }
+        }
+    }
+}
+
+/** High-emphasis action button shared by profile and settings screens. */
+@Composable
+fun OrkanPrimaryAction(
+    title: String,
+    @DrawableRes iconRes: Int,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    val section = LocalOrkanSection.current
+    val start = if (section == OrkanSection.DEFAULT) MaterialTheme.colorScheme.primary else section.accent
+    Surface(
+        modifier = modifier
+            .heightIn(min = OrkanUiTokens.touchTarget)
+            .clip(RoundedCornerShape(OrkanUiTokens.cornerRadius))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+        color = if (enabled) start else MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = if (enabled) Color(0xFF07111C) else MaterialTheme.colorScheme.onSurfaceVariant,
+        shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(painterResource(iconRes), contentDescription = null, tint = if (enabled) Color(0xFF07111C) else MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.width(10.dp))
+            Text(title, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
