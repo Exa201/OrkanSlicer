@@ -922,7 +922,7 @@ private fun SettingsActionRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = if (denseLandscape) 11.sp else if (compactLayout) 12.sp else 13.sp,
                     lineHeight = if (compactLayout) 14.sp else 16.sp,
-                        maxLines = if (compactLayout) 2 else Int.MAX_VALUE,
+                        maxLines = if (compactLayout && ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current < 1.3f) 2 else Int.MAX_VALUE,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }

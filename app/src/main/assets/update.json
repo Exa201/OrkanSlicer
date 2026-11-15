@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.427\n\n• Der Plattenzähler bleibt bei 200 % Schrift kompakt einzeilig; die vollständige Bezeichnung bleibt für TalkBack erhalten.\n• Die globale Navigation zeigt Filament vollständig und mit passender Höhe an.",
-  "en": "OrkanSlicer 0.8.427\n\n• The plate counter stays compact and on one line at 200% text; TalkBack retains its full description.\n• Global navigation shows the full Filament label at an accessible height.",
-  "ru": "OrkanSlicer 0.8.427\n\n• При масштабе текста 200% счетчик платформы остается компактным и однострочным; TalkBack сохраняет полное описание.\n• В глобальной навигации полностью отображается название Filament."
+  "de": "OrkanSlicer 0.8.427\n\n• Der Plattenzähler bleibt bei 200 % Schrift kompakt einzeilig; die vollständige Bezeichnung bleibt für TalkBack erhalten.\n• Längere Einstellungsbeschreibungen bleiben bei sehr großer Schrift vollständig lesbar.\n• Die globale Navigation zeigt Filament vollständig und mit passender Höhe an.",
+  "en": "OrkanSlicer 0.8.427\n\n• The plate counter stays compact and on one line at 200% text; TalkBack retains its full description.\n• Longer settings descriptions remain readable at very large text sizes.\n• Global navigation shows the full Filament label at an accessible height.",
+  "ru": "OrkanSlicer 0.8.427\n\n• При масштабе текста 200% счетчик платформы остается компактным и однострочным; TalkBack сохраняет полное описание.\n• Длинные описания настроек полностью отображаются при очень крупном тексте.\n• В глобальной навигации полностью отображается название Filament."
 }
