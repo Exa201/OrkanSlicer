@@ -12,6 +12,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -101,6 +103,8 @@ class ModelObjectsAdaptiveDialogDeviceTest {
 
         compose.onNodeWithTag("model-objects-search").performTextInput("PETG Weiß")
         compose.onNodeWithTag("model-object-row-0").assertIsDisplayed()
+        compose.onNodeWithTag("model-objects-group-selection-toggle").performClick()
+        compose.onNodeWithTag("model-objects-dialog-rows").performTouchInput { swipeUp() }
         compose.onNodeWithText("Deckel", substring = false).assertIsDisplayed()
         compose.onNodeWithTag("model-objects-search").performTextInput(" unmatched")
         compose.onNodeWithTag("model-objects-search-empty").assertIsDisplayed()

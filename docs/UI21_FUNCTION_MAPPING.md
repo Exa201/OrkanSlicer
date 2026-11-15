@@ -19,8 +19,7 @@ Stand: Nightly 0.8.466, Branch `codex/ui-2.1-redesign`. Diese Tabelle erfasst de
 - `SettingsAccessibilityDeviceTest`: 1/1 bei 320 dp und 150 % Text.
 - `ProfileSettingsImeDeviceTest`: 12/12 Profil-/IME-Interaktionen.
 - `AdaptiveWorkspaceNavigationDeviceTest`: 4/4; kompakte Navigationslabels bleiben bei 150 % innerhalb der 56-dp-Zeile.
-- `ModelObjectsAdaptiveDialogDeviceTest`: 2/2 auf API-36-Emulator; langer Objektname/Aktionsbedienung bei 150 % sowie Suche nach Teilmaterial und leerer Trefferzustand.
-- Erweiterte `ModelObjectsAdaptiveDialogDeviceTest`: 3/3, einschließlich Checkbox-Zustand der Gruppenauswahl und bestätigter Objekt-IDs.
+- `ModelObjectsAdaptiveDialogDeviceTest`: 3/3 auf API-36-Emulator **und** Honor PTP-N49 Android 16; langer Name/Aktionsbedienung bei 150 %, Teilmaterial-Suche mit Scrollen/Leerzustand sowie Checkbox-Zustand und bestätigte Objekt-IDs.
 - Echter Emulator-Screenshot der Arbeitsfläche bei 150 %: `docs/images/ui21/emulator-workspace-0465-150.png`; dabei waren Navigationslabels und Profilelemente sichtbar, das Profil wird bei der engen Breite erwartungsgemäß gekürzt.
 
 ## Nächste UI-Arbeit

@@ -1,13 +1,13 @@
 # UI 2.1 ColorFlow — Fortsetzungsstand 2026-11-15
 
-- Arbeitsbranch: `codex/ui-2.1-redesign`; Basis-HEAD `45b9b13408`; neue Änderungen für 0.8.466 sind noch lokal.
+- Arbeitsbranch: `codex/ui-2.1-redesign`; gepushter HEAD `c928ef19cb`.
 - Die Gesamtmigration bleibt **offen**. Profil- und Einstellungen-Gruppen, farbige Bereichsnavigation und Objektliste sind Teilmigrationen; 3D-Arbeitsbereich, Profileditoren und Dialoge müssen noch über alle relevanten Ansichten hinweg geprüft und vervollständigt werden.
 - Neu: Mehrfachauswahl in „Geladene Objekte“ zeigt Checkboxen. Die gesamte Objektzeile ist semantisch eine Checkbox, meldet den Toggle-Zustand an TalkBack und übernimmt die Auswahl erst bei Bestätigung.
-- Verifiziert: Debug-Unit **785/785**, SliceTest-Unit **785/785**, Changelog-Gate, Debug-APK-Build und AndroidTest-Kotlin-Kompilierung erfolgreich. `ModelObjectsAdaptiveDialogDeviceTest` **3/3** auf API-36-Emulator, einschließlich Auswahlzustand und übergebener Objekt-IDs.
-- Nightly Debug-APK **0.8.466 / Code 501** gebaut und auf Emulator sowie Honor installiert. Changelog für 0.8.466 wurde auf Emulator bei 150 % sichtbar geprüft. Aktuelle Screenshots: `docs/images/ui21/emulator-changelog-0466-150.png` und `docs/images/ui21/emulator-workspace-0466-150.png`.
-- Honor PTP-N49 bleibt per ADB verbunden, liegt aber am Sperrbildschirm (`mDreamingLockscreen=true`). Es wurde nicht entsperrt; daher konnte die Compose-Laufzeitprüfung auf Honor nicht ausgeführt werden.
-- Nächster konkreter Schritt: objektbezogene Dialogansicht auf 320/360-dp und 150 % weiter abnehmen; danach Druck-/Filament-/Druckerprofil-Detaileditoren auf echte Handler, Kontrast, Touchziele und Scrollen prüfen und fehlende ColorFlow-Flächen umsetzen.
-- Offen: vollständige Überarbeitung/Abnahme aller fünf Hauptbereiche, Dialoge, mehrsprachige Texte, Profileditoren, Hoch-/Querformat, Schriftgrößen und 48-dp-Touchziele; Honor-Abnahme bei entsperrtem Gerät; PR-Erstellung/Remote-Aktualisierung. Kein Release oder Merge erstellt oder autorisiert.
+- Verifiziert: Debug-Unit **785/785**, SliceTest-Unit **785/785**, Changelog-Gate, Debug-APK-Build und AndroidTest-Kotlin-Kompilierung erfolgreich. `ModelObjectsAdaptiveDialogDeviceTest` **3/3** sowohl auf API-36-Emulator als auch auf Honor PTP-N49 Android 16; umfasst lange Namen/Aktionsziele bei 150 %, Teilmaterial-Suche mit tatsächlichem Scrollen sowie Checkbox-Zustand und bestätigte Objekt-IDs.
+- Nightly Debug-APK **0.8.466 / Code 501** gebaut und auf Emulator sowie Honor installiert. Changelog für 0.8.466 wurde auf Emulator bei 150 % sichtbar geprüft. Screenshots: `docs/images/ui21/emulator-changelog-0466-150.png` und `docs/images/ui21/emulator-workspace-0466-150.png`.
+- Für den Honor-Test musste die Testautomation die Bildschirmtastatur schließen und in der Ergebnisliste scrollen; die Suche und Teilanzeige bestanden danach ohne App-Änderung. Temporäre SliceTest-Pakete wurden nach dem Test von Emulator und Honor entfernt; die Debug-App 0.8.466 bleibt installiert.
+- Nächster konkreter Schritt: vollständige objektbezogene Dialogprüfung bei 320/360-dp und weiteren 100/130/150-%-Skalen; danach Druck-/Filament-/Druckerprofil-Detaileditoren auf echte Handler, Kontrast, Touchziele und Scrollen prüfen und fehlende ColorFlow-Flächen umsetzen.
+- Offen: vollständige Überarbeitung/Abnahme aller fünf Hauptbereiche, Dialoge, mehrsprachige Texte, Profileditoren, Hoch-/Querformat, Schriftgrößen und 48-dp-Touchziele; zusätzliche manuelle Honor-Prüfung der Arbeitsfläche und der Profilseiten. Kein Release oder Merge erstellt oder autorisiert.
 
 # Nightly execution state — 2026-11-14
 
