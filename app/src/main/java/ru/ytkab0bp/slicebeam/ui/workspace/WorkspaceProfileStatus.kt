@@ -70,9 +70,10 @@ internal fun WorkspaceProfileStatus(
                 )
                 Text(
                     text = summary,
+                    modifier = Modifier.testTag("workspace-profile-summary"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }

@@ -65,5 +65,6 @@ class WorkspaceProfileStatusDeviceTest {
         assertTrue("Long printer title should wrap instead of remaining ellipsized on one line",
             titleHeightPx > oneLineAtLargeTextPx)
         assertTrue("Printer title should remain within two lines", titleHeightPx <= twoLinesAtLargeTextPx)
+        compose.onNodeWithTag("workspace-profile-summary", useUnmergedTree = true).assertIsDisplayed()
     }
 }
