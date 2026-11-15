@@ -88,6 +88,7 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPresetGeometry
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraVector
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewCubeGeometry
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewFace
+import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
@@ -2286,6 +2287,7 @@ class InitialProjectMenuDeviceTest {
         val roundTripFile = File(activity.cacheDir, "model-menu-group-placement-test.3mf")
         val gcodeFile = File(activity.cacheDir, "model-menu-group-placement-test.gcode")
         val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        val previousThemeMode = Prefs.getThemeMode()
         val testSlots = listOf(
             FilamentSlot(0xFF303030.toInt(), "Placement T0"),
             FilamentSlot(0xFF3366CC.toInt(), "Placement T1"),
@@ -2304,6 +2306,9 @@ class InitialProjectMenuDeviceTest {
         var roundTrippedModel: Model? = null
         var sliceResult: GCodeProcessorResult? = null
         try {
+            Prefs.setThemeMode(Prefs.ThemeMode.DARK.ordinal)
+            activity.runOnUiThread { ThemesRepo.invalidate(activity) }
+            compose.waitForIdle()
             activity.assets.open("models/xyz_cube.stl").use { source ->
                 modelFile.outputStream().use(source::copyTo)
             }
@@ -2333,11 +2338,11 @@ class InitialProjectMenuDeviceTest {
             assertArrayEquals("the source object should remain selected before opening the object list",
                 intArrayOf(0), readSelectedIndicesOnGl(glView))
 
-            openModelMenu(activity)
-            selectSingleObjectScope()
-            revealMenuAction(activity, R.string.WorkspaceObjects)
-            compose.onNodeWithContentDescription(activity.getString(R.string.WorkspaceObjects))
-                .assertIsDisplayed().performClick()
+            compose.runOnUiThread { FileMenuObjectActions(bed).showObjectsDialog(glView) }
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.onNodeWithTag("model-object-row-0").assertIsDisplayed()
+            compose.onNodeWithTag("model-object-row-1").assertIsDisplayed()
+            compose.onNodeWithTag("model-object-row-2").assertIsDisplayed()
             compose.onNodeWithTag("model-objects-search").performTextReplacement("Placement T1")
             compose.onNodeWithTag("model-object-row-1").assertIsDisplayed()
             assertTrue("search filtering must keep original model indices",
@@ -2458,6 +2463,30 @@ class InitialProjectMenuDeviceTest {
             assertArrayEquals("explicitly combining keeps all source object materials", intArrayOf(1, 2, 3),
                 readUsedFilamentsOnGl(glView, 0))
 
+            // Let the combine snackbar and the Compose dialog window transition settle
+            // before capturing; otherwise the screenshot records transient GL overlay.
+            SystemClock.sleep(3_500L)
+            compose.runOnUiThread { FileMenuObjectActions(bed).showObjectsDialog(glView) }
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.onNodeWithTag("model-object-row-0").assertIsDisplayed()
+            for (partIndex in 0..2) {
+                compose.onNodeWithTag("model-object-part-row-0-$partIndex").assertIsDisplayed()
+            }
+            compose.waitForIdle()
+            SystemClock.sleep(800L)
+            // Capture the real grouped 3D object, with its three separately assigned
+            // material parts expanded in the ColorFlow object list.
+            val objectListScreenshot = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+            val screenshotFile = requireNotNull(activity.getExternalFilesDir(null))
+                .resolve("ui21-object-list-multipart.png")
+            screenshotFile.outputStream().use { output ->
+                objectListScreenshot.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)
+            }
+            objectListScreenshot.recycle()
+            assertTrue("the native multipart object-list screenshot should be saved", screenshotFile.isFile)
+            compose.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+
             // Verify the exact real menu operation survives project serialization and slicing.
             activity.assets.open("orca_profiles/Anycubic.ini").use {
                 SliceBeam.CONFIG = Slic3rConfigWrapper(it)
@@ -2542,6 +2571,8 @@ class InitialProjectMenuDeviceTest {
             if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
             TemporaryProjectSettings.clear()
             Prefs.setStoredFilamentSlots(previousSlots)
+            Prefs.setThemeMode(previousThemeMode.ordinal)
+            activity.runOnUiThread { ThemesRepo.invalidate(activity) }
             modelFile.delete()
         }
     }
