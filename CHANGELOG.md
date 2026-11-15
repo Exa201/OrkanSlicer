@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.430
+
+- Keep Material 3 dropdown surfaces in the shared ColorFlow palette so profile menus match the rest of the redesigned app.
+- Wrap long printer and print-profile names in the selected profile control and dropdown list instead of cutting them off.
+- Add an Android 16 Compose regression test for long German profile names at 320 dp and 150% text size.
+
 ## 0.8.429
 
 - Wrap full printer-profile names and summaries in the 3D workspace header instead of truncating labels with ellipses.

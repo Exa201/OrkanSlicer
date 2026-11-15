@@ -28,7 +28,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import ru.ytkab0bp.slicebeam.R
 
@@ -66,6 +66,8 @@ internal fun ProfileDropdownContent(
     onDelete: () -> Unit,
     onClone: () -> Unit,
     canManage: Boolean = true,
+    onTitleTextLayout: (TextLayoutResult) -> Unit = {},
+    onMenuItemTextLayout: (Int, TextLayoutResult) -> Unit = { _, _ -> },
 ) {
     val compactPhone = LocalConfiguration.current.screenWidthDp < 480
     Box(modifier = Modifier.fillMaxWidth()) {
@@ -87,10 +89,10 @@ internal fun ProfileDropdownContent(
             ) {
                 Text(
                     text = title.orEmpty(),
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("profile-dropdown-title"),
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = if (compactPhone) 3 else 2,
-                    overflow = TextOverflow.Ellipsis,
+                    softWrap = true,
+                    onTextLayout = onTitleTextLayout,
                 )
                 Spacer(Modifier.width(8.dp))
                 Icon(
@@ -119,9 +121,10 @@ internal fun ProfileDropdownContent(
                     text = {
                         Text(
                             text = profileTitle,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.testTag("profile-dropdown-item-$index"),
+                            softWrap = true,
                             style = MaterialTheme.typography.bodyLarge,
+                            onTextLayout = { onMenuItemTextLayout(index, it) },
                         )
                     },
                     leadingIcon = {

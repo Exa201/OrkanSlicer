@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.429\n\n• Druckerprofilname und Kurzinfo im 3D-Kopf werden vollständig umgebrochen, statt mit Auslassungspunkten abgeschnitten zu werden.\n• Der Kopf wächst bei langen Bezeichnungen nur so weit wie nötig; die Druckplatte behält den übrigen Platz.",
-  "en": "OrkanSlicer 0.8.429\n\n• Printer profile names and summaries in the 3D header now wrap in full instead of being truncated with ellipses.\n• The header grows only as much as needed for long labels, leaving the remaining space to the build plate.",
-  "ru": "OrkanSlicer 0.8.429\n\n• Название профиля принтера и краткое описание в заголовке 3D теперь переносятся полностью без многоточия.\n• Заголовок увеличивается только настолько, насколько нужно для длинных подписей, сохраняя остальное место для стола."
+  "de": "OrkanSlicer 0.8.430\n\n• Profil-Auswahllisten verwenden jetzt die ColorFlow-Farben.\n• Lange Drucker- und Druckprofilnamen werden vollständig umgebrochen statt abgeschnitten.\n• Geprüft bei 320 dp und 150 % Schriftgröße.",
+  "en": "OrkanSlicer 0.8.430\n\n• Profile menus now use the shared ColorFlow surface colors.\n• Long printer and print-profile names wrap in full instead of being truncated.\n• Verified at 320 dp and 150% text size.",
+  "ru": "OrkanSlicer 0.8.430\n\n• В меню профилей теперь используются цвета ColorFlow.\n• Длинные названия принтеров и профилей печати переносятся полностью.\n• Проверено при ширине 320 dp и масштабе текста 150%."
 }
