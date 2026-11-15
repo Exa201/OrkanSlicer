@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.466 — Objektliste: zugängliche Gruppenauswahl — 2026-11-15
+
+- Die Mehrfachauswahl zeigt jetzt pro Objekt eine Checkbox; ausgewählte Zustände sind auch für TalkBack als Checkbox-Zustand verfügbar.
+- Die Auswahl lässt sich weiterhin über die ganze Objektzeile schalten und wird erst mit „Auswahl übernehmen“ an die bestehenden Modellaktionen übergeben.
+- Verifiziert: Objektlisten-Compose-Tests 3/3 auf API-36-Emulator; Debug-/SliceTest-Unit-Suiten erfolgreich. Screenshot der Arbeitsfläche bei 150 % Schriftgröße erstellt.
+
 ## 0.8.465 — UI 2.1 Objektliste und Teile-Suche — 2026-11-15
 
 - „Geladene Objekte“ bietet jetzt eine Suche über Objektnamen, Bauteile und Filamentmaterial; die Treffer behalten Gruppierung, Materialzuweisung und bestehende Aktionen.

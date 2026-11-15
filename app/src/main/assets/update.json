@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer Nightly 2.5 · 0.8.465\n\n• „Geladene Objekte“ sucht jetzt in Objektnamen, Teilen und Filamentmaterial.\n• Objekt- und Teilzeilen werden einzeln geladen; bestehende Materialzuweisungen und Modellaktionen bleiben erhalten.\n• Der Dialogkopf folgt dem ColorFlow-Design.",
-  "en": "OrkanSlicer Nightly 2.5 · 0.8.465\n\n• Loaded Objects now searches object names, parts and filament materials.\n• Object and part rows are rendered lazily; existing material assignment and model actions are preserved.\n• The dialog header follows the ColorFlow design.",
-  "ru": "OrkanSlicer Nightly 2.5 · 0.8.465\n\n• В списке объектов добавлен поиск по названиям объектов, деталей и материалов филамента.\n• Строки объектов и деталей отображаются по мере прокрутки; назначение материалов и действия с моделями сохранены.\n• Заголовок диалога оформлен в стиле ColorFlow."
+  "de": "OrkanSlicer Nightly 2.5 · 0.8.466\n\n• Die Mehrfachauswahl in „Geladene Objekte“ zeigt Checkboxen und meldet den Auswahlzustand an TalkBack.\n• Die ganze Objektzeile schaltet die Auswahl; Modellaktionen bleiben bis zur Bestätigung unverändert.",
+  "en": "OrkanSlicer Nightly 2.5 · 0.8.466\n\n• Multi-select in Loaded Objects now shows checkboxes and exposes selection state to TalkBack.\n• Tapping the object row toggles selection; model actions remain unchanged until confirmation.",
+  "ru": "OrkanSlicer Nightly 2.5 · 0.8.466\n\n• При множественном выборе в списке объектов отображаются флажки, а состояние выбора доступно TalkBack.\n• Нажатие на строку переключает выбор; действия с моделью применяются только после подтверждения."
 }

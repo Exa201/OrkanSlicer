@@ -1,6 +1,6 @@
 # UI 2.1 ColorFlow — Funktions-Mapping
 
-Stand: Nightly 0.8.465, Branch `codex/ui-2.1-redesign`. Diese Tabelle erfasst den realen Migrationsstand; „offen“ heißt, dass eine vollständige visuelle und funktionale Abnahme noch fehlt.
+Stand: Nightly 0.8.466, Branch `codex/ui-2.1-redesign`. Diese Tabelle erfasst den realen Migrationsstand; „offen“ heißt, dass eine vollständige visuelle und funktionale Abnahme noch fehlt.
 
 | Bereich | Vorhandene Route / Quelle | Zielkomponente | Funktionsbindung | Status |
 |---|---|---|---|---|
@@ -10,7 +10,7 @@ Stand: Nightly 0.8.465, Branch `codex/ui-2.1-redesign`. Diese Tabelle erfasst de
 | Druckerprofile | `PrinterConfigFragment` → `ProfileSettingsComposeList` | Bereichsakzent Grün, Profil- und Verbindungsstatus klar trennen | Profilwerte und bestehender Verbindungscontroller | Profilgruppenoberfläche aktualisiert; Status-/Detailabnahme offen |
 | App-Einstellungen | `SettingsFragment` → `SettingsContent` | `OrkanPageHeader`, `OrkanAccordion`, `OrkanSettingRow` | Theme, Sprache, Akzent, Textgröße, Renderer, Kamera, Profile, Speicher, Maker, Info und Reset behalten vorhandene Callbacks | Komponenten integriert; zentrale Accessibility- und Handlerregression bestanden |
 | Arbeitsbereichnavigation | `WorkspaceShell` → `AdaptiveWorkspaceNavigation` | Einzeilige adaptive Labels und ColorFlow-Akzent | Selectable-Destination führt zum bisherigen Controller-Menüslot | 150-%-Labelgrenzen getestet; systemweite Varianten noch offen |
-| Objektliste | `BedFragment` / `ModelObjectsDialog` | Adaptive Vollbildansicht, Suche in Objektnamen/Teilen/Materialien, virtuell gerenderte Einzelzeilen | Renderer-/Model-Controller und vorhandene Callbacks | Suche und Lazy-Rendering ergänzt; Such-/Empty-State-Test 2/2 auf API-36-Emulator; Abnahme auf Honor und Screenshot offen |
+| Objektliste | `BedFragment` / `ModelObjectsDialog` | Adaptive Vollbildansicht, Suche in Objektnamen/Teilen/Materialien, virtuell gerenderte Einzelzeilen | Renderer-/Model-Controller und vorhandene Callbacks | Suche, Lazy-Rendering und semantische Checkbox-Gruppenauswahl ergänzt; gezielte Tests 3/3 auf API-36-Emulator; Honor wegen gesperrtem Gerät nicht bedienbar |
 | Dialoge und Spezialansichten | Compose- und Android-Dialoge an den jeweiligen Features | Einheitliche Flächen, Kontrast, Inset-/IME-Verhalten | Vorhandene Handler und Lifecycle-Hosts | Noch nicht vollständig inventarisiert und migriert |
 
 ## Verifizierte Regressionen dieser Stufe
@@ -20,6 +20,8 @@ Stand: Nightly 0.8.465, Branch `codex/ui-2.1-redesign`. Diese Tabelle erfasst de
 - `ProfileSettingsImeDeviceTest`: 12/12 Profil-/IME-Interaktionen.
 - `AdaptiveWorkspaceNavigationDeviceTest`: 4/4; kompakte Navigationslabels bleiben bei 150 % innerhalb der 56-dp-Zeile.
 - `ModelObjectsAdaptiveDialogDeviceTest`: 2/2 auf API-36-Emulator; langer Objektname/Aktionsbedienung bei 150 % sowie Suche nach Teilmaterial und leerer Trefferzustand.
+- Erweiterte `ModelObjectsAdaptiveDialogDeviceTest`: 3/3, einschließlich Checkbox-Zustand der Gruppenauswahl und bestätigter Objekt-IDs.
+- Echter Emulator-Screenshot der Arbeitsfläche bei 150 %: `docs/images/ui21/emulator-workspace-0465-150.png`; dabei waren Navigationslabels und Profilelemente sichtbar, das Profil wird bei der engen Breite erwartungsgemäß gekürzt.
 
 ## Nächste UI-Arbeit
 

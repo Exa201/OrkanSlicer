@@ -1,12 +1,13 @@
 # UI 2.1 ColorFlow — Fortsetzungsstand 2026-11-15
 
-- Arbeitsbranch: `codex/ui-2.1-redesign`; Codebasis zuletzt gepusht bei `79238ecb55` (Fortschrittsdokumentation). UI-Grundlage `2fae2b4fd3`, Farb-/Profil-/Navigationsergänzung `b7d7b92b71`.
-- Das Designpaket ist gelesen; vollständige Redesign-Abnahme weiterhin **offen**.
-- Neu in Arbeit: „Geladene Objekte“ hat ColorFlow-Kopf, Suche über Objektnamen, Teilnamen und Filamentmaterial sowie einen lokalisierten leeren Trefferzustand. Die LazyColumn rendert nun Objekt- und Teilzeilen als getrennte keyed Einträge, damit Multipart-Objekte mit vielen Teilen nicht vollständig gleichzeitig komponiert werden. Vorhandene Auswahl, Filamentzuweisung, Gruppenaktionen, Teilwerte, Transformation und Trennen verwenden weiterhin dieselben Handler.
-- Verifiziert: Debug-Unit **785/785**, SliceTest-Unit **785/785**, Changelog-Gate und AndroidTest-Kotlin-Kompilierung erfolgreich. `ModelObjectsAdaptiveDialogDeviceTest` **2/2** auf API-36-Emulator (lange Namen/Aktionen bei 150 %, Suche nach Teilmaterial, leerer Suchzustand). Derselbe Test auf Honor konnte wegen gesperrtem Bildschirm keine Compose-Hierarchie starten (**0 erfolgreiche Testfälle**). Emulator ist wieder gestartet.
-- APK aus dem letzten Stand 0.8.464 ist weiterhin lokal installiert/archiviert; für 0.8.465/Code 500 ist noch kein Debug-APK gebaut.
-- Nächster konkreter Schritt: neue Version **0.8.465 / Code 500** mit aktueller Objektlistenänderung bauen, auf Emulator installieren und Screenshot der App-Einstellungen sowie Objektliste erstellen. Anschließend bestehende UI-2.1-Seiten weiter überarbeiten und die Hardwareprüfung bei entsperrtem Honor wiederholen.
-- Offen: vollständige Umsetzung und Mapping-Abnahme aller fünf Hauptseiten, Objektliste und Dialoge; visuelle/screenshotsbasierte Abnahme auf schmalen Geräten und Honor bei 150 %, Funktions-/Navigationsprüfung und PR-Aktualisierung. Kein Release oder Merge autorisiert.
+- Arbeitsbranch: `codex/ui-2.1-redesign`; Basis-HEAD `45b9b13408`; neue Änderungen für 0.8.466 sind noch lokal.
+- Die Gesamtmigration bleibt **offen**. Profil- und Einstellungen-Gruppen, farbige Bereichsnavigation und Objektliste sind Teilmigrationen; 3D-Arbeitsbereich, Profileditoren und Dialoge müssen noch über alle relevanten Ansichten hinweg geprüft und vervollständigt werden.
+- Neu: Mehrfachauswahl in „Geladene Objekte“ zeigt Checkboxen. Die gesamte Objektzeile ist semantisch eine Checkbox, meldet den Toggle-Zustand an TalkBack und übernimmt die Auswahl erst bei Bestätigung.
+- Verifiziert: Debug-Unit **785/785**, SliceTest-Unit **785/785**, Changelog-Gate, Debug-APK-Build und AndroidTest-Kotlin-Kompilierung erfolgreich. `ModelObjectsAdaptiveDialogDeviceTest` **3/3** auf API-36-Emulator, einschließlich Auswahlzustand und übergebener Objekt-IDs.
+- Nightly Debug-APK **0.8.466 / Code 501** gebaut und auf Emulator sowie Honor installiert. Changelog für 0.8.466 wurde auf Emulator bei 150 % sichtbar geprüft. Aktuelle Screenshots: `docs/images/ui21/emulator-changelog-0466-150.png` und `docs/images/ui21/emulator-workspace-0466-150.png`.
+- Honor PTP-N49 bleibt per ADB verbunden, liegt aber am Sperrbildschirm (`mDreamingLockscreen=true`). Es wurde nicht entsperrt; daher konnte die Compose-Laufzeitprüfung auf Honor nicht ausgeführt werden.
+- Nächster konkreter Schritt: objektbezogene Dialogansicht auf 320/360-dp und 150 % weiter abnehmen; danach Druck-/Filament-/Druckerprofil-Detaileditoren auf echte Handler, Kontrast, Touchziele und Scrollen prüfen und fehlende ColorFlow-Flächen umsetzen.
+- Offen: vollständige Überarbeitung/Abnahme aller fünf Hauptbereiche, Dialoge, mehrsprachige Texte, Profileditoren, Hoch-/Querformat, Schriftgrößen und 48-dp-Touchziele; Honor-Abnahme bei entsperrtem Gerät; PR-Erstellung/Remote-Aktualisierung. Kein Release oder Merge erstellt oder autorisiert.
 
 # Nightly execution state — 2026-11-14
 

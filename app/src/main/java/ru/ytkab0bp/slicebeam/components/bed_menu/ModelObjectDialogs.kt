@@ -2,6 +2,7 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -21,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
@@ -49,6 +51,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -614,12 +617,20 @@ internal fun ModelObjectsDialog(
                                 ) {
                                     Row(
                                         Modifier.fillMaxWidth().heightIn(min = 64.dp)
-                                            .clickable {
+                                            .then(
                                                 if (groupSelectionMode) {
-                                                    if (selected) stagedSelection.remove(row.objectIndex)
-                                                    else stagedSelection.add(row.objectIndex)
-                                                } else onSelect(row.objectIndex)
-                                            }.testTag("model-object-row-$index")
+                                                    Modifier.toggleable(
+                                                        value = selected,
+                                                        role = Role.Checkbox,
+                                                        onValueChange = { checked ->
+                                                            if (checked) stagedSelection.add(row.objectIndex)
+                                                            else stagedSelection.remove(row.objectIndex)
+                                                        },
+                                                    )
+                                                } else {
+                                                    Modifier.clickable(role = Role.Button) { onSelect(row.objectIndex) }
+                                                },
+                                            ).testTag("model-object-row-$index")
                                             .padding(horizontal = 10.dp, vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -631,6 +642,9 @@ internal fun ModelObjectsDialog(
                                                 "T${row.tool}: ${row.material} · #${row.color.toUInt().toString(16).padStart(6, '0').takeLast(6).uppercase()}",
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
+                                        }
+                                        if (groupSelectionMode) {
+                                            Checkbox(checked = selected, onCheckedChange = null)
                                         }
                                     }
                                     FlowRow(

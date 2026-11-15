@@ -6,6 +6,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -103,5 +105,42 @@ class ModelObjectsAdaptiveDialogDeviceTest {
         compose.onNodeWithTag("model-objects-search").performTextInput(" unmatched")
         compose.onNodeWithTag("model-objects-search-empty").assertIsDisplayed()
         compose.onNodeWithTag("model-object-row-0").assertDoesNotExist()
+    }
+
+    @Test
+    fun groupSelectionExposesCheckboxStateAndAppliesSelectedObjects() {
+        var applied: IntArray = intArrayOf()
+        compose.setContent {
+            MaterialTheme {
+                ModelObjectsDialog(
+                    title = "Geladene Objekte",
+                    cancelLabel = "Schließen",
+                    assignLabel = "Filament zuordnen",
+                    rows = listOf(
+                        ModelObjectRow(
+                            name = "Gehäuse",
+                            tool = 0,
+                            material = "PLA",
+                            color = 0xFF25D4F2.toInt(),
+                            selected = false,
+                            assignEnabled = true,
+                            objectIndex = 4,
+                        ),
+                    ),
+                    onDismiss = {},
+                    onSelect = {},
+                    onAssign = {},
+                    onAssignPart = { _, _ -> },
+                    onTransformPart = { _, _ -> },
+                    onEditPart = { _, _ -> },
+                    onApplySelection = { applied = it },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("model-objects-group-selection-toggle").performClick()
+        compose.onNodeWithTag("model-object-row-0").assertIsOff().performClick().assertIsOn()
+        compose.onNodeWithTag("model-objects-selection-confirm").performClick()
+        compose.runOnIdle { assertEquals(listOf(4), applied.toList()) }
     }
 }
