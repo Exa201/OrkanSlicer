@@ -109,10 +109,11 @@ internal fun PlateTabs(
         plateCount,
     )
     Surface(
-        // The two counter labels scale with system font size. Keep the 48 dp minimum
-        // touch target, but let the control grow vertically instead of clipping `/count`.
+        // The two counter labels scale with system font size. Give the stacked
+        // label/count enough vertical room at large font scales while preserving
+        // a generous touch target in the compact workspace toolbar.
         modifier = Modifier.width(OrkanUiTokens.touchTarget)
-            .heightIn(min = OrkanUiTokens.touchTarget)
+            .heightIn(min = 56.dp)
             .semantics { contentDescription = label }
             .clickable(role = Role.Button) { open = true; onOpen() },
         shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),

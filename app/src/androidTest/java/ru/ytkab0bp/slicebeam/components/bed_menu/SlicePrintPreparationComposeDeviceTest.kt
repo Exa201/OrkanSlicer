@@ -63,11 +63,14 @@ class SlicePrintPreparationComposeDeviceTest {
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val acknowledged = AtomicInteger()
         activity.runOnUiThread {
-            bed.showWorkspaceComposeDialog {
+            bed.showWorkspaceComposeDialog { dismiss ->
                 PrintPreparationWarningDialog(
                     warning = PrintPreparationWarning.SharedAceGate(tool = 1),
-                    onDismiss = {},
-                    onAcknowledge = { acknowledged.incrementAndGet() },
+                    onDismiss = dismiss,
+                    onAcknowledge = {
+                        acknowledged.incrementAndGet()
+                        dismiss()
+                    },
                     onUploadOnly = {},
                     onFirmwareChecked = {},
                 )

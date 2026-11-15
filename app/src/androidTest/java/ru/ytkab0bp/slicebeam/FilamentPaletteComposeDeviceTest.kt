@@ -571,7 +571,7 @@ class FilamentPaletteComposeDeviceTest {
             }
         }
 
-        compose.onNodeWithContentDescription(context.getString(R.string.PlateNumber, "1")).performClick()
+        compose.onNodeWithContentDescription(context.getString(R.string.PlatePickerCounterDescription, 1, 3)).performClick()
         val cancelLabel = context.getString(android.R.string.cancel)
         compose.onNodeWithText(cancelLabel).assertIsDisplayed()
             .assertWidthIsAtLeast(48.dp)
@@ -610,7 +610,7 @@ class FilamentPaletteComposeDeviceTest {
             }
         }
 
-        compose.onNodeWithContentDescription(context.getString(R.string.PlateNumber, "1"))
+        compose.onNodeWithContentDescription(context.getString(R.string.PlatePickerCounterDescription, 1, 1))
             .assertIsDisplayed()
             .assertHeightIsAtLeast(52.dp)
     }
@@ -652,7 +652,9 @@ class FilamentPaletteComposeDeviceTest {
                 selectedIndex.intValue = 0
             }
             compose.waitForIdle()
-            compose.onNodeWithContentDescription(context.getString(R.string.PlateNumber, "1")).performClick()
+            compose.onNodeWithContentDescription(
+                context.getString(R.string.PlatePickerCounterDescription, 1, plateCount),
+            ).performClick()
             if (plateCount > 2) {
                 compose.onNode(hasScrollToIndexAction()).performScrollToIndex(plateCount - 1)
             }

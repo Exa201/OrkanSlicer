@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.420\n\n• Filament-Profilübersicht zeigt Material und Temperaturen ohne den Profilnamen aus der Auswahl doppelt zu wiederholen.\n• Profilaktionen und gespeicherte Werte bleiben unverändert.",
-  "en": "OrkanSlicer 0.8.420\n\n• The filament profile summary now shows material and temperatures without repeating the selected profile name.\n• Profile actions and saved values remain unchanged.",
-  "ru": "OrkanSlicer 0.8.420\n\n• В сводке филамента показаны материал и температуры без повторения выбранного имени профиля.\n• Действия с профилями и сохранённые значения не изменены."
+  "de": "OrkanSlicer 0.8.421\n\n• Der Druckplattenzähler bleibt bei großer Schrift vollständig lesbar und erhält eine größere Touchfläche.\n• Filament-Profilübersicht zeigt Material und Temperaturen ohne doppelte Profilüberschrift.",
+  "en": "OrkanSlicer 0.8.421\n\n• The build plate counter remains readable with large text and gets a larger touch target.\n• Filament profile summary shows material and temperatures without a duplicate heading.",
+  "ru": "OrkanSlicer 0.8.421\n\n• Счётчик платформы остаётся читаемым при крупном шрифте и получил увеличенную область нажатия.\n• В сводке филамента показаны материал и температуры без повторного заголовка."
 }
