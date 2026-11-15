@@ -10232,11 +10232,15 @@ class InitialProjectMenuDeviceTest {
         val glView = requireNotNull(bed.glView)
         val modelFile = File(activity.cacheDir, "menu-paint-imported-multicolor-test.3mf")
         val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        val previousThemeMode = Prefs.getThemeMode()
         Prefs.setStoredFilamentSlots(listOf(
             FilamentSlot(0xFFCC3333.toInt(), "Imported Paint Base"),
             FilamentSlot(0xFF3366CC.toInt(), "Imported Paint Accent"),
         ))
         try {
+            Prefs.setThemeMode(Prefs.ThemeMode.DARK.ordinal)
+            activity.runOnUiThread { ThemesRepo.invalidate(activity) }
+            compose.waitForIdle()
             InstrumentationRegistry.getInstrumentation().context.assets
                 .open("models/two-color-project.3mf").use { source ->
                     modelFile.outputStream().use(source::copyTo)
@@ -10258,6 +10262,26 @@ class InitialProjectMenuDeviceTest {
             assertTrue("the multicolor 3MF fixture should finish loading", loadedLatch.await(60, TimeUnit.SECONDS))
             val model = requireNotNull(loaded.get()) { "multicolor fixture load failed: ${loadFailure.get()}" }
             assertEquals(2, model.objectsCount)
+            compose.runOnUiThread { FileMenuObjectActions(bed).showObjectsDialog(glView) }
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.onNodeWithTag("model-object-row-0").assertIsDisplayed()
+            compose.onNodeWithTag("model-object-row-1").assertIsDisplayed()
+            compose.onNodeWithTag("model-objects-search").assertIsDisplayed()
+            assertTrue("the imported project's palette should still map the two displayed objects",
+                readUsedFilamentsOnGl(glView, 0).isNotEmpty() && readUsedFilamentsOnGl(glView, 1).isNotEmpty())
+            compose.waitForIdle()
+            SystemClock.sleep(500L)
+            val importedObjectListScreenshot =
+                InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+            val screenshotFile = requireNotNull(activity.getExternalFilesDir(null))
+                .resolve("ui21-object-list-imported-3mf.png")
+            screenshotFile.outputStream().use { output ->
+                importedObjectListScreenshot.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)
+            }
+            importedObjectListScreenshot.recycle()
+            assertTrue("the actual imported 3MF object-list screenshot should be saved", screenshotFile.isFile)
+            compose.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
             glView.selectModel(0, Runnable {})
             instrumentationWaitForGlIdle()
             val zoomReady = CountDownLatch(1)
@@ -10346,6 +10370,8 @@ class InitialProjectMenuDeviceTest {
             if (bed.isPaintMode) bed.onBackPressed()
             modelFile.delete()
             Prefs.setStoredFilamentSlots(previousSlots)
+            Prefs.setThemeMode(previousThemeMode.ordinal)
+            activity.runOnUiThread { ThemesRepo.invalidate(activity) }
         }
     }
 
