@@ -215,12 +215,13 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
         if (index < 0 || index != selectedObjectForScale || snapshot.selectedIndices.isEmpty()) return
         glView.queueEvent {
             val renderer = glView.renderer
-            // Undo/redo legitimately changes the geometry revision while leaving the same
-            // selection active. Rebase only when the model and exact selected indices still
-            // match; a changed model or selection remains a hard stop.
-            if (renderer.model !== snapshot.model ||
-                renderer.selectedObject != index ||
-                !renderer.selectedObjectIndices().contentEquals(snapshot.selectedIndices)
+            // Undo/redo may replace the native Model instance while preserving the exact selection.
+            // Rebase the transform action on that restored model; reject changed indices or invalid objects.
+            val currentModel = renderer.model ?: return@queueEvent
+            val currentSelection = renderer.selectedObjectIndices()
+            if (renderer.selectedObject != index ||
+                !currentSelection.contentEquals(snapshot.selectedIndices) ||
+                currentSelection.any { it !in 0 until currentModel.objectsCount }
             ) return@queueEvent
             runCatching {
                 if (renderer.mirrorSelectedObjects(axis)) {

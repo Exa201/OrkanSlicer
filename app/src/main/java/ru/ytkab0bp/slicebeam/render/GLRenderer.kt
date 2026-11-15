@@ -2256,6 +2256,7 @@ notifyPaintHistoryChanged()
 fun paintAt(x:Float, y:Float, rebuildPreview: Boolean = true) {
 if (paintSession == null || paintObject < 0 || paintObject >= glModels.size) return
 val gl = glModels.get(paintObject)
+raycastHits.clear()
 gl.raycaster.raycast(this, raycastHits, x, y)
 val hit = preciseSurfaceHit()?.position ?: return
 val h = doubleArrayOf(hit.x, hit.y, hit.z)
@@ -2408,6 +2409,7 @@ i++
 continue
 }
 val glModel = glModels.get(i)
+raycastHits.clear()
 glModel.raycaster.raycast(this, raycastHits, x, y)
 val hovered = !raycastHits.isEmpty()
 if (hovered)
@@ -2426,6 +2428,7 @@ return j
 /** Precise world-space hit on one object, kept behind the renderer's GL-owned mesh list. */
 fun raycastObjectSurface(index: Int, x: Float, y: Float): GLModel.HitResult? {
     if (index !in glModels.indices) return null
+    raycastHits.clear()
     glModels[index].raycaster.raycast(this, raycastHits, x, y)
     return raycastHits.firstOrNull()
 }
@@ -2494,6 +2497,7 @@ if (placementTarget >= 0) {
     // Require the tapped target to be the visible object under the pointer; otherwise a
     // foreground model could make the user place the group through an occluding surface.
     if (raycastObjectIndex(x, y) != placementTarget || placementTarget !in glModels.indices) return true
+    raycastHits.clear()
     glModels[placementTarget].raycaster.raycast(this, raycastHits, x, y)
     val hit = preciseSurfaceHit() ?: return true
     if (hit.normal.z < -1e-6) {
@@ -2521,6 +2525,7 @@ if (targetObj == -1) targetObj = raycastObjectIndex(x, y)
 if (targetObj != -1 && targetObj < glModels.size)
 {
 val glModel = glModels.get(targetObj)
+raycastHits.clear()
 glModel.raycaster.raycast(this, raycastHits, x, y)
 val preciseHit = preciseSurfaceHit()
 if (preciseHit != null)
@@ -2557,6 +2562,7 @@ targetObj = raycastObjectIndex(x, y)
 if (targetObj != -1 && targetObj < glModels.size)
 {
 val glModel = glModels.get(targetObj)
+raycastHits.clear()
 glModel.raycaster.raycast(this, raycastHits, x, y)
 val preciseHit = preciseSurfaceHit()
 if (preciseHit != null)
@@ -2592,6 +2598,7 @@ val c = flattenPlanes.size
 while (i < c)
 {
 val glModel = flattenPlanes.get(i)
+raycastHits.clear()
 glModel.raycaster.raycast(this, raycastHits, x, y)
 var minDistanceRay = Double.MAX_VALUE
 if (!raycastHits.isEmpty())
@@ -2679,6 +2686,7 @@ i++
 continue
 }
 val glModel = glModels.get(i)
+raycastHits.clear()
 glModel.raycaster.raycast(this, raycastHits, x, y)
 val hovered = !raycastHits.isEmpty()
 if (hovered)
@@ -2723,6 +2731,7 @@ val c = flattenPlanes.size
 while (i < c)
 {
 val glModel = flattenPlanes.get(i)
+raycastHits.clear()
 glModel.raycaster.raycast(this, raycastHits, x, y)
 var minDistanceRay = Double.MAX_VALUE
 if (!raycastHits.isEmpty())

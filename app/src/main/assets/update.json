@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.424\n\n• Beim Wechsel des Workspace-Menüs wird der aktive Flächenmodus sicher auf dem Renderer-Thread zurückgesetzt.\n• Das Flachlegen-Werkzeug aus dem Objekt-Kontextmenü aktualisiert danach die 3D-Ansicht.",
-  "en": "OrkanSlicer 0.8.424\n\n• Switching workspace menus now resets the active flatten mode safely on the renderer thread.\n• The lay-flat action from the object context menu refreshes the 3D view afterward.",
-  "ru": "OrkanSlicer 0.8.424\n\n• При переключении меню рабочего пространства активный режим размещения на грани безопасно сбрасывается в потоке рендерера.\n• Команда размещения на грани из контекстного меню объекта обновляет 3D-вид."
+  "de": "OrkanSlicer 0.8.425\n\n• Raycast-Treffer werden vor jeder Werkzeugabfrage zurückgesetzt; dadurch verwenden Malen, Flächenplatzierung und Modellwerkzeuge keine veralteten Treffer mehr.\n• Spiegeln funktioniert auch nach Undo und Redo mit dem wiederhergestellten Modell.",
+  "en": "OrkanSlicer 0.8.425\n\n• Raycast hits are cleared before each tool query, preventing stale hits in painting, surface placement, and model tools.\n• Mirroring now works after undo and redo with the restored model.",
+  "ru": "OrkanSlicer 0.8.425\n\n• Результаты raycast очищаются перед каждым запросом инструмента, поэтому окрашивание, размещение на поверхности и инструменты модели не используют устаревшие попадания.\n• Зеркальное отражение работает после отмены и повтора с восстановленной моделью."
 }

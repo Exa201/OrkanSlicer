@@ -3399,7 +3399,7 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun failedContextDuplicateKeepsRedoHistoryIntact() {
+    fun contextDuplicateOfOffBedModelKeepsPlacementAndInvalidatesOldRedo() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
@@ -3435,18 +3435,24 @@ class InitialProjectMenuDeviceTest {
                 glView.requestRender()
                 prepared.countDown()
             }
-            assertTrue("oversized model should be prepared", prepared.await(10, TimeUnit.SECONDS))
+            assertTrue("off-bed model should be prepared", prepared.await(10, TimeUnit.SECONDS))
+            val sourceBounds = readExactBoundsOnGl(glView, 0).single()
             compose.runOnUiThread { bed.showSelectedModelContextMenu() }
             compose.onNodeWithText(activity.getString(R.string.ModelContextDuplicate))
                 .assertIsDisplayed().performClick()
-            instrumentationWaitForGlIdle()
-            Thread.sleep(300)
-            assertEquals("failed duplicate must not add an object", 1, readObjectCountOnGl(glView))
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
+            val duplicatedBounds = readExactBoundsOnGl(glView, 0, 1)
+            assertArrayEquals("context duplication must preserve the off-bed source placement",
+                sourceBounds, duplicatedBounds[0], 0.03)
+            assertArrayEquals("the new copy starts at the source position; arranging remains explicit",
+                sourceBounds, duplicatedBounds[1], 0.03)
 
             compose.runOnUiThread { bed.redoModelEdit() }
             instrumentationWaitForGlIdle()
-            assertEquals("failed duplicate must not clear the previous redo snapshot", 2,
+            assertEquals("redo from before a new duplicate must not restore stale model state", 2,
                 readObjectCountOnGl(glView))
+            assertArrayEquals("redo must not restore the pre-scale source geometry",
+                sourceBounds, readExactBoundsOnGl(glView, 0).single(), 0.03)
         } finally {
             modelFile.delete()
         }
@@ -10048,7 +10054,7 @@ class InitialProjectMenuDeviceTest {
                 paletteBounds.top >= paintControlsBounds.top - 1f &&
                     paletteBounds.bottom <= paintControlsBounds.bottom + 1f,
             )
-            val point = findUncoveredPreciseSurfacePoint(glView, bed)
+            val point = findUncoveredPreciseSurfacePoint(glView, bed, requireUpwardFace = true)
             val beforeBasePreview = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
             compose.onNodeWithTag("paint-palette-role-toggle").performClick()
             compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).assertIsDisplayed()
@@ -10088,7 +10094,7 @@ class InitialProjectMenuDeviceTest {
             val frameBeforeStroke = readRendererLastDrawOnGl(glView)
             val overlayRefreshBeforeStroke = readRendererLongOnGl(glView, "lastPaintOverlayRebuildAtMs")
             val previewPoint = findUncoveredPreciseSurfacePoint(
-                glView, bed, avoid = point, minimumAvoidDistancePx = 24f,
+                glView, bed, avoid = point, minimumAvoidDistancePx = 24f, requireUpwardFace = true,
             )
             val beforeHeldStroke = instrumentation.uiAutomation.takeScreenshot()
             injectCanvasStroke(glView, point.first, point.second, previewPoint = previewPoint) {
@@ -10106,7 +10112,9 @@ class InitialProjectMenuDeviceTest {
                         !readRendererBooleanOnGl(glView, "paintOverlayRefreshScheduled") &&
                         readRendererLongOnGl(glView, "lastPaintOverlayRebuildAtMs") > overlayRefreshBeforeStroke
                 }
-                SystemClock.sleep(80)
+                compose.waitUntil(timeoutMillis = 5_000) {
+                    readRendererLastDrawOnGl(glView) > frameBeforeStroke
+                }
                 val whileFingerDown = instrumentation.uiAutomation.takeScreenshot()
                 assertPaintColorVisibleAtPoint(
                     beforeHeldStroke, whileFingerDown, previewPoint, 0xFF3366CC.toInt(),
@@ -12141,6 +12149,7 @@ class InitialProjectMenuDeviceTest {
                         if (modePanelBounds?.contains(Offset(rootX, rootY)) == true ||
                             menuPanelBounds?.contains(Offset(rootX, rootY)) == true
                         ) continue
+                        hits.clear()
                         mesh.raycaster.raycast(renderer, hits, x.toFloat(), y.toFloat())
                         if (hits.any { !it.approximate && (!requireUpwardFace || it.normal.z > 0.7) }) {
                             result.set((glLocation[0] + localX) to (glLocation[1] + localY))
@@ -12168,6 +12177,7 @@ class InitialProjectMenuDeviceTest {
                         if (modePanelBounds?.contains(Offset(rootX, rootY)) == true ||
                             menuPanelBounds?.contains(Offset(rootX, rootY)) == true
                         ) continue
+                        hits.clear()
                         mesh.raycaster.raycast(renderer, hits, x.toFloat(), y.toFloat())
                         if (hits.any { !it.approximate && (!requireUpwardFace || it.normal.z > 0.7) }) {
                             result.set((glLocation[0] + localX) to (glLocation[1] + localY))
