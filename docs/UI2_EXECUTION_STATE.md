@@ -3457,3 +3457,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - FilamentPaletteComposeDeviceTest#plateCounterKeepsSingleLineAt200PercentAndRetainsAccessibleName: 1/1 auf Android 16 bestanden. Visuelle Kontrolle der 200%-Screenshots 46-3d-font200-fixed.png und 47-app-font200-fixed.png: Plattenzähler einzeilig; Maker-Beschreibung vollständig sichtbar.
 - Debug- und Slice-Unit-Suiten blieben bei jeweils 705/705 bestanden; assembleDebug erfolgreich für 0.8.427 / Code 462, auf Emulator installiert. Code-Commit 275d7daa2a. APK SHA-256: F197F96154B8F8A7C76195E7937036D30F515CD55C8DE80CFC085ED7C9DE5DB2. APK-Datei: artifacts/OrkanSlicer_UI21_ColorFlow_0.8.427_462_275d7daa2a_debug.apk. Dies bleibt ein Debug-Build, kein Release.
 - Weiter offen: tatsächliche Telefone (Honor/Xiaomi), 200 % auf allen Dialogen/Unterseiten, TalkBack-Prüfung, Drucker/Profile-Speicherrundläufe und vollständige UI-2.1-Funktionsabnahme.
+
+## UI 2.1 — zusätzliche Einstellungs- und Profilaktionen — 2026-11-15
+
+- Auf Android 16 liefen `SettingsAccessibilityDeviceTest` (1/1), `SettingsMenuActionDeviceTest` (8/8) und `ProfileNumericOptionDeviceTest` (3/3) erfolgreich.
+- `PrintProfileDropdownIntegrationDeviceTest#savingPrinterBedSurfaceDraftPersistsOnlyAfterSaveConfirmation` bestand 1/1. Die Teständerung am Druckbettprofil wurde nach der Bestätigung geprüft und der ursprüngliche Fixturewert im `finally`-Pfad wiederhergestellt.
+- Damit sind ausgewählte App-Menüaktionen, Profilnavigation, numerische Profileingabe sowie ein Druckerprofil-Speichervorgang nachgewiesen. Das ersetzt keine vollständige Abnahme sämtlicher Einstellungsseiten, Profiltypen, Speichern/Abbrechen-Aktionen oder realer Geräte.
+- APK unverändert: 0.8.427 / Code 462, Debug-Build aus `275d7daa2a`; SHA-256 `F197F96154B8F8A7C76195E7937036D30F515CD55C8DE80CFC085ED7C9DE5DB2`. Es gab in dieser Runde keine Quellcodeänderung und daher keinen neuen APK-Build.
+- Nächster Schritt: auf Honor/Xiaomi und bei 200 % Schrift die noch offenen Unterseiten/Dialogszenarien und TalkBack-Fokusfolge prüfen; anschließend die globalen Menü- und Profilaktionen systematisch vervollständigen.
