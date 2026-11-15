@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.419\n\n• Objektliste für Mehrteil-Modelle und große Schrift überarbeitet: Objektinformationen und Aktionen bleiben auf schmalen Bildschirmen erreichbar.\n• Suche in Druck-, Filament- und Druckerprofilen mit kontrastreichem Icon und klarer Umrandung.",
-  "en": "OrkanSlicer 0.8.419\n\n• Improved the multipart object list for large text: object details and actions remain reachable on narrow screens.\n• Increased contrast and clarified the search button across print, filament and printer profiles.",
-  "ru": "OrkanSlicer 0.8.419\n\n• Улучшен список составных моделей при крупном тексте: сведения и действия доступны на узких экранах.\n• Повышен контраст и улучшено оформление поиска в профилях печати, филамента и принтера."
+  "de": "OrkanSlicer 0.8.420\n\n• Filament-Profilübersicht zeigt Material und Temperaturen ohne den Profilnamen aus der Auswahl doppelt zu wiederholen.\n• Profilaktionen und gespeicherte Werte bleiben unverändert.",
+  "en": "OrkanSlicer 0.8.420\n\n• The filament profile summary now shows material and temperatures without repeating the selected profile name.\n• Profile actions and saved values remain unchanged.",
+  "ru": "OrkanSlicer 0.8.420\n\n• В сводке филамента показаны материал и температуры без повторения выбранного имени профиля.\n• Действия с профилями и сохранённые значения не изменены."
 }

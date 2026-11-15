@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -44,11 +45,14 @@ class FilamentProfileSummaryDeviceTest {
 
     @Test
     fun summaryShowsSelectedProfileMaterialSwatchAndTemperatures() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
         compose.setContent {
             BeamComposeTheme { FilamentProfileSummary(profile) }
         }
 
-        compose.onNodeWithText("ColorFlow PETG").assertIsDisplayed()
+        compose.onNodeWithContentDescription(
+            context.getString(R.string.FilamentSummaryDescription, "ColorFlow PETG", "PETG", "235", "75"),
+        ).assertIsDisplayed()
         compose.onNodeWithText("Material: PETG").assertIsDisplayed()
         compose.onNodeWithText("Nozzle 235 °C · bed 75 °C").assertIsDisplayed()
 
@@ -67,5 +71,8 @@ class FilamentProfileSummaryDeviceTest {
             compose.onAllNodesWithText("Nozzle 240 °C · bed 75 °C").fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithText("Nozzle 240 °C · bed 75 °C").assertIsDisplayed()
+        compose.onNodeWithContentDescription(
+            context.getString(R.string.FilamentSummaryDescription, "ColorFlow PETG", "PETG", "240", "75"),
+        ).assertIsDisplayed()
     }
 }
