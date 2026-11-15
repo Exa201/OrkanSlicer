@@ -5138,3 +5138,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Kein GitHub-Prerelease und kein Merge erstellt. Nächster konkreter Schritt: Honor entsperren und den vertikalen Wisch direkt in den Nightly-Menüs visuell prüfen; danach die noch offenen UI-2.1-Hauptseiten und Dialogaktionen abnehmen.
 
 # Nightly execution state — 2026-11-14
+# UI 2.1 / Nightly execution update — 2026-11-15
+
+- Active checkout: OrkanSlicer Nightly 2.5, branch `codex/ui-2.1-redesign`; current verified app version 0.8.470 / code 505. Stable repository is not used.
+- Complete: grouped multipart-object actions shipped in 0.8.469; profile filter labels now wrap at large font scales, with a regression test for 320 dp and 200% text in 0.8.470.
+- Verification: Debug build and changelog gate passed; targeted API-36 profile-filter instrumentation **3/3**; installed emulator package `com.exa201.orkanslicer.nightly25` verified as 0.8.470/code 505. Full unit suites were last verified on 0.8.469 (Debug and SliceTest **785/785** each); not rerun for 0.8.470.
+- APK: `app/build/outputs/apk/debug/OrkanSlicerNightly25_0fb34f181a.apk`, SHA-256 `b6bd08a2e1575a3109944a6c17ae1eedef647107ff3ea24e6d0c4b8a4f80bd52`.
+- Remaining: broader UI 2.1 interaction and visual/responsive audit, global menus and dialogs. Physical HONOR/Xiaomi validation remains open. No release/merge.
+- Next concrete step: run the full Debug and SliceTest unit suites, then continue the UI 2.1 screen audit on Nightly only.

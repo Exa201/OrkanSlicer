@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.470 — UI 2.1: Profilfilter bei 200 % lesbar — 2026-11-15
+
+- Die Such-/Filter-Kopfzeile und die Qualitätsstufen dürfen bei sehr großer Schrift auf schmalen Displays mehrzeilig wachsen.
+- Suchfeld, Qualitätsauswahl und Favoritenfilter bleiben dabei mit mindestens 48 dp bedienbar; die sichtbaren Texte werden nicht mehr per Ellipse abgeschnitten.
+- 320-dp-/200-%-Compose-Instrumentierung für die Filteraktionen ergänzt.
+
 ## 0.8.469 — UI 2.1: Teilaktionen übersichtlich bündeln — 2026-11-15
 
 - Gruppierte Modellteile zeigen ihre vier Einzelaktionen jetzt in einem beschrifteten Aktionsmenü statt in mehreren schmalen Textbuttons.

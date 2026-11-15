@@ -1,3 +1,9 @@
+## OrkanSlicer Nightly 2.5 — Profilfilter 200%-Lesbarkeit — 2026-11-15 — 0.8.470
+
+- Branch `codex/ui-2.1-redesign`, Code 505, Paket `com.exa201.orkanslicer.nightly25`. Filtertitel und Ebenenauswahl umbrechen auf kleinen Displays bei vergrößerter Schrift vollständig, statt abgeschnitten zu werden.
+- Profilfilter-Instrumentierung auf API 36: **3/3** bestanden, einschließlich 320 dp Breite und 200 % Schriftgröße. AndroidTest-APK-Build und `verifyNightlyChangelog` erfolgreich.
+- Debug-APK `app/build/outputs/apk/debug/OrkanSlicerNightly25_0fb34f181a.apk`, SHA-256 `b6bd08a2e1575a3109944a6c17ae1eedef647107ff3ea24e6d0c4b8a4f80bd52`. Paketmanager bestätigt auf dem Emulator Version **0.8.470 / Code 505**. Physische Geräte nicht getestet; kein Release und kein Merge.
+
 ## OrkanSlicer Nightly 2.5 — UI 2.1 Teilaktionen — 2026-11-15 — 0.8.469
 
 - Branch `codex/ui-2.1-redesign`, Code 504, Paket `com.exa201.orkanslicer.nightly25`. Teilaktionen gruppierter Modellteile in einem zugänglichen Overflow-Menü; Materialfarbbeschreibung für TalkBack; responsive Dialogbreite.

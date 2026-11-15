@@ -75,10 +75,16 @@ fun ProfileFilterBar(
         if (onToggle != null) onToggle() else filtersExpanded = false
     }
     BackHandler(enabled = showFilters, onBack = dismissFilters)
+    val fontScale = ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current
     val stacked = ProfileSettingsMenuLayoutPolicy.usesStackedFilterControls(
         LocalConfiguration.current.screenWidthDp,
-        ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current,
+        fontScale,
     )
+    val filterTitleMaxLines = when {
+        fontScale >= 1.8f -> 3
+        fontScale >= ProfileSettingsMenuLayoutPolicy.STACKED_FILTER_TEXT_SCALE -> 2
+        else -> 1
+    }
     val favoritesDescription = stringResource(R.string.ProfileSettingsFavoritesToggle)
     val favoritesStateDescription = stringResource(
         if (favoritesOnly) R.string.ProfileSettingsFavoritesOnlyEnabled
@@ -145,8 +151,9 @@ fun ProfileFilterBar(
                 Text(
                     text = stringResource(R.string.ProfileSettingsSearchAndFilter),
                     modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = filterTitleMaxLines,
+                    softWrap = filterTitleMaxLines > 1,
+                    overflow = TextOverflow.Clip,
                     textAlign = TextAlign.Start,
                     fontSize = 15.sp,
                 )
@@ -227,6 +234,12 @@ private fun ProfileLevelPicker(
     onSelected: (Int) -> Unit,
     modifier: Modifier,
 ) {
+    val fontScale = ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current
+    val levelMaxLines = when {
+        fontScale >= 1.8f -> 3
+        stacked -> 2
+        else -> 1
+    }
     var expanded by remember { mutableStateOf(false) }
     Box(modifier) {
         OutlinedButton(
@@ -235,9 +248,9 @@ private fun ProfileLevelPicker(
         ) {
             Text(
                 text = levels.getOrElse(selectedLevel) { levels.firstOrNull().orEmpty() },
-                maxLines = if (stacked) 2 else 1,
-                softWrap = stacked,
-                overflow = if (stacked) TextOverflow.Clip else TextOverflow.Ellipsis,
+                maxLines = levelMaxLines,
+                softWrap = levelMaxLines > 1,
+                overflow = TextOverflow.Clip,
                 textAlign = TextAlign.Center,
                 fontSize = 16.sp,
                 lineHeight = 19.sp,

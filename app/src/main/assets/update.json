@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer Nightly 2.5 · 0.8.469\n\n• Aktionen einzelner Modellteile sind in einem gut erreichbaren Menü gebündelt.\n• Materialfarben der Teile werden für TalkBack mit Werkzeug und Farbcode beschrieben.",
-  "en": "OrkanSlicer Nightly 2.5 · 0.8.469\n\n• Individual model-part actions are grouped in an accessible, easy-to-reach menu.\n• Part material colors are described to TalkBack with tool number and color code.",
-  "ru": "OrkanSlicer Nightly 2.5 · 0.8.469\n\n• Действия с отдельными частями модели объединены в удобное меню.\n• Цвета материалов частей описываются для TalkBack с номером инструмента и кодом цвета."
+  "de": "OrkanSlicer Nightly 2.5 · 0.8.470\n\n• Such- und Filterbeschriftungen in Profilen können bei 200 % Schriftgröße umbrechen.\n• Qualitätsstufen bleiben auf schmalen Displays vollständig lesbar und bedienbar.",
+  "en": "OrkanSlicer Nightly 2.5 · 0.8.470\n\n• Profile search and filter labels can wrap at 200% text size.\n• Quality levels remain fully readable and usable on narrow displays.",
+  "ru": "OrkanSlicer Nightly 2.5 · 0.8.470\n\n• Подписи поиска и фильтра профилей переносятся при размере текста 200%.\n• Уровни качества полностью читаемы и доступны на узких экранах."
 }
