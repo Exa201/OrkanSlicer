@@ -16,7 +16,9 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.platform.testTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
@@ -24,6 +26,7 @@ import org.junit.Assert.assertTrue
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceProfileStatus
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShellLayoutPolicy
 
 @RunWith(AndroidJUnit4::class)
 class WorkspaceProfileStatusDeviceTest {
@@ -41,7 +44,7 @@ class WorkspaceProfileStatusDeviceTest {
                 },
             ) {
                 BeamComposeTheme {
-                    Box(Modifier.width(180.dp)) {
+                    Box(Modifier.width(180.dp).height(WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(1.5f).dp - 8.dp).testTag("profile-status-viewport")) {
                         WorkspaceProfileStatus(
                             title = "Anycubic Kobra 3 Combo printer profile",
                             summary = "0.4 mm nozzle · PLA · Standard profile",
@@ -65,6 +68,10 @@ class WorkspaceProfileStatusDeviceTest {
         assertTrue("Long printer title should wrap instead of remaining ellipsized on one line",
             titleHeightPx > oneLineAtLargeTextPx)
         assertTrue("Printer title should remain within two lines", titleHeightPx <= twoLinesAtLargeTextPx)
-        compose.onNodeWithTag("workspace-profile-summary", useUnmergedTree = true).assertIsDisplayed()
+        val viewportBottom = compose.onNodeWithTag("profile-status-viewport").fetchSemanticsNode().boundsInRoot.bottom
+        val summaryNode = compose.onNodeWithTag("workspace-profile-summary", useUnmergedTree = true)
+        summaryNode.assertIsDisplayed()
+        assertTrue("Profile summary should fit inside the adaptive workspace header",
+            summaryNode.fetchSemanticsNode().boundsInRoot.bottom <= viewportBottom)
     }
 }

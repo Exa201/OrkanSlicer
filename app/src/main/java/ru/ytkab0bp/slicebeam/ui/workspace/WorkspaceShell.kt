@@ -362,9 +362,9 @@ internal object WorkspaceShellLayoutPolicy {
     @JvmStatic
     fun workspaceHeaderHeightDp(systemFontScale: Float): Int {
         val stableScale = (systemFontScale.takeIf { it.isFinite() && it > 0f } ?: 1f) * MAX_APP_TEXT_SCALE
-        // 18sp title line plus a 12sp summary with a small font-metric safety margin,
+        // Two 18sp title lines plus the 12sp summary and a font-metric safety margin,
         // then the fixed vertical padding around the header row.
-        val contentHeight = ceil(33f * stableScale).toInt().coerceAtLeast(48)
+        val contentHeight = ceil(37f * stableScale).toInt().coerceAtLeast(48)
         return contentHeight + 8
     }
 

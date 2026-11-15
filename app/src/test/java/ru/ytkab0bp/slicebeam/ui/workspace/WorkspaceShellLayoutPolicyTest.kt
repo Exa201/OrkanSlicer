@@ -7,9 +7,9 @@ import ru.ytkab0bp.slicebeam.ui.settings.TemporaryProjectSettingsBarLayoutPolicy
 class WorkspaceShellLayoutPolicyTest {
     @Test
     fun workspaceHeaderReservesTheMaximumAppZoomForEachSystemFontScale() {
-        assertEquals(58, WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(1f))
-        assertEquals(73, WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(1.3f))
-        assertEquals(58, WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(Float.NaN))
+        assertEquals(64, WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(1f))
+        assertEquals(81, WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(1.3f))
+        assertEquals(64, WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(Float.NaN))
     }
 
     @Test
