@@ -1,7 +1,7 @@
 # UI 2.1 ColorFlow — Ausführungsstand (15.11.2026)
 
 - **Branch:** `codex/orkanslicer-ui21-colorflow` im isolierten Worktree.
-- **Build:** Debug-APK `OrkanSlicer_UI21_ColorFlow_0.8.415_450_debug.apk`, Version 0.8.415 (Code 450). APK-Signatur gültig; SHA-256 `F7EB2EDF344C083B9CBC021A125F4B76B1925D7C401871C3AEC23FF493AED9A1`.
+- **Build:** Debug-APK `OrkanSlicer_UI21_ColorFlow_0.8.415_450_debug.apk`, Version 0.8.415 (Code 450), Quellcommit `4e16760e9d91dade0b8a2c09f9fff500c675dda4`. APK-Signatur gültig; SHA-256 `2F9263D4FB39E51FBE4A4257BD881883C22F53BE28D3EB00E71C46F3F0944510`.
 - **Umgesetzt:** ColorFlow-Farbpalette, farbcodierte Navigation, gruppierte Profilseiten, Mehrfarb-Icons und adaptive/gesuchte Objektliste; Renderer, WorkspaceShell und vorhandene Profil-/Projektzustände bleiben erhalten.
 - **Sichtprüfung:** echte Emulator-Screenshots der Workspace-, Druck-, Filament-, Drucker- und App-Seite sowie des Spülvolumen-Dialogs unter `docs/screenshots/ui21/`. Im Dialog wurde dunkle Eingabeschrift gefunden und behoben; Werte und Suchsymbol sind jetzt kontrastreich.
 - **Unit-Tests:** `:app:testDebugUnitTest` — 705/705 bestanden, 0 fehlgeschlagen, 0 übersprungen.
