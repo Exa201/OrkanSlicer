@@ -697,6 +697,8 @@
     <string name="AppCloseConfirmYes">Close app</string>
     <string name="ModelContextSelectFilamentSlot">Select filament slot</string>
     <string name="PrinterConnectionTitle">Printer connection</string>
+    <string name="PrinterNozzleSummary">Ø %1$s mm nozzle</string>
+    <string name="PrinterBuildHeightSummary">Z %1$s mm</string>
     <string name="PrinterOpenWebShort">Web</string>
     <string name="PrinterOpenWebButton">Open printer web interface</string>
     <string name="ClosePanel">Close panel</string>

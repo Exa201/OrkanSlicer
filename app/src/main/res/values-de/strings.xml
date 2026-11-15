@@ -688,6 +688,8 @@
     <string name="AppCloseConfirmYes">App schließen</string>
     <string name="ModelContextSelectFilamentSlot">Filamentplatz auswählen</string>
     <string name="PrinterConnectionTitle">Druckerverbindung</string>
+    <string name="PrinterNozzleSummary">Düse Ø %1$s mm</string>
+    <string name="PrinterBuildHeightSummary">Z %1$s mm</string>
     <string name="PrinterOpenWebShort">Web</string>
     <string name="PrinterOpenWebButton">Weboberfläche öffnen</string>
     <string name="ClosePanel">Ansicht schließen</string>

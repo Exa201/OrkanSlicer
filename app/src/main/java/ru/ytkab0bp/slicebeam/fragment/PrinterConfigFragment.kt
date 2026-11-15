@@ -5,6 +5,9 @@ import android.net.Uri
 import android.text.TextUtils
 import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
@@ -12,11 +15,12 @@ import ru.ytkab0bp.slicebeam.components.PrinterConnectionCard
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.BedSurfaceTemperaturePolicy
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
+import ru.ytkab0bp.slicebeam.slic3r.Slic3rUtils
 import ru.ytkab0bp.slicebeam.utils.PrinterWebOriginPolicy
 
 /** Printer-profile screen; the Orca settings remain defined by the shared native schema. */
 class PrinterConfigFragment : ProfileListFragment() {
-    private var currentConfig: ConfigObject? = null
+    private var currentProfileState by mutableStateOf<ConfigObject?>(null)
 
     override fun getProfileListType(): Int = ConfigObject.PROFILE_LIST_PRINTER
 
@@ -40,15 +44,21 @@ class PrinterConfigFragment : ProfileListFragment() {
     override fun ProfileHeaderContent(modifier: Modifier) {
         PrinterConnectionCard(
             modifier = modifier,
-            configuredHost = currentConfig?.get("print_host"),
+            configuredHost = currentProfileState?.get("print_host"),
+            machineModel = currentProfileState?.get("printer_model")?.takeIf(String::isNotBlank)
+                ?: currentProfileState?.title,
+            nozzleDiameter = currentProfileState?.let {
+                Slic3rUtils.firstNozzleDiameter(it.get("printer_variant") ?: it.get("nozzle_diameter"))
+            },
+            maxPrintHeight = currentProfileState?.get("printable_height")?.substringBefore(',')?.substringBefore(';'),
             onOpenWeb = ::openPrinterWebUi,
         )
     }
 
-    fun getConfiguredExtruderCount(): Int = currentConfig?.extruderCount ?: 0
+    fun getConfiguredExtruderCount(): Int = currentProfileState?.extruderCount ?: 0
 
     private fun openPrinterWebUi() {
-        val selected = currentConfig?.let { ConfigObject(it) } ?: return
+        val selected = currentProfileState?.let { ConfigObject(it) } ?: return
         ProfileSettingsRepository.applyPendingFor(getProfileListType(), selected)
         val host = PrinterWebOriginPolicy.dashboardUrl(selected.get("print_host"))
         val context = getContext() ?: return
@@ -64,7 +74,7 @@ class PrinterConfigFragment : ProfileListFragment() {
     }
 
     override fun cloneCurrentProfile() {
-        val original = currentConfig ?: return
+        val original = currentProfileState ?: return
         val copy = ConfigObject(
             SliceBeam.requireInstance().getString(R.string.SettingsProfileCopy, original.title),
         )
@@ -81,12 +91,12 @@ class PrinterConfigFragment : ProfileListFragment() {
             return
         }
 
-        currentConfig = ConfigObject(copy)
+        currentProfileState = ConfigObject(copy)
         setProfileDropdownTitle(getCurrentConfig()?.title)
     }
 
     override fun deleteCurrentProfile() {
-        val current = currentConfig ?: return
+        val current = currentProfileState ?: return
         val profiles = SliceBeam.requireConfig().printerConfigs
         if (profiles.size <= 1) {
             getContext()?.let { Toast.makeText(it, R.string.ProfileDeleteLastBlocked, Toast.LENGTH_LONG).show() }
@@ -103,7 +113,7 @@ class PrinterConfigFragment : ProfileListFragment() {
         }
         if (!selectItem(firstProfile)) {
             profiles.add(removedIndex, stored)
-            currentConfig = ConfigObject(stored)
+            currentProfileState = ConfigObject(stored)
             setProfileDropdownTitle(stored.title)
             return
         }
@@ -111,7 +121,7 @@ class PrinterConfigFragment : ProfileListFragment() {
     }
 
     override fun onApplyConfig(title: String): Boolean {
-        val current = currentConfig ?: return false
+        val current = currentProfileState ?: return false
         val config = SliceBeam.requireConfig()
         val stored = config.findPrinter(current.title) ?: return false
         val previousStored = ConfigObject(stored)
@@ -137,16 +147,16 @@ class PrinterConfigFragment : ProfileListFragment() {
         val printer = SliceBeam.requireConfig().findPrinter(SliceBeam.requireConfig().presets!!.get("printer"))
             ?: SliceBeam.requireConfig().printerConfigs.firstOrNull()
             ?: ConfigObject.createCustomPrinterProfile()
-        currentConfig = ConfigObject(printer)
-        if (currentConfig?.get("curr_bed_type").isNullOrBlank()) {
-            currentConfig?.put(
+        currentProfileState = ConfigObject(printer)
+        if (currentProfileState?.get("curr_bed_type").isNullOrBlank()) {
+            currentProfileState?.put(
                 "curr_bed_type",
                 BedSurfaceTemperaturePolicy.printerDefaultValue(printer.get("default_bed_type")) ?: "High Temp Plate",
             )
         }
     }
 
-    override fun getCurrentConfig(): ConfigObject? = currentConfig
+    override fun getCurrentConfig(): ConfigObject? = currentProfileState
 
     override val title: Int = R.string.SlotPrinterConfigTooltip
 
@@ -155,7 +165,7 @@ class PrinterConfigFragment : ProfileListFragment() {
             getContext()?.let { Toast.makeText(it, R.string.ConfigSaveFailed, Toast.LENGTH_LONG).show() }
             return false
         }
-        currentConfig = ConfigObject(item as ConfigObject)
+        currentProfileState = ConfigObject(item as ConfigObject)
         return true
     }
 }

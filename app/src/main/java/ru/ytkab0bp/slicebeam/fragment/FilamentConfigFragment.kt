@@ -3,6 +3,9 @@ package ru.ytkab0bp.slicebeam.fragment
 import android.text.TextUtils
 import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
@@ -20,7 +23,7 @@ class FilamentConfigFragment : ProfileListFragment() {
     private var lastPrinter: String? = null
     private var lastPrint: String? = null
     private var lastUid = 0
-    private var currentConfig: ConfigObject? = null
+    private var currentProfileState by mutableStateOf<ConfigObject?>(null)
 
     fun selectOwnFilamentSlot(index: Int) {
         if (TemporaryProjectSettings.active) return
@@ -118,11 +121,11 @@ class FilamentConfigFragment : ProfileListFragment() {
 
     @Composable
     override fun ProfileHeaderContent(modifier: Modifier) {
-        FilamentProfileSummary(currentConfig, modifier)
+        FilamentProfileSummary(currentProfileState, modifier)
     }
 
     override fun cloneCurrentProfile() {
-        val current = currentConfig ?: return
+        val current = currentProfileState ?: return
         val copy = ConfigObject(
             SliceBeam.requireInstance().getString(R.string.SettingsProfileCopy, current.title),
         )
@@ -139,14 +142,14 @@ class FilamentConfigFragment : ProfileListFragment() {
             return
         }
 
-        currentConfig = ConfigObject(copy)
+        currentProfileState = ConfigObject(copy)
         if (!TemporaryProjectSettings.active) SlotFilamentProfiles.assign(SlotFilamentProfiles.selectedSlot, copy.title.orEmpty())
         setProfileDropdownTitle(getCurrentConfig()?.title)
         compatItems = null
     }
 
     override fun deleteCurrentProfile() {
-        val current = currentConfig ?: return
+        val current = currentProfileState ?: return
         compatItems = null
         val profiles = SliceBeam.requireConfig().filamentConfigs
         if (profiles.size <= 1) {
@@ -165,7 +168,7 @@ class FilamentConfigFragment : ProfileListFragment() {
         }
         if (!selectItem(firstProfile)) {
             profiles.add(removedIndex, stored)
-            currentConfig = ConfigObject(stored)
+            currentProfileState = ConfigObject(stored)
             setProfileDropdownTitle(stored.title)
             compatItems = null
             return
@@ -174,7 +177,7 @@ class FilamentConfigFragment : ProfileListFragment() {
     }
 
     override fun onApplyConfig(title: String): Boolean {
-        val current = currentConfig ?: return false
+        val current = currentProfileState ?: return false
         compatItems = null
         val config = SliceBeam.requireConfig()
         val stored = config.findFilament(current.title) ?: return false
@@ -202,10 +205,10 @@ class FilamentConfigFragment : ProfileListFragment() {
         val filament = SliceBeam.requireConfig().findFilament(SliceBeam.requireConfig().presets!!.get("filament"))
             ?: SliceBeam.requireConfig().filamentConfigs.firstOrNull()
             ?: ConfigObject.createCustomFilamentProfile()
-        currentConfig = ConfigObject(filament)
+        currentProfileState = ConfigObject(filament)
     }
 
-    override fun getCurrentConfig(): ConfigObject? = currentConfig
+    override fun getCurrentConfig(): ConfigObject? = currentProfileState
 
     override val title: Int = R.string.SlotFilamentConfigTooltip
 
@@ -220,7 +223,7 @@ class FilamentConfigFragment : ProfileListFragment() {
             getContext()?.let { Toast.makeText(it, R.string.ConfigSaveFailed, Toast.LENGTH_LONG).show() }
             return false
         }
-        currentConfig = ConfigObject(item as ConfigObject)
+        currentProfileState = ConfigObject(item as ConfigObject)
         if (!TemporaryProjectSettings.active) SlotFilamentProfiles.assign(SlotFilamentProfiles.selectedSlot, item.title.orEmpty())
         compatItems = null
         return true

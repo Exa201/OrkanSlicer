@@ -32,11 +32,19 @@ import ru.ytkab0bp.slicebeam.utils.PrinterWebOriginPolicy
 @Composable
 fun PrinterConnectionCard(
     configuredHost: String?,
+    machineModel: String?,
+    nozzleDiameter: String?,
+    maxPrintHeight: String?,
     onOpenWeb: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val displayHost = PrinterWebOriginPolicy.dashboardUrl(configuredHost)
     val openWebDescription = stringResource(R.string.PrinterOpenWebDescription)
+    val technicalSummary = listOfNotNull(
+        machineModel?.takeIf(String::isNotBlank),
+        nozzleDiameter?.takeIf(String::isNotBlank)?.let { stringResource(R.string.PrinterNozzleSummary, it) },
+        maxPrintHeight?.takeIf(String::isNotBlank)?.let { stringResource(R.string.PrinterBuildHeightSummary, it) },
+    ).joinToString(" · ")
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(OrkanUiTokens.compactCornerRadius),
@@ -62,6 +70,15 @@ fun PrinterConnectionCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (technicalSummary.isNotBlank()) {
+                    Text(
+                        text = technicalSummary,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             OutlinedButton(
                 onClick = onOpenWeb,
