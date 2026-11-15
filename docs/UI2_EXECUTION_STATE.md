@@ -4,7 +4,7 @@
 
 - Profil-Dropdown folgt nun den ColorFlow-Oberflächenfarben. Lange Drucker- und Druckprofilnamen im ausgewählten Profil sowie in der Liste umbrechen ohne Ellipsen.
 - `ProfileDropdownLayoutDeviceTest#longProfileNamesWrapFullyAtNarrowWidthAndLargeText`: 1/1 auf Android-16-Emulator bestanden; schmale 320-dp-Breite, 150-%-Text, sichtbarer Zeilenumbruch und kein vertikaler Textüberlauf geprüft.
-- Debug-APK 0.8.430 / code 465 erfolgreich gebaut. APK `artifacts/OrkanSlicer_UI21_ColorFlow_0.8.430_465_ac9402e0d3_debug.apk`, 249.239.597 Bytes, SHA-256 `26C9A9DF5B7984D334EA9AC566017C6D0C1DC99E4B242400D356124600158CA4`; V1- und V2-Signatur gültig.
+- Debug-APK 0.8.430 / code 465 erfolgreich aus Commit `b0dad0a5e5` gebaut. APK `artifacts/OrkanSlicer_UI21_ColorFlow_0.8.430_465_b0dad0a5e5_debug.apk`, 249.239.584 Bytes, SHA-256 `272B5207FE576387C6D8EDC6DF3E3D6FF7FF896E56B4328799D9AEAF9FB9E84A`; V1- und V2-Signatur gültig.
 - APK auf Android-16-Emulator installiert und gestartet; `dumpsys` bestätigt Version 0.8.430/code 465. Changelog beim ersten Start angezeigt, Druckprofil-Auswahlliste visuell aufgenommen (`docs/screenshots/ui21/60-installed-0.8.430.png`, `61-profile-picker-0.8.430.png`); Logcat-Stichprobe ohne FATAL EXCEPTION, ANR oder OOM.
 - Der erste Gerätetest-Aufruf enthielt einen fehlerhaften Semantik-Assert (Popup-Inhalt liegt in einem separaten Semantikbaum); nach Anpassung bestand der finale Test 1/1. Es war kein Produktfehler.
 - Aktueller Branch: `codex/orkanslicer-ui21-colorflow`; kein Release und kein Merge.
