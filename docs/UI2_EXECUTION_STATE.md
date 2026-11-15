@@ -1,9 +1,10 @@
 # UI 2.1 ColorFlow — Fortsetzungsstand 2026-11-15
 
-- Aktiver Arbeitszweig: `codex/ui-2.1-redesign`, Nightly 2.5; Ausgangs-HEAD `2b6fd9b572`. Der UI-2.1-Umbau bleibt **offen**.
+- Aktiver Arbeitszweig: `codex/ui-2.1-redesign`, Nightly 2.5; UI-Code-Commit `f6fe48cb9b`. Der UI-2.1-Umbau bleibt **offen**.
 - Neu in 0.8.468 / Code 503: Profilstatus im Workspace erlaubt zwei Zeilen für Namen und Kurzinfo; die Kopfzeile wächst bei Bedarf statt den umbrochenen Text abzuschneiden. Die übliche kompakte Mindesthöhe bleibt erhalten. Das bestehende Profil-Auswahlziel und alle Domänenzustände bleiben unverändert.
 - Verifiziert: Debug-Unit **785/785**, SliceTest-Unit **785/785**; `WorkspaceProfileStatusDeviceTest` **1/1** auf API-36-Emulator bei 320 dp und 150 % Schrift; `:app:assembleDebug` erfolgreich; APK 0.8.468 auf API-36-Emulator installiert und gestartet. Version 0.8.468 / Code 503 per PackageManager bestätigt.
 - Echte Emulator-Screenshots von Workspace, Druck, Filament, Drucker und App bei 150 %: `docs/images/ui21/emulator-ui21-{workspace,print,filament,printer,app}-0468-150.png`; Changelog: `docs/images/ui21/emulator-changelog-0468-150.png`.
+- Commit-APK: `app/build/outputs/apk/debug/OrkanSlicerNightly25_f6fe48cb9b.apk`, **252,038,814 Bytes**, SHA-256 `EF1CD3B834224E47CCF4A8D701A495F7A727EDEBAFF58553CBBF8A258DE19622`; nach dem Build auf dem API-36-Emulator installiert und MainActivity-Start bestätigt.
 - HONOR PTP-N49 war über ADB erreichbar; 0.8.468 wurde installiert und verifiziert. Die Display-Abnahme konnte nicht stattfinden, weil das Gerät beim Test am geschützten Sperrbildschirm blieb. Es wurde nicht entsperrt oder eine Gerätesperre umgangen. Emulator-Fontscale nach der Aufnahme auf **100 %** zurückgesetzt.
 - Noch nicht veröffentlicht; kein Merge. Es gibt für diesen UI-2.1-Arbeitszweig noch keinen PR.
 - Nächste Arbeit: aktuelle Debug-APK nach dem Code-Commit mit Commitkennung neu bauen, Profileditoren/Dialoge und Objektliste anhand des Designpaket-Prompts weiter prüfen, dann fehlende ColorFlow-Flächen funktional umsetzen und nach jeder zusammenhängenden Gruppe Tests ergänzen.
