@@ -21,8 +21,8 @@ android {
         applicationId "com.codemastercody3d.orcaslicermobile"
         minSdk 23
         targetSdk 36
-        versionCode 456
-        versionName "0.8.421"
+        versionCode 457
+        versionName "0.8.422"
         buildConfigField "boolean", "USE_PREBUILT_NATIVE", usePrebuiltNative.toString()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -190,6 +190,7 @@ dependencies {
     implementation 'com.google.android.material:material:1.13.0'
     implementation 'com.loopj.android:android-async-http:1.4.11'
     implementation 'androidx.activity:activity:1.11.0'
+    implementation 'androidx.activity:activity-compose:1.11.0'
     implementation 'androidx.webkit:webkit:1.14.0'
 
     androidTestImplementation 'androidx.test:runner:1.7.0'

@@ -1,5 +1,6 @@
 package ru.ytkab0bp.slicebeam
 
+import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -7,7 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -31,7 +32,7 @@ import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 @RunWith(AndroidJUnit4::class)
 class SettingsChoiceDialogDeviceTest {
     @get:Rule
-    val compose = createComposeRule()
+    val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
     fun longChoiceListsSelectAndCancelWithoutApplyingAValue() {
@@ -107,7 +108,7 @@ class SettingsChoiceDialogDeviceTest {
             }
         }
 
-        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        compose.activity.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.runOnIdle {
             assertTrue(dismissed)
             assertFalse("Android Back must never invoke the reset callback", confirmed)

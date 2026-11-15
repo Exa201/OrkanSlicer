@@ -1,5 +1,6 @@
 package ru.ytkab0bp.slicebeam.ui.workspace
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.heightIn
@@ -11,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 
 /** Shared Material 3 confirmation/error dialog used by workspace actions. */
 @Composable
@@ -23,8 +25,10 @@ internal fun WorkspaceMessageDialog(
     onConfirm: () -> Unit,
 ) {
     val messageMaxHeight = (LocalConfiguration.current.screenHeightDp * 0.38f).coerceAtLeast(120f).dp
+    BackHandler(onBack = onDismiss)
     AlertDialog(
         onDismissRequest = onDismiss,
+        properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true),
         title = title?.let { { Text(it) } },
         text = {
             Text(
