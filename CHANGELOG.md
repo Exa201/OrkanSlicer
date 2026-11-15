@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.469 — UI 2.1: Teilaktionen übersichtlich bündeln — 2026-11-15
+
+- Gruppierte Modellteile zeigen ihre vier Einzelaktionen jetzt in einem beschrifteten Aktionsmenü statt in mehreren schmalen Textbuttons.
+- Das Menü behält Filamentzuweisung, Teil-Druckwerte, Transformation und Trennen als dieselben bestehenden Handler bei; jeder Eintrag ist mindestens 48 dp hoch.
+- Farbfelder der Teile haben eine TalkBack-Beschreibung mit Material, Werkzeug und Farbcode. Auswahlkarten erhalten eine klarere Akzentumrandung; der Objektlistendialog bleibt auf großen Displays auf 720 dp begrenzt.
+
 ## 0.8.468 — UI 2.1: Workspace-Status ohne Textüberlauf — 2026-11-15
 
 - Die Kopfzeile der Arbeitsfläche wächst bei umbrochenen Profilnamen mit, statt die zweite Zeile abzuschneiden.

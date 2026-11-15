@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
@@ -52,11 +53,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.withFrameNanos
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
@@ -518,7 +522,7 @@ internal fun ModelObjectsDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Surface(
-            modifier = Modifier.fillMaxWidth(0.96f).fillMaxHeight(0.90f),
+            modifier = Modifier.fillMaxWidth(0.96f).widthIn(max = 720.dp).fillMaxHeight(0.90f),
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp,
@@ -613,7 +617,13 @@ internal fun ModelObjectsDialog(
                                             if (selected) MaterialSelection
                                             else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f),
                                             RoundedCornerShape(14.dp),
-                                        ),
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.78f)
+                                                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.46f),
+                                                shape = RoundedCornerShape(14.dp),
+                                            ),
                                 ) {
                                     Row(
                                         Modifier.fillMaxWidth().heightIn(min = 64.dp)
@@ -679,6 +689,8 @@ internal fun ModelObjectsDialog(
                                 }
                             } else {
                                 val part = row.parts[partIndex]
+                                val partActionsLabel = stringResource(R.string.ModelObjectPartActions)
+                                var partActionsExpanded by remember(entry.key) { mutableStateOf(false) }
                                 Column(
                                     Modifier.fillMaxWidth().padding(start = 28.dp, end = 8.dp, bottom = 4.dp)
                                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
@@ -690,39 +702,56 @@ internal fun ModelObjectsDialog(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
-                                        Box(Modifier.size(14.dp).background(Color(part.color), CircleShape))
+                                        Box(
+                                            Modifier.size(18.dp)
+                                                .background(Color(part.color), CircleShape)
+                                                .semantics {
+                                                    contentDescription = "${part.material}, T${part.tool}, #${part.color.toUInt().toString(16).padStart(6, '0').takeLast(6).uppercase()}"
+                                                },
+                                        )
                                         Column(Modifier.weight(1f)) {
                                             Text(part.label, fontWeight = FontWeight.Medium)
                                             Text("T${part.tool}: ${part.material}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
-                                    }
-                                    FlowRow(
-                                        Modifier.fillMaxWidth(),
-                                        maxItemsInEachRow = 2,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                                    ) {
-                                        TextButton(
-                                            onClick = { onAssignPart(row.objectIndex, partIndex) },
-                                            enabled = row.assignEnabled,
-                                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
-                                                .testTag("model-object-assign-part-$index-$partIndex"),
-                                        ) { Text(stringResource(R.string.ModelObjectAssignPartFilament), textAlign = TextAlign.Center) }
-                                        TextButton(
-                                            onClick = { onEditPartProcessSettings(row.objectIndex, partIndex) },
-                                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
-                                                .testTag("model-object-part-process-settings-$index-$partIndex"),
-                                        ) { Text(stringResource(R.string.ModelObjectPartProcessSettings), textAlign = TextAlign.Center) }
-                                        TextButton(
-                                            onClick = { onTransformPart(row.objectIndex, partIndex) },
-                                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
-                                                .testTag("model-object-transform-part-$index-$partIndex"),
-                                        ) { Text(stringResource(R.string.ModelObjectPartTransform), textAlign = TextAlign.Center) }
-                                        TextButton(
-                                            onClick = { onEditPart(row.objectIndex, partIndex) },
-                                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
-                                                .testTag("model-object-edit-part-$index-$partIndex"),
-                                        ) { Text(stringResource(R.string.ModelObjectEditPart), textAlign = TextAlign.Center) }
+                                        Box {
+                                            IconButton(
+                                                onClick = { partActionsExpanded = true },
+                                                modifier = Modifier.size(48.dp)
+                                                    .testTag("model-object-part-actions-$index-$partIndex"),
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.bed_menu_more_24),
+                                                    contentDescription = "${part.label}: $partActionsLabel",
+                                                    modifier = Modifier.size(24.dp),
+                                                )
+                                            }
+                                            DropdownMenu(
+                                                expanded = partActionsExpanded,
+                                                onDismissRequest = { partActionsExpanded = false },
+                                            ) {
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.ModelObjectAssignPartFilament)) },
+                                                    onClick = { partActionsExpanded = false; onAssignPart(row.objectIndex, partIndex) },
+                                                    enabled = row.assignEnabled,
+                                                    modifier = Modifier.testTag("model-object-assign-part-$index-$partIndex"),
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.ModelObjectPartProcessSettings)) },
+                                                    onClick = { partActionsExpanded = false; onEditPartProcessSettings(row.objectIndex, partIndex) },
+                                                    modifier = Modifier.testTag("model-object-part-process-settings-$index-$partIndex"),
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.ModelObjectPartTransform)) },
+                                                    onClick = { partActionsExpanded = false; onTransformPart(row.objectIndex, partIndex) },
+                                                    modifier = Modifier.testTag("model-object-transform-part-$index-$partIndex"),
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.ModelObjectEditPart)) },
+                                                    onClick = { partActionsExpanded = false; onEditPart(row.objectIndex, partIndex) },
+                                                    modifier = Modifier.testTag("model-object-edit-part-$index-$partIndex"),
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }

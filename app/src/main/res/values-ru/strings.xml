@@ -44,6 +44,7 @@
     <string name="SlotAppSettingsTooltip">Настройки приложения</string>
     <string name="MenuFile">Модель</string>
     <string name="WorkspaceAddModelAction">Загрузить модель</string>
+    <string name="ModelObjectPartActions">Действия с частью</string>
     <string name="ModelMenuDuplicate">Дублировать выбранную модель</string>
     <string name="ModelMenuSelectedObjectGroup">Выбор</string>
     <string name="ModelMenuAllObjectsGroup">Пластина</string>

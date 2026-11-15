@@ -214,6 +214,7 @@
     <string name="ModelObjectProcessSettingsSaved">Objekt-Druckeinstellungen gespeichert.</string>
     <string name="ModelObjectProcessSettingsStale">Modell oder Auswahl wurde geändert. Öffne die Objekt-Einstellungen erneut.</string>
     <string name="ModelObjectAssignPartFilament">Filament</string>
+    <string name="ModelObjectPartActions">Teilaktionen</string>
     <string name="ModelObjectPartFilamentApplied">Teil wurde T%1$d zugeordnet.</string>
     <string name="ModelObjectEditPart">Zum Bearbeiten lösen</string>
     <string name="ModelObjectPartSeparated">Teil getrennt; es kann jetzt einzeln verschoben oder skaliert werden</string>

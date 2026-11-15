@@ -1,3 +1,9 @@
+## OrkanSlicer Nightly 2.5 — UI 2.1 Teilaktionen — 2026-11-15 — 0.8.469
+
+- Branch `codex/ui-2.1-redesign`, Code 504, Paket `com.exa201.orkanslicer.nightly25`. Teilaktionen gruppierter Modellteile in einem zugänglichen Overflow-Menü; Materialfarbbeschreibung für TalkBack; responsive Dialogbreite.
+- Debug-Unit **785/785**, SliceTest-Unit **785/785**; gezielte API-36-Instrumentierung **17/17** (Objektliste, Teilaktionen, Teil-Druckwerte, Transformation, Teiltrennung und Skalierung im Bearbeiten-Menü). Debug-, SliceTest- und AndroidTest-APK-Build erfolgreich.
+- Noch nicht auf physischem HONOR/Xiaomi getestet, nicht veröffentlicht und nicht gemergt. Eine Debug-APK wird nach dem Quellcommit erneut gebaut und installiert.
+
 ## OrkanSlicer Nightly 2.5 — Orca 2.5.0 Sprachkataloge — 2026-11-14 — 0.8.456
 
 - Prerelease: [v0.8.456-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.456-nightly.1), Product-Code-Commit `b7accb79776c562fd9413aa0867586d7c7def0ad`, Branch `codex/nightly-batch11-next`.

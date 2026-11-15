@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer Nightly 2.5 · 0.8.468\n\n• Lange Druckernamen und Profilkurzinfos im Workspace-Status dürfen bei großer Schrift umbrechen.\n• Die Kopfzeile wächst bei Bedarf mit und schneidet den Profiltext nicht mehr ab.",
-  "en": "OrkanSlicer Nightly 2.5 · 0.8.468\n\n• Long printer names and profile summaries in the workspace status can wrap at large text sizes.\n• The header now grows as needed instead of clipping the profile text.",
-  "ru": "OrkanSlicer Nightly 2.5 · 0.8.468\n\n• Длинные названия принтеров и сведения о профиле переносятся при увеличенном размере текста.\n• Заголовок рабочей области увеличивается при необходимости и не обрезает текст профиля."
+  "de": "OrkanSlicer Nightly 2.5 · 0.8.469\n\n• Aktionen einzelner Modellteile sind in einem gut erreichbaren Menü gebündelt.\n• Materialfarben der Teile werden für TalkBack mit Werkzeug und Farbcode beschrieben.",
+  "en": "OrkanSlicer Nightly 2.5 · 0.8.469\n\n• Individual model-part actions are grouped in an accessible, easy-to-reach menu.\n• Part material colors are described to TalkBack with tool number and color code.",
+  "ru": "OrkanSlicer Nightly 2.5 · 0.8.469\n\n• Действия с отдельными частями модели объединены в удобное меню.\n• Цвета материалов частей описываются для TalkBack с номером инструмента и кодом цвета."
 }

@@ -244,7 +244,8 @@ class ModelObjectProcessOverridesComposeDeviceTest {
             }
         }
         compose.onNodeWithTag("model-objects-dialog-rows")
-            .performScrollToNode(hasTestTag("model-object-part-process-settings-0-1"))
+            .performScrollToNode(hasTestTag("model-object-part-actions-0-1"))
+        compose.onNodeWithTag("model-object-part-actions-0-1").performClick()
         compose.onNodeWithTag("model-object-part-process-settings-0-1").assertIsDisplayed().performClick()
         assertEquals(0 to 1, editedPart)
     }

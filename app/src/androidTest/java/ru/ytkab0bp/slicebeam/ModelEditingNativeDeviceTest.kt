@@ -165,6 +165,7 @@ class ModelEditingNativeDeviceTest {
                 )
             }
         }
+        compose.onNodeWithTag("model-object-part-actions-0-0").assertIsDisplayed().performClick()
         compose.onNodeWithTag("model-object-assign-part-0-0").assertIsDisplayed().performClick()
         assertEquals(0 to 0, assigned.get())
     }

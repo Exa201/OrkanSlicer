@@ -1376,6 +1376,7 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithTag("model-objects-multipart-help").assertIsDisplayed()
             compose.onNodeWithTag("model-object-part-row-0-0").assertIsDisplayed()
             compose.onNodeWithTag("model-object-part-row-0-1").assertIsDisplayed()
+            compose.onNodeWithTag("model-object-part-actions-0-1").performClick()
             compose.onNodeWithTag("model-object-edit-part-0-1").performClick()
             compose.waitUntil(timeoutMillis = 15_000) {
                 readObjectCountOnGl(glView) == 2 && readSelectedObjectOnGl(glView) == 1
@@ -1388,9 +1389,9 @@ class InitialProjectMenuDeviceTest {
                 readUsedFilamentsOnGl(glView, 1).toList())
 
             // Once detached, the chosen part is the active standalone object and the
-            // regular transform menu edits its native geometry independently.
+            // Edit destination exposes the regular transform menu for independent geometry edits.
             val originalScale = readScaleOnGl(glView, 1)
-            openSelectedObjectMenu(activity)
+            openEditMenu(activity)
             revealMenuAction(activity, R.string.MenuTransformScale)
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformScale))
                 .performScrollTo().assertIsDisplayed().performClick()
@@ -1503,7 +1504,8 @@ class InitialProjectMenuDeviceTest {
             }
             compose.onNodeWithTag("model-object-part-row-0-1").assertIsDisplayed()
             val boundsBefore = readExactBoundsOnGl(glView, 0).single()
-            compose.onNodeWithTag("model-object-transform-part-0-1").performScrollTo().performClick()
+            compose.onNodeWithTag("model-object-part-actions-0-1").performScrollTo().performClick()
+            compose.onNodeWithTag("model-object-transform-part-0-1").performClick()
             compose.onNodeWithTag("model-object-part-transform-field-0").performTextClearance()
             compose.onNodeWithTag("model-object-part-transform-field-0").performTextInput("5")
             compose.onNodeWithTag("model-object-part-transform-field-5").performTextClearance()
@@ -11624,6 +11626,9 @@ class InitialProjectMenuDeviceTest {
     /** Brings an off-screen action into view using the menu's native vertical scroll behavior. */
     private fun revealMenuAction(activity: MainActivity, titleRes: Int) {
         val title = activity.getString(titleRes)
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithContentDescription(title).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithContentDescription(title).performScrollTo().assertIsDisplayed()
     }
 

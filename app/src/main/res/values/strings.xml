@@ -230,6 +230,7 @@
     <string name="ModelObjectPartProcessSettings">Part settings</string>
     <string name="ModelObjectPartProcessSettingsHint">These optional values apply only to this part. Leave blank to inherit the object settings or print profile. Saving is undoable and preserved in the 3MF.</string>
     <string name="ModelObjectAssignPartFilament">Filament</string>
+    <string name="ModelObjectPartActions">Part actions</string>
     <string name="ModelObjectPartFilamentApplied">Part assigned to T%1$d.</string>
     <string name="ModelObjectEditPart">Separate to edit</string>
     <string name="ModelObjectPartSeparated">Part separated; it can now be moved or scaled independently</string>
