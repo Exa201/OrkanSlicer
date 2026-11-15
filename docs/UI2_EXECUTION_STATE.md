@@ -3471,3 +3471,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Damit sind ausgewählte App-Menüaktionen, Profilnavigation, numerische Profileingabe sowie je ein tatsächlicher Drucker- und Filamentprofil-Speichervorgang nachgewiesen. Das ersetzt keine vollständige Abnahme sämtlicher Einstellungsseiten, Profiltypen, Speichern/Abbrechen-Aktionen oder realer Geräte.
 - APK unverändert: 0.8.427 / Code 462, Debug-Build aus `275d7daa2a`; SHA-256 `F197F96154B8F8A7C76195E7937036D30F515CD55C8DE80CFC085ED7C9DE5DB2`. Es gab in dieser Runde keine Quellcodeänderung und daher keinen neuen APK-Build.
 - Nächster Schritt: auf Honor/Xiaomi und bei 200 % Schrift die noch offenen Unterseiten/Dialogszenarien und TalkBack-Fokusfolge prüfen; anschließend die globalen Menü- und Profilaktionen systematisch vervollständigen.
+
+## UI 2.1 — Profilkopf und APK 0.8.428 — 2026-11-15
+
+- Die lange Drucker-/Profilbezeichnung im Workspace-Header darf zweizeilig umbrechen; die Profil-Kurzbeschreibung erhält eine eigene sichtbare Zeile. Der Header wurde dafür adaptiv um 4 dp erweitert. Bei 150 % Schrift passt der Kopf in den getesteten 180-dp-Layoutfall.
+- `WorkspaceProfileStatusDeviceTest` bestand 1/1; `WorkspaceShellLayoutPolicyTest` bestand nach der Höhenkorrektur. Das sind gezielte Layoutregressionstests und keine vollständige Geräte-/Dialogabnahme.
+- Debug-APK 0.8.428 / Code 463 aus Commit `85c8188f09`, lokal unter `artifacts/OrkanSlicer_UI21_ColorFlow_0.8.428_463_85c8188f09_debug.apk`; SHA-256 `05310B56308F741F81E42035C2FDA03A6315F33ADBBFD158678781F631F290F4`. APK wurde auf dem Android-16-Emulator installiert und gestartet.
+- Aktuelle Emulatoraufnahmen der Hauptbereiche: `docs/screenshots/ui21/48-3d-0.8.428.png`, `49-print-0.8.428.png`, `51-filament-0.8.428.png`, `52-printer-0.8.428.png`, `53-app-0.8.428.png`. Die Aufnahmen bestätigen die angezeigten Seiten, nicht die Funktionsabnahme aller einzelnen Aktionen.
+- Die übergebene Designpaket-ZIP wurde geprüft; `Codex_Prompt.md` fordert eine vollständige UI-2.1-Überarbeitung. Die verbleibenden Hauptseiten-/Dialog-, TalkBack-, Honor- und Xiaomi-Abnahmen sind weiterhin offen. Kein Release und kein Merge erstellt.
