@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.426\n\n• Die globale Navigation zeigt Filament vollständig an und vergrößert ihre Höhe bei großer Systemschrift, damit Beschriftungen nicht abgeschnitten werden.\n• Raycast-Treffer werden vor jeder Werkzeugabfrage zurückgesetzt; Spiegeln funktioniert nach Undo und Redo.",
-  "en": "OrkanSlicer 0.8.426\n\n• Global navigation now shows the full Filament label and grows for large system text so labels are not clipped.\n• Raycast hits are cleared before each tool query; mirroring works after undo and redo.",
-  "ru": "OrkanSlicer 0.8.426\n\n• В глобальной навигации полностью отображается название Filament, а высота увеличивается при крупном системном шрифте.\n• Результаты raycast очищаются перед запросом инструмента; зеркальное отражение работает после отмены и повтора."
+  "de": "OrkanSlicer 0.8.427\n\n• Der Plattenzähler bleibt bei 200 % Schrift kompakt einzeilig; die vollständige Bezeichnung bleibt für TalkBack erhalten.\n• Die globale Navigation zeigt Filament vollständig und mit passender Höhe an.",
+  "en": "OrkanSlicer 0.8.427\n\n• The plate counter stays compact and on one line at 200% text; TalkBack retains its full description.\n• Global navigation shows the full Filament label at an accessible height.",
+  "ru": "OrkanSlicer 0.8.427\n\n• При масштабе текста 200% счетчик платформы остается компактным и однострочным; TalkBack сохраняет полное описание.\n• В глобальной навигации полностью отображается название Filament."
 }
