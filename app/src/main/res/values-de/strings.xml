@@ -1134,6 +1134,10 @@
     <string name="ColorChooserCss">CSS-Farben</string>
     <string name="ColorChooserSwatchDescription">Farbe %1$s</string>
     <string name="FilamentType">Filamenttyp</string>
+    <string name="FilamentSummaryUnknown">Unbekanntes Material</string>
+    <string name="FilamentSummaryMaterial">Material: %1$s</string>
+    <string name="FilamentSummaryTemperatures">Düse %1$s °C · Bett %2$s °C</string>
+    <string name="FilamentSummaryDescription">%1$s. Material %2$s. Düsentemperatur %3$s Grad Celsius. Betttemperatur %4$s Grad Celsius.</string>
     <string name="FilamentSlotColor">Farbe</string>
     <string name="FilamentSlotSave">Filament speichern</string>
     <string name="FilamentPaletteAdd">Filamentplatz hinzufügen</string>

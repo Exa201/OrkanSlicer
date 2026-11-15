@@ -1150,6 +1150,10 @@
     <string name="CustomColorBrightness">Brightness</string>
     <string name="CustomColorApply">Use color</string>
     <string name="FilamentType">Filament type</string>
+    <string name="FilamentSummaryUnknown">Unknown material</string>
+    <string name="FilamentSummaryMaterial">Material: %1$s</string>
+    <string name="FilamentSummaryTemperatures">Nozzle %1$s °C · bed %2$s °C</string>
+    <string name="FilamentSummaryDescription">%1$s. Material %2$s. Nozzle temperature %3$s degrees Celsius. Bed temperature %4$s degrees Celsius.</string>
     <string name="FilamentSlotColor">Color</string>
     <string name="FilamentSlotSave">Save filament</string>
     <string name="FilamentPaletteAdd">Add filament slot</string>

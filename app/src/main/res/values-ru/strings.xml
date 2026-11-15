@@ -24,6 +24,10 @@
     <string name="SlotPrintConfig">Печать</string>
     <string name="SlotPrintConfigTooltip">Профиль печати</string>
     <string name="SlotFilamentConfig">Филамент</string>
+    <string name="FilamentSummaryUnknown">Материал не определён</string>
+    <string name="FilamentSummaryMaterial">Материал: %1$s</string>
+    <string name="FilamentSummaryTemperatures">Сопло %1$s °C · стол %2$s °C</string>
+    <string name="FilamentSummaryDescription">%1$s. Материал %2$s. Температура сопла %3$s градусов Цельсия. Температура стола %4$s градусов Цельсия.</string>
     <string name="FilamentSlotColor">Цвет</string>
     <string name="FilamentSlotSave">Сохранить филамент</string>
     <string name="WorkspaceFilamentPaletteTitle">Филаменты</string>

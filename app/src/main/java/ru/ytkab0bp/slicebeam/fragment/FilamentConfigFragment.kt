@@ -2,6 +2,8 @@ package ru.ytkab0bp.slicebeam.fragment
 
 import android.text.TextUtils
 import android.widget.Toast
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.ConfigObject
@@ -10,6 +12,7 @@ import ru.ytkab0bp.slicebeam.config.SlotFilamentProfiles
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.ui.settings.FilamentProfileSummary
 
 /** Filament profile screen backed by Orca's native settings definitions and compatibility checks. */
 class FilamentConfigFragment : ProfileListFragment() {
@@ -112,6 +115,11 @@ class FilamentConfigFragment : ProfileListFragment() {
 
     override fun getConfigItems(): List<ProfileOptionElement> =
         OrcaFilamentSettingsBuilder.build(this)
+
+    @Composable
+    override fun ProfileHeaderContent(modifier: Modifier) {
+        FilamentProfileSummary(currentConfig, modifier)
+    }
 
     override fun cloneCurrentProfile() {
         val current = currentConfig ?: return

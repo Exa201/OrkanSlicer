@@ -45,7 +45,11 @@ fun OwnFilamentSlotBar(profileTitle: String?, onSelect: (Int) -> Unit) {
                 }
             }
             IconButton(onClick = { helpExpanded = !helpExpanded }) {
-                Icon(painterResource(R.drawable.info_outline_28), contentDescription = stringResource(R.string.OwnFilamentSlotHelp))
+                Icon(
+                    painterResource(R.drawable.info_outline_28),
+                    contentDescription = stringResource(R.string.OwnFilamentSlotHelp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         if (helpExpanded) Text(stringResource(R.string.OwnFilamentSlotHelp), color = MaterialTheme.colorScheme.onSurfaceVariant)
