@@ -22,4 +22,5 @@ Dieses Mapping hält die sichtbare Oberfläche und den bestehenden Handler getre
 - Filamentpalette stressgeprüft: 1/4/8/16/24 Slots bei 320/360/400 dp und 100/130/150 % Text, inklusive Scrollen/Auswahl des letzten Slots; Plattenauswahl bei 1/3/6/10/20 Platten bis zur letzten Platte. Je Test 1/1 auf Android 16.
 - Die gespeicherten MMU-Filamentslots bestehen den Roundtrip 1/4/8/16/24; das definierte Produktlimit von 16 wird korrekt eingehalten, 1/1.
 - Rotationstest auf Android 16: Workspace mit Modell/Renderer und alle Hauptziele einschließlich Maker/App-Einstellungen über Hoch-/Querformatwechsel erhalten, 1/1.
+- Werkzeugmenü bei 320/360/400 dp und 100/130/150 % Schrift: sichtbare Kacheln passen in den Bereich, Touchziele bleiben mindestens 48 dp, Paging/Scrollen erreicht spätere Einträge, 1/1.
 - Dieses Redesign bleibt in Arbeit; keine Release- oder Merge-Freigabe.
