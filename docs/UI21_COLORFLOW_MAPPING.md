@@ -16,10 +16,11 @@ This branch applies the attached design package as a native Compose visual layer
 
 - `:app:testDebugUnitTest`: 705/705 passed, no skips/failures.
 - `PrintConfigToolsDialogsDeviceTest`: 4/4 passed on Android 16 emulator; `SettingsAccessibilityDeviceTest`: 1/1 passed on emulator.
-- `:app:assembleDebug`: successful for 0.8.417 / code 452. The APK was installed and launched on the emulator; logcat showed no app crash in the inspected window. APK signing verification passed.
+- `:app:assembleDebug`: successful for 0.8.418 / code 453. The APK was installed and launched on the emulator; logcat showed no app crash in the inspected window. APK signing verification passed.
 - Screenshots of all five main routes, the flush-volume dialog, startup changelog, active filament summary and active printer summary are in `docs/screenshots/ui21/`.
 - `FilamentProfileSummaryDeviceTest`: 1/1 passed on Android 16 emulator; verifies actual profile temperature/material text and immediate refresh after staging a new temperature.
 - `PrinterProfileSummaryDeviceTest`: 1/1 passed on Android 16 emulator; verifies the printer profile's model, nozzle diameter, build height and host.
+- `ModelObjectsDialogLayoutDeviceTest`: 1/1 passed on Android 16 emulator at 320 dp / 150% text; grouped object and part actions remain reachable with at least 48 dp touch targets.
 - Device layout check found flush-matrix values rendered black on dark cells; text now explicitly uses `onSurface`. Search icon tint is also explicit. The recaptured dialog confirms the correction.
 - Automated connected-test task also attempted to install the instrumentation APK on the attached Xiaomi; the install was cancelled by Android (`INSTALL_FAILED_USER_RESTRICTED`). Emulator test results are successful; Xiaomi hardware is not counted as tested.
 - Remaining acceptance: Honor PTP-N49 at 150% font scale, TalkBack hardware/manual interaction, and a visual screenshot of the object list with a multi-part 3MF fixture. Full print/slice workflow remains a separate functional test.
