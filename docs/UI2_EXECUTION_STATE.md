@@ -5351,6 +5351,14 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Honor Magic7 Pro / PTP-N49, Android 16, 480 dp, 150 %: `portraitMenuGridUsesRowsAndFirstVerticalSwipeWorksInModelAndEdit` führt je drei Auf-/Abwärts-Wischzyklen in Modell und Ändern aus; `menuScrollRemainsResponsiveAndUnclaimedTouchesStayAboveRenderer` prüft Scrollen plus Renderer-Isolation. **2/2 bestanden.** Finaler 0.8.474-Build installiert und gestartet; kein FATAL, ANR, Fatal signal oder OOM im Logcat.
 - `:app:testDebugUnitTest`, `:app:compileSliceTestAndroidTestKotlin`, `:app:assembleDebug` erfolgreich; Changelog/DE-EN-RU-Update-Notizen synchronisiert; `git diff --check` erfolgreich (Zeilenenden-Hinweise).
 - APK **0.8.474 / code 509**: `app/build/outputs/apk/debug/OrkanSlicerNightly25_e02d4673a2.apk`, SHA-256 `43E504C41F7AEC69C3D756C97A2855F16A189918D1FE2E6D89110A020326E81E`. Kein Upload oder Release.
+
+## Nightly – Orca-Upstream-Abgleich und aktuelle Testbasis — 2026-11-16
+
+- Nightly-Arbeitsbasis: `codex/ui-2.1-redesign`, HEAD `87da519da16765968f95b2534ad3d07a3b3683e2` (Nightly 0.8.481). Der Stable-Checkout wurde nicht verändert.
+- OrcaSlicer `main` frisch abgerufen: `ff93256eff8e6fb3fc274c6c483f69db9367a0c9`. Neue jüngste Änderungen betreffen Desktop-GUI, Desktop-Build oder nicht Android-exponierte Assembly-Ansichten. Android-relevante Kernänderungen in der jüngsten Historie sind bereits in der Nightly-Engine enthalten; Einzelheiten stehen in `docs/ORCA_NIGHTLY_FEATURE_PLAN.md`.
+- Vollständige Debug- und SliceTest-Unit-Berichte auf diesem HEAD: **796/796** je Suite, 0 Fehler, 0 Errors, 0 Skips. Gradle bestätigte Aufgaben als up-to-date; die Berichte stammen aus der aktuellen Testbasis. Kein Instrumentierungs- oder Hardwaretest in diesem Schritt.
+- Build 0.8.415 ist weder lokales Nightly-Artefakt noch GitHub-Release; das alte lokale Tag wurde entfernt. Fünf jüngste Nightly-Pre-Releases bleiben erhalten; neuestes Release ist 0.8.481.
+- Nächster Schritt: nächsten noch nicht portierten Android-Aufrufpfad aus dem Orca-Backlog auswählen; Batch 19 steht auf 6/10. APK/Release erst nach Erreichen des vereinbarten 10-Punkte-Gates.
 # OrkanSlicer Nightly UI 2.1 – aktueller Durchgang (2026-11-15)
 
 - Version 0.8.475 / versionCode 510: Porträt-Menühost misst sich am Inhalt statt an einer festen Overlayhöhe. Ein bis vier Aktionen belegen eine Zeile; fünf bis acht zwei Zeilen. Zusätzliche Aktionen bleiben in der Rasterliste scrollbar.
