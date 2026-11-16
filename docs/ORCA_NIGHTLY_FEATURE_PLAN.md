@@ -1,5 +1,28 @@
 # Aktueller Stand — Nightly 0.8.484; Upgrade-Zyklus: 37/100 geprüft — 2026-11-16
 
+## Upstream-Abgleich — 2026-11-16
+
+- GitHub-Upstream `OrcaSlicer/OrcaSlicer`, Branch `nightly-builds`, wurde frisch abgeglichen. Aktueller HEAD: `59acdedd065e5213445163a581947353d3208ccd` (2026-11-16).
+- Die jüngsten Commits im Vorlauf zu `59acdedd06` (`4b161be150`, `87fb987668` und Installer-/Plattformcommits) bringen keine weitere übertragbare Android-Core-Änderung. `4b161be150` ist ein Wayland-AMS-Popup-Fix; `87fb987668` ändert ausschließlich den Desktop-Mess-Gizmo.
+- Relevante kurz zuvor gelandete Änderungen wurden gegen den Nightly-Quellcode geprüft: Orca `87cf1429ca` (mehrere Tree-Support-Überhänge pro Cluster/Schicht), `3538f239c2` (Mehrfarben-Brückenanker), `ea80024735` (Werkzeugbefehl vor Filament-Start-G-Code) und `fabad6114a` (keine fremde Filamentprofil-Zuordnung bei unbekanntem Material) sind im Nightly bereits umgesetzt. Diese werden nicht erneut portiert oder doppelt gezählt.
+- `NativeSliceDeviceTest#treeSupportsKeepEveryOverhangThatJoinsAClusterOnTheSameLayer` wurde auf API 36 erneut ausgeführt und bestand **1/1**. Gradle startete danach zusätzlich den angeschlossenen Xiaomi-Lauf; Android blockierte die Testinstallation (`INSTALL_FAILED_USER_RESTRICTED`). Das Xiaomi-Ergebnis ist daher **nicht getestet**, der Gesamt-Gradle-Task meldete entsprechend Fehler trotz bestandenem Emulatorlauf.
+- Nächster Kandidat zur Umsetzung: Orca `34de2b49df` ergänzt pro-Düse-Druckprofile beim Toolchanger um fehlende Werkzeug-/Varianten-Spalten und kopiert passende Werte. Der Android-Kern hat keinen `add_process_columns_for_new_tools`-Helper und die Compose-Druckprofilseite bietet derzeit keinen Werkzeugspalten-Schalter/Kopierdialog. Daher wäre ein sinnvoller Android-Port eine kompakte Werkzeugspalten-Auswahl in der bestehenden Druckprofilseite plus dieselbe getestete Kernlogik, nicht ein ungenutzter Desktop-Dialog-Port. Dieser ist die nächste zu untersuchende Funktion; er wird erst gezählt, wenn Auswahl, Bearbeiten, Slice-Übernahme und Abbruch/Zurück regressionsgeprüft sind.
+
+## Upgrade-Arbeitsplan
+
+1. Den offiziellen Orca-`nightly-builds`-HEAD regelmäßig frisch holen und Commit samt Datum festhalten.
+2. Neue Commits nach Plattform, GUI und Android-tauglichem Core klassifizieren; Desktop-only-Änderungen ausdrücklich aussortieren.
+3. Jeden Android-tauglichen Kandidaten mit aktuellem Nightly-Code und Tests vergleichen; vorhandene Ports dokumentieren statt wiederholen.
+4. Fehlende Kandidaten nach Druck-/Datenkorrektheit, Absturzrisiko, Mehrmaterial und anschließend Leistung priorisieren.
+5. Den betroffenen Android-Nutzungsweg und einen kontrollierten reproduzierbaren Ausgangsfall festlegen.
+6. Den kleinstmöglichen Core-Port vornehmen und vorhandene Kotlin-/JNI-/Compose-Zustände weiterverwenden.
+7. Eine Regression gegen das tatsächliche Slice-, Profil- oder G-Code-Ergebnis ergänzen.
+8. Zuerst den gezielten API-36-Test, danach betroffene JVM-/Compose-Tests und bei Änderungen an den Nativen Code den ARM64-Build ausführen.
+9. Ergebnisse, bekannte Geräteblockaden und Commit im Ausführungsstand festhalten; nur verifizierte Android-relevante Änderungen erhöhen den 100er-Zähler.
+10. Erst bei 100/100 die vollständige Abschlussverifikation, APK-Erstellung, SHA-256, GitHub-Prerelease und aktualisierte Release-Dokumentation durchführen.
+
+Der bestätigte Orca-Upgrade-Zähler bleibt **37/100**: dieser Abgleich fand keine neue unportierte Änderung, die bereits als abgeschlossener Schritt zählen dürfte.
+
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
 ### Schritt 37/100 — Bemalung bleibt nach Boolean-Operationen slicebar
