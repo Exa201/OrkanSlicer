@@ -1,6 +1,13 @@
-# Aktueller Stand — Nightly 0.8.484; Upgrade-Zyklus: 35/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.484; Upgrade-Zyklus: 36/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
+
+### Schritt 36/100 — Spiral Inset respektiert die Oberflächen-Füllrichtung
+
+- Der reproduzierte Fehler war, dass `top_surface_fill_order` und `bottom_surface_fill_order` zwar in `FillParams` ankamen, `FillSpiralInset` aber die Spiralrichtung immer auf Orcas Standard „Mitte nach außen“ umdrehte.
+- Der Orca-Pfad wurde für klassische Polylines und Arachne-Wände übernommen: „Inward“ behält die Außen-nach-Innen-Reihenfolge, während „Default“ und „Outward“ vom Zentrum nach außen drucken. Arachne platziert offene Wandsegmente passend zum gewählten Zentrum.
+- `NativeSliceDeviceTest#spiralInsetSparsePatternProducesADistinctNativeToolpath`: **1/1 bestanden** auf API-36-Emulator; der Test prüft echte G-Code-Wege für „Inward“ und „Outward“ sowie den klassischen Sparse-Infill-Pfad.
+- Kein APK/Release in diesem Schritt. Nächster konkreter Schritt: die getrennt reproduzierte Boolean-Paint-Zuordnung vom Bemalen über Boolean-Ausgabe und 3MF bis zum G-Code beheben.
 
 - Basis: OrcaSlicer-Upstream zuletzt geprüft bei `59acdedd065e5213445163a581947353d3208ccd`, Nightly-Code-HEAD vor Schritt 33 `c52c253cb07d7e9ab21fb370b9402eaeeafa4658`.
 - Ein Schritt zählt nur bei einem konkreten Android-relevanten Orca-Fix/Feature, einer reproduzierbaren Regression oder einer überprüften Korrektur mit nachvollziehbarem Testergebnis. Reine Recherche, Dokumentation und kosmetische Änderungen zählen nicht.

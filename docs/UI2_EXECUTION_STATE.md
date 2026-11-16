@@ -1,6 +1,16 @@
 # Nightly 0.8.484 — Release- und Teststand — 2026-11-16
 
-## Aktuelle Fortsetzung — Orca-Upgrade-Zyklus 35/100
+## Aktuelle Fortsetzung — Orca-Upgrade-Zyklus 36/100
+
+### Schritt 36 — Spiral Inset Füllrichtung
+
+- Ursache: `FillParams.fill_order` wurde für „Spiral Inset“ nicht ausgewertet. Deshalb erzeugten die Profileinstellungen „Inward“ und „Outward“ denselben G-Code.
+- `FillSpiralInset.cpp` übernimmt Orcas Richtungswahl für die klassischen und die Arachne-basierten Bahnen und ordnet die offenen Arachne-Wände relativ zum Spiralkern passend ein.
+- `NativeSliceDeviceTest#spiralInsetSparsePatternProducesADistinctNativeToolpath`: **1/1 bestanden** auf dem API-36-Emulator. Der Test vergleicht die tatsächlichen Extrusionsbewegungen für „Inward“ und „Outward“ und prüft weiterhin sparse Spiralbahnen.
+- Im selben Emulatorlauf wurde der Boolean-Paint-Fehler weiter isoliert: Das Ausgangsmodell slicet mit T1; direkt nach dem Boolean enthält der Slice nur T0. Das bleibt offen und ist der nächste konkrete Fix.
+- Kein APK/Release in diesem Zwischenschritt; das 100/100-Gate bleibt bestehen.
+
+## Historischer Stand nach Nightly 0.8.484 — Orca-Upgrade-Zyklus 35/100
 
 ### Schritt 35 — Painted-Modifier-Slicing wiederherstellen
 
