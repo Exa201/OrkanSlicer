@@ -5560,3 +5560,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Die hochgeladene `bolt_PLA_0.16_1h42m.gcode` enthält `T2` und `; filament: 3`. Die Nightly-Regressionsprüfung deckt diesen Quellfall mit ACE3-Zuordnung und ACE-Lücke ab. Ein tatsächlicher Slot-4-Druck ist damit noch nicht erklärt, weil diese Datei der Eingangs-G-Code vor der Anycubic-Umschreibung ist; Upload-Payload und Live-`ttg_map` bleiben die konkrete offene Diagnose.
 - Keine APK für Nutzer und kein Release erstellt. Honor bleibt gemäß 100/100-Gerätefreigabe unangetastet.
 - Nächste konkrete Aktion: den realen Anycubic-Uploadpfad so instrumentieren/prüfen, dass die vor dem Senden gesicherte umgeschriebene Datei, `Tn`-Kommandos, `; filament:`-Zuordnung und aktuelle ACE-`ttg_map` gemeinsam regressionsgeprüft werden.
+
+### ACE-Upload-Metadaten bei leerem Zwischenfach — 2026-11-16
+
+- Der Regressionstest für T2→ACE3 mit leerem ACE2 prüft jetzt den serialisierten `paint_info`-Eintrag und `paint_index` aus demselben berechneten Toolrouting, die Gate-Metadaten `; filament: 1,4,3`, Palette und erhaltenes `T2` gemeinsam im fertigen G-Code.
+- `:app:testDebugUnitTest --tests 'ru.ytkab0bp.slicebeam.components.SparseAceRoutingOutputTest'`: **5/5 bestanden**; `verifyNightlyChangelog` und Kotlin-Kompilierung im Lauf erfolgreich.
+- Upstream-Rinkhals dokumentiert denselben Fehler bei leerem Zwischenfach als Firmware-Pfad: deren AMS-Zuordnung zählte `paint_index`-Einträge nur für belegte Fächer und konnte so das Ziel verschieben. Diese Änderung betrifft Drucker-Firmware; OrkanSlicer ändert keine Firmware. Quelle: https://github.com/rinkhals-community/Rinkhals/releases (Rinkhals 20261101_01, ACE gate mapping #39).
+- Einschränkung: Das vorliegende `bolt_PLA_0.16_1h42m.gcode` ist der Eingangs-G-Code; echte Upload-Payload und Drucker-`ttg_map` fehlen. Daher ist das konkrete ACE4-Ergebnis weder reproduziert noch durch den App-Test als physisch behoben nachgewiesen.
+- Weiter offen: sichere Diagnose der tatsächlich vorbereiteten Uploaddatei und live gelesenen Gate-Map, danach gezielter Hardwaretest nur mit ausdrücklich bereitgestelltem Gerät. Honor bleibt bis zum 100/100-Gate gesperrt; kein Druckstart, keine APK/Release.

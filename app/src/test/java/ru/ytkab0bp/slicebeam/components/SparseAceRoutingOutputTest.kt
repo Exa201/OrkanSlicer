@@ -31,11 +31,12 @@ class SparseAceRoutingOutputTest {
             assertNull(routing.unavailableTool)
             assertEquals(2, routing.toolCommands[2])
             assertEquals(2, routing.gates[2])
+            val serializedPaintInfo = "[{\"material_type\":\"PETG\",\"paint_color\":[0,255,0],\"paint_index\":${routing.toolCommands[2]}}]"
             assertTrue(AnycubicGCodeProcessor.rewrite(source, output, scan,
                 AnycubicGCodeProcessor.Options().apply {
                     remappedTools = routing.toolCommands
                     gates = routing.gates
-                    paintInfo = "[{\"material_type\":\"PETG\",\"paint_color\":[0,255,0],\"paint_index\":2}]"
+                    paintInfo = serializedPaintInfo
                     colors = "#111111;#19C8A0;#00FF00;#19C8A0"
                     materials = "PLA;PLA;PETG;PLA"
                 }))
@@ -46,9 +47,11 @@ class SparseAceRoutingOutputTest {
             val amsEnd = lines.indexOf("; ams_info = end")
             assertTrue("AMS metadata block start missing", amsStart >= 0)
             assertTrue("paint_info must be inside the AMS metadata block", amsStart < paintInfo && paintInfo < amsEnd)
+            assertEquals("; paint_info = $serializedPaintInfo", lines[paintInfo])
             assertTrue(lines[paintInfo].contains("\"paint_index\":2"))
             assertTrue(lines.contains("; filament: 1,4,3"))
             assertTrue(lines.contains("; filament_colour = #111111;#19C8A0;#00FF00;#19C8A0"))
+            assertTrue(lines.contains("; filament_type = PLA;PLA;PETG;PLA"))
         } finally {
             source.delete()
             output.delete()
