@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 15/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 16/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -85,6 +85,12 @@
 
 - Orca `7243d15ea2` misst die Höhe kurzer Objekte anhand der tatsächlichen Druckoberkante einschließlich Raft, Z-Versatz und Schrumpfungskompensation. Das ändert, ob die Freigabe für den nächsten Gegenstand im sequenziellen Druck ausreichend ist.
 - `NativeSliceDeviceTest#sequentialPrintShortObjectClearanceIncludesRaftHeight` prüft vier Entscheidungen für zwei 2-mm-Objekte mit/ohne Raft und reproduziert die veränderte Freigabe am Native-Core. Android 16/API-36-Emulator: **1/1 bestanden**, 0 Fehler, 0 übersprungen.
+- APK-Gate bleibt bei 100/100.
+
+### Schritt 16/100 — Quarter-Cubic-Mehrfachlinien bleiben getrennt und innerhalb des Modells
+
+- Orca `f55615d748` ergänzt einen eigenen nicht kreuzenden Quarter-Cubic-Pfadgenerator für mehrzeilige Füllungen. Nightly hat den Core-Port bereits; die Abnahme vergleicht echten G-Code mit einer und zwei Linien pro Füllpfad und kontrolliert die Geometriegrenzen.
+- `NativeSliceDeviceTest#quarterCubicMultilineUsesNonCrossingNativeToolpaths`: Android 16/API-36-Emulator **1/1 bestanden**, 0 Fehler, 0 übersprungen; doppelte Linien erzeugen den gesonderten Pfad und bleiben innerhalb der 20-mm-Fixture.
 - APK-Gate bleibt bei 100/100.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
