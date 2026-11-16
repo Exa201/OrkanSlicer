@@ -8,6 +8,7 @@
 - APK `OrkanSlicerNightly25_3776791116-signed.apk`, 239.809.466 Byte; SHA-256 `5BB9A16C4081B07A92519E7EC6AB14936DA33922BC9493122A2E0F0C457D1A49`.
 - GitHub Nightly-Pre-Release `v0.8.482-nightly.1` veröffentlicht: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.482-nightly.1. Upload-Prüfsumme stimmt mit GitHub überein.
 - Codecommit `3776791116deb2d7d06fc5a748ff90210b5c1a7e` auf `nightly25/codex/ui-2.1-redesign` gepusht. Debug-Unit `SparseAceRoutingOutputTest` sowie beide API-36-Rotations-Instrumentierungstests bestanden; `verifyNightlyChangelog`, Release-Build und `git diff --check` erfolgreich.
+- Nach dem Release erneut vollständig verifiziert: Debug-Unit **798/798**, SliceTest-Unit **798/798**, jeweils 0 Fehler/Skips. Die signierte APK ließ sich auf `emulator-5554` aktualisieren und starten; App-Prozess blieb aktiv, im anschließenden Logcat-Ausschnitt kein App-Crash, SIGSEGV oder ANR.
 - Der Honor-Test wurde nicht ausgeführt; ein Hardware-Druck oder Druckstart fand nicht statt.
 
 ## Lay-flat-Flächen und Anycubic-ACE-Zuordnung — 2026-11-16
