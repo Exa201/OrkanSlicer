@@ -3226,7 +3226,24 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": filament_id %1% not found or system or compatible") % filament_id;
             if (!filament_type.empty()) {
                 auto original_type = filament_type;
+                // Printers commonly report abbreviated/brand-specific material names.
+                // Resolve Orca's known aliases before searching generic presets so a
+                // tray such as PLA-MATTE does not silently inherit the previous PLA.
+                auto normalized_type = boost::to_upper_copy(boost::trim_copy(original_type));
+                static const std::map<std::string, std::string> generic_type_aliases = {
+                    {"PLA+", "PLA"}, {"PLA PRO", "PLA"},
+                    {"PLA MATTE", "PLA Matte"}, {"PLA-MATTE", "PLA Matte"},
+                    {"ABS+", "ABS"}, {"PETG+", "PETG"},
+                    {"PETG HF", "PETG HF"}, {"PETG-HF", "PETG HF"},
+                    {"PETG-CF", "PETG-CF"}, {"PE-CF", "PE-CF"},
+                    {"PP-CF", "PP-CF"}, {"PP-GF", "PP-GF"},
+                };
+                const auto alias = generic_type_aliases.find(normalized_type);
+                if (alias != generic_type_aliases.end())
+                    original_type = alias->second;
                 filament_type = "Generic " + filament_type;
+                if (alias != generic_type_aliases.end())
+                    filament_type = "Generic " + alias->second;
                 iter = std::find_if(filaments.begin(), filaments.end(), [&filament_type](auto &f) {
                     return f.is_compatible && f.is_system
                         && boost::algorithm::starts_with(f.name, filament_type);

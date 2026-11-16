@@ -7700,6 +7700,72 @@ extern "C" {
         }
     }
 
+    // Printer material aliases must resolve to their matching generic preset,
+    // not preserve a different previously selected material during tray sync.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_ams_1material_1alias_1preset_1regression(
+        JNIEnv* env, jclass)
+    {
+        try {
+            PresetBundle bundle;
+            auto add_system_filament = [&bundle](const std::string& name, const std::string& type,
+                                                  const std::string& id) {
+                DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+                config.set_num_extruders(1);
+                config.set_key_value("filament_type", new ConfigOptionStrings({type}));
+                config.set_key_value("filament_settings_id", new ConfigOptionStrings({name}));
+                Preset& preset = bundle.filaments.load_preset(name, name, std::move(config), false);
+                preset.is_system = true;
+                preset.is_compatible = true;
+                preset.filament_id = id;
+            };
+            add_system_filament("Generic PLA", "PLA", "NIGHTLY_GENERIC_PLA");
+            add_system_filament("Generic PLA Matte", "PLA Matte", "NIGHTLY_GENERIC_PLA_MATTE");
+            bundle.filament_presets = {"Generic PLA"};
+
+            Preset& printer = bundle.printers.get_edited_preset();
+            printer.printer_technology_ref() = ptFFF;
+            printer.config.set_num_extruders(1);
+            printer.config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4}));
+            bundle.project_config = DynamicPrintConfig::full_print_config();
+            bundle.project_config.set_num_extruders(1);
+            bundle.project_config.set_key_value("filament_colour", new ConfigOptionStrings({"#123456"}));
+            bundle.project_config.set_key_value("filament_colour_type", new ConfigOptionStrings({"1"}));
+            bundle.project_config.set_key_value("filament_multi_colour", new ConfigOptionStrings({"#123456"}));
+            bundle.project_config.set_key_value("filament_map", new ConfigOptionInts({1}));
+            bundle.project_config.set_key_value("flush_multiplier", new ConfigOptionFloats({1.0}));
+            bundle.project_config.set_key_value("flush_volumes_matrix", new ConfigOptionFloats({0.0}));
+
+            DynamicPrintConfig tray;
+            tray.set_key_value("filament_id", new ConfigOptionStrings({"UNRECOGNIZED_PRINTER_ID"}));
+            tray.set_key_value("filament_colour", new ConfigOptionStrings({"#ABCDEF"}));
+            tray.set_key_value("filament_colour_type", new ConfigOptionStrings({"1"}));
+            tray.set_key_value("filament_multi_colour", new ConfigOptionStrings({"#ABCDEF"}));
+            tray.set_key_value("filament_type", new ConfigOptionStrings({"PLA-MATTE"}));
+            tray.set_key_value("ams_id", new ConfigOptionStrings({"0"}));
+            tray.set_key_value("slot_id", new ConfigOptionStrings({"0"}));
+            bundle.filament_ams_list.emplace(0, std::move(tray));
+
+            std::vector<std::pair<DynamicPrintConfig *, std::string>> unknowns;
+            std::map<int, AMSMapInfo> maps;
+            MergeFilamentInfo merge_info;
+            bundle.sync_ams_list(unknowns, false, maps, false, merge_info);
+
+            const auto selected = bundle.filament_presets.empty() ? std::string{} : bundle.filament_presets.front();
+            const auto* color = bundle.project_config.option<ConfigOptionStrings>("filament_colour", false);
+            const jint values[] = {
+                selected == "Generic PLA Matte" ? 1 : 0,
+                color != nullptr && !color->values.empty() && color->values.front() == "#ABCDEF" ? 1 : 0,
+            };
+            jintArray result = env->NewIntArray(2);
+            if (result != nullptr) env->SetIntArrayRegion(result, 0, 2, values);
+            return result;
+        } catch (const std::exception& error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
+    }
+
     // Loads a four-tool project that stores only two filament slots through the
     // same PresetBundle project-config path used by imported 3MF projects.
     JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_short_1project_1filament_1arrays_1regression(

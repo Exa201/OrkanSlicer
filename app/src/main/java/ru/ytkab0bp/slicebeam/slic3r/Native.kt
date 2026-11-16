@@ -148,6 +148,9 @@ class Native {
     /** Verifies empty synchronized trays preserve multi-colour rows for following slots. */
     @JvmStatic
     external fun ams_multi_color_placeholder_alignment_regression(): IntArray
+    /** Verifies printer material aliases select their matching generic profile during AMS sync. */
+    @JvmStatic
+    external fun ams_material_alias_preset_regression(): IntArray
     /** Loads a short-filament multi-tool project, checks paired arrays, then overwrites all tray slots. */
     @JvmStatic
     external fun short_project_filament_arrays_regression(): IntArray

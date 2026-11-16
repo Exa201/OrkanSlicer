@@ -751,6 +751,15 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun printerFilamentAliasesSelectTheMatchingGenericPresetDuringSync() {
+        assertArrayEquals(
+            "PLA-MATTE from the printer must select Generic PLA Matte and preserve the synchronized tray color",
+            intArrayOf(1, 1),
+            Native.ams_material_alias_preset_regression(),
+        )
+    }
+
+    @Test
     fun projectWithFewerFilamentsThanToolsKeepsAllSlotArraysInSync() {
         assertArrayEquals(
             "Project load must extend parallel slot arrays, preserve imported colors, and complete a four-tray overwrite sync",
