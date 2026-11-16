@@ -8,6 +8,7 @@
 - Die Remap-Prüfung nutzt jetzt die geometrische Dreiecksüberlappung als Kriterium und verwirft passende Facetten nicht mehr nur wegen umgekehrter Winding.
 - `NativeSliceDeviceTest#booleanOperationsPreservePaintedTargetFilamentsThroughThreeMfAndSlice`: **1/1 bestanden** auf API 36 für UNION, DIFFERENCE und INTERSECTION; Ausgangsmodelle mit Rotation/Versatz, Slice vor/nach Boolean, 3MF-Roundtrip und Slice danach prüfen T1.
 - `NativeSliceDeviceTest#paintedSegmentationUsesFilamentCountWhenColorPaletteIsShorter`: **1/1 bestanden** auf API 36.
+- Vollständige `NativeSliceDeviceTest`-Instrumentierung auf API 36: **214 Tests, 213 bestanden, 0 fehlgeschlagen, 0 Errors, 1 privates KromaCut-Fixture übersprungen**. Zwei frühere Fehler beruhten auf Testkopien, die nach Z-Skalierung nicht zurück aufs Druckbett gesetzt wurden; ein Profiltest akzeptiert jetzt beide Orca-Filament-Platzhalter.
 - Kein APK/Release in diesem Schritt. Nächster Schritt: einen weiteren offenen Android-relevanten Orca-Kern- oder Mehrfarbenfehler mit konkretem Regressionstest beheben.
 
 ### Schritt 36/100 — Spiral Inset respektiert die Oberflächen-Füllrichtung

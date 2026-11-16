@@ -2606,7 +2606,10 @@ class NativeSliceDeviceTest {
                 assertEquals("10", openEyeProcess["seam_slope_min_length"])
                 assertEquals("10%", openEyeProcess["seam_slope_start_height"])
                 assertEquals("0.15", openEyeProcess["support_ironing_spacing"])
-                assertTrue(requireNotNull(openEyeProcess["filename_format"]).contains("{printing_filament_types}"))
+                val filenameFormat = requireNotNull(openEyeProcess["filename_format"])
+                assertTrue("OpenEYE profiles must use a supported Orca filament placeholder: $filenameFormat",
+                    filenameFormat.contains("{printing_filament_types}") ||
+                        filenameFormat.contains("{filament_type[initial_tool]}"))
             }
             val filament = requireNotNull(config.findFilament("Generic PLA"))
             config.presets = ConfigObject("presets").apply {
@@ -4736,6 +4739,7 @@ class NativeSliceDeviceTest {
             // The second copy ends at 10.004 mm. Its final precise-Z layers sit only microns
             // above the first object's regular layer grid and are below the 0.07 mm nozzle floor.
             model.scale(1, 1.0, 1.0, 0.5002)
+            model.ensureOnBed(1)
             model.translate(1, 35.0, 0.0, 0.0)
             model.setUniformFilament(0, 1)
             model.setUniformFilament(1, 2)
@@ -6300,9 +6304,11 @@ class NativeSliceDeviceTest {
         try {
             // Keep this travel-focused fixture short so avoid-crossing routing stays fast on mobile CPUs.
             model.scale(0, 1.0, 1.0, 0.25)
+            model.ensureOnBed(0)
             model.addObject(model, 0)
             model.scale(1, 1.0, 1.0, 0.25)
             model.translate(1, 8.0, 0.0, 0.0)
+            model.ensureOnBed(1)
             process.put("layer_height", "0.2")
             SliceBeam.genCurrentConfig(model)
             val configFile = SliceBeam.getCurrentConfigFile()

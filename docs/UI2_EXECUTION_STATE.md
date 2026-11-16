@@ -7,8 +7,9 @@
 - `TriangleSelector::remap_painting` verwarf passende Boolean-Ausgabeflächen allein wegen umgedrehter Dreiecks-Winding. Jetzt entscheidet die geometrische Überlappung, damit Boolean-Neutriangulierung Farbzuweisungen nicht aus dem Slice entfernt.
 - API-36-Emulator: `booleanOperationsPreservePaintedTargetFilamentsThroughThreeMfAndSlice` **1/1 bestanden** (UNION, DIFFERENCE, INTERSECTION; gedrehtes/verschobenes Ausgangsmodell; echter Slice vor/nach Boolean; 3MF-Roundtrip). T1 wird in jeder Stufe nachgewiesen.
 - API-36-Emulator: `paintedSegmentationUsesFilamentCountWhenColorPaletteIsShorter` **1/1 bestanden**.
-- Der frühere Vollteststand 207/214 aus Schritt 35 wurde nicht als aktueller Vollteststand übernommen; nur die beiden gezielten Tests liefen jetzt. Keine APK/kein Release; das 100/100-Gate bleibt bestehen.
-- Geänderte relevante Dateien: `TriangleSelector.cpp`, `NativeSliceDeviceTest.kt`. Die vorherigen lokalen UI-Teständerungen und UI-Bildartefakte blieben unangetastet.
+- Vollständiger API-36-Lauf `NativeSliceDeviceTest`: **214 Tests, 213 bestanden, 0 fehlgeschlagen, 0 Errors, 1 privates KromaCut-Fixture übersprungen**. Die früheren Sliver-/Lift-Fehler waren Testkopien, die nach Z-Skalierung nicht auf das Druckbett gesetzt wurden; der OpenEYE-Profiltest erwartete nur eine der beiden gültigen Orca-Filamentplatzhalter.
+- Keine APK/kein Release; das 100/100-Gate bleibt bestehen.
+- Geänderte produktive Datei: `TriangleSelector.cpp`; Regressionstest plus zwei Testfixture-/Profilannahmen in `NativeSliceDeviceTest.kt`. Die vorherigen lokalen UI-Teständerungen und UI-Bildartefakte blieben unangetastet.
 - Nächster konkreter Schritt: nächsten noch offenen Android-relevanten Orca-/Mehrfarbenfehler reproduzieren und mit gezieltem API-36-Test beheben.
 
 ## Historischer Stand nach Nightly 0.8.484 — Orca-Upgrade-Zyklus 36/100
