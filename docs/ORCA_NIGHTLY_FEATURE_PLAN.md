@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 22/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 23/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -130,6 +130,12 @@
 - `SinglePhysicalSlotOutputTest#sixteenToolUploadPreservesEveryPhysicalSelectionAndGateMapping` prüft nicht nur den Mapper, sondern den fertigen Anycubic-G-Code-Upload: Alle Eingabe-Tools T0–T15 und die Filament-Gate-Liste werden auf die umgekehrten 16 physischen Slots umgeschrieben.
 - Debug-Unit **1/1** und SliceTest-Unit **1/1** bestanden; Upload-Test bestätigt alle Slotselektoren und Gate-Metadaten. Changelog-Prüfung bleibt erfolgreich.
 - APK-Gate bleibt bei 100/100. Nächster Schritt: einen weiteren Mehrfarbenpfad bis zum erzeugten Upload-G-Code verifizieren.
+
+### Schritt 23/100 — ACE-Zuordnung erlaubt bewusst denselben Slot für mehrere Modellfarben
+
+- Die Compose-Zuordnung wurde mit vier getrennten Farben und vier geladenen ACE-Fächern geöffnet. T1 kann ausdrücklich auf ACE 4 gesetzt werden, obwohl T3 bereits ACE 4 nutzt; die restlichen Farben bleiben auf ihren bisherigen ACE-Fächern.
+- `SlicePrintPreparationComposeDeviceTest#selectingAnOccupiedAceGateAllowsTwoColorsToShareOnePhysicalFilament`: Android 16/API-36-Emulator **1/1 bestanden**. Das Testassertion bestätigt die Zuordnung `[ACE 1, ACE 4, ACE 3, ACE 4]`.
+- APK-Gate bleibt bei 100/100. Nächster Schritt: Mehrfarben-Dialog und erzeugten Anycubic-G-Code gemeinsam auf eine weitere reale Zuordnungsvariante prüfen.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
 
