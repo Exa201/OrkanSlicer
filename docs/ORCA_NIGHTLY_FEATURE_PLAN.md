@@ -1,8 +1,8 @@
-# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 32/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 33/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
-- Basis: OrcaSlicer-Upstream zuletzt geprüft bei `59acdedd065e5213445163a581947353d3208ccd`, Nightly-Code-HEAD `388b58e996749f2a9b9c52488aabbd7c85624a6d`.
+- Basis: OrcaSlicer-Upstream zuletzt geprüft bei `59acdedd065e5213445163a581947353d3208ccd`, Nightly-Code-HEAD vor Schritt 33 `c52c253cb07d7e9ab21fb370b9402eaeeafa4658`.
 - Ein Schritt zählt nur bei einem konkreten Android-relevanten Orca-Fix/Feature, einer reproduzierbaren Regression oder einer überprüften Korrektur mit nachvollziehbarem Testergebnis. Reine Recherche, Dokumentation und kosmetische Änderungen zählen nicht.
 - APK und GitHub-Prerelease werden nach Schritt **100/100** gebaut/veröffentlicht. Zwischenstände bleiben im Nightly-Entwicklungsbranch; keine vorgezogenen Releases.
 - Die zuvor verwendete 10-Punkte-Batch-Zählung bleibt als historische Dokumentation erhalten und wird nicht als Fortschritt dieses neuen Zyklus angerechnet.
@@ -21,6 +21,15 @@
 - ARM64-NDK-Rebuild nach Korrektur: **66/66 betroffene C++-Einheiten erfolgreich**, `libslic3r.so` gelinkt. Der erste Compileversuch scheiterte erwartungsgemäß an den zuvor indirekten Includes; die Fehler wurden lokalisiert und korrigiert.
 - Verifikation: Debug-Unit **806/806**, SliceTest-Unit **806/806**, `verifyNightlyChangelog` erfolgreich. Native Slice `multilineGridInfillUsesMiterJoinsAndPreservesGeometry`: API-36-Emulator **1/1 bestanden**.
 - Xiaomi-Installation bleibt durch `INSTALL_FAILED_USER_RESTRICTED` blockiert; kein Xiaomi-Testpass behauptet. APK/Prerelease bleibt bis **100/100** gesperrt.
+- Codecommit Schritt 32: `c52c253cb07d7e9ab21fb370b9402eaeeafa4658`.
+
+### Schritt 33/100 — BBL-Endzeit aus dem breit genutzten Utils-Header ausgelagert
+
+- Orca `59acdedd065e` entfernt die Boost.DateTime-Implementierung aus `Utils.hpp`, behält die Funktionssignatur und definiert sie in `utils.cpp`. Der Nightly-Port übernimmt das und ersetzt den allgemeinen Boost.String-Header durch die benötigten Split-, Classification- und Predicate-Header; `directory_entry` wird direkt über den Directory-Header bereitgestellt.
+- Die ersten ARM64-Compileläufe machten transitive Nutzer sichtbar: `Model.cpp` und `PresetBundle.cpp` benötigten `boost::lexical_cast`, `PresetBundle.cpp` mehrere Stringalgorithmen, und `bbs_3mf.cpp`, `PrintObject.cpp`, `TreeSupport.cpp` benötigen Zeittypen. Diese Includes stehen jetzt an den Nutzungsstellen.
+- ARM64-NDK-Build erfolgreich. Debug-Unit **806/806**, SliceTest-Unit **806/806**, jeweils 0 Fehler/Errors/Skips. `verifyNightlyChangelog` und `git diff --check` erfolgreich.
+- `get_bbl_monitor_end_time_dhm` wird im Android-Fork außerhalb seiner Deklaration/Definition nicht aufgerufen. Keine Änderung am sichtbaren Verhalten oder Laufzeit-/RAM-Gewinn behauptet; Schritt zählt als nativer Orca-Header-Port, nicht als App-Funktion. Kein APK/Release gebaut.
+- Nächster Schritt: nächsten Android-Aufrufpfad im aktualisierten Upstream-Abgleich auswählen und einen reproduzierbaren Verhaltenstest dafür sichern. APK/Prerelease bleibt bis **100/100** gesperrt.
 
 ### Schritt 32/100 — Semver entfernt Boost.Format aus breit genutztem Header
 

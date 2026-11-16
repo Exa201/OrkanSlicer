@@ -10,6 +10,7 @@
 #include "Geometry.hpp"
 #include "MTUtils.hpp"
 #include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
 #include "TriangleMeshSlicer.hpp"
 #include "TriangleSelector.hpp"
 #include "MaterialType.hpp"

@@ -1,12 +1,15 @@
 # Nightly 0.8.483 — Release- und Teststand — 2026-11-16
 
-## Aktuelle Fortsetzung — Orca-Upgrade-Zyklus 32/100
+## Aktuelle Fortsetzung — Orca-Upgrade-Zyklus 33/100
 
 - Arbeitsbranch: `codex/ui-2.1-redesign`; aktueller Code-HEAD vor Schritt 32: `388b58e996749f2a9b9c52488aabbd7c85624a6d`; Upstream: `59acdedd065e5213445163a581947353d3208ccd`.
 - Schritt 32 portiert Orcas Semver-Formatierung von Boost.Format auf `std::to_string` und ergänzt 16 zuvor transitive Boost.Format-Nutzer um direkte Includes.
 - ARM64-NDK-Build erfolgreich. Debug-Unit **806/806**, SliceTest-Unit **806/806**, 0 Fehler/Errors/Skips; Changelog-Validierung erfolgreich.
 - Kein APK-Build, Upload oder Geräteabnahmetest in diesem Schritt; APK/Prerelease erst nach 100/100.
-- Nächster konkreter Schritt: nächsten noch fehlenden Android-relevanten Orca-Kernfall aussuchen und mit einem gezielten Test abdecken.
+- Schritt 33 verlegt `get_bbl_monitor_end_time_dhm` aus `Utils.hpp` nach `utils.cpp`, entfernt die unnötig breiten Boost.DateTime-/String-Includes und ergänzt die bislang indirekten Boost-Abhängigkeiten an tatsächlichen Nutzungsstellen.
+- ARM64-NDK-Build erfolgreich; Debug-Unit **806/806**, SliceTest-Unit **806/806**, 0 Fehler/Errors/Skips; `verifyNightlyChangelog` erfolgreich. Kein direktes Android-Laufzeitverhalten geändert, keine Geräteabnahme nötig.
+- Code-HEAD vor Schritt 33: `c52c253cb07d7e9ab21fb370b9402eaeeafa4658`; letzter bereits gepushter Codecommit zu Beginn dieses Schritts: gleicher SHA.
+- Nächster konkreter Schritt: nächsten noch nicht portierten Android-relevanten Orca-Kernfall mit einem gezielten Verhaltenstest auswählen.
 
 ## Orca Nightly Upgrade-Zyklus — Schritt 28/100 — 2026-11-16
 
@@ -5508,7 +5511,7 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Der erste ARM64-Build fand dabei eine vorher versteckte Abhängigkeit in `bbs_3mf.cpp` (Boost-Mutex/Thread sowie `filesystem::ifstream`); explizite Includes ergänzten sie. Danach ARM64-Rebuild **66/66** und `libslic3r.so` Link erfolgreich.
 - Debug-Unit **806/806**, SliceTest-Unit **806/806**, `verifyNightlyChangelog` bestanden. Native API-36-Emulator Slice-Regression **1/1 bestanden**.
 - Xiaomi-Gerät weiterhin per ADB sichtbar, aber Installationsverwaltung verweigerte die SliceTest-APK mit `INSTALL_FAILED_USER_RESTRICTED`; kein Hardwarepass. Keine APK/Release gebaut.
-- Letzter Codecommit: `2ffd3cbe8c5b700c07b3d955eb5addd0f8e015cd`. Die aktuelle Folgeänderung ist noch nicht committet.
+- Letzter Codecommit nach Schritt 31: `388b58e996749f2a9b9c52488aabbd7c85624a6d`.
 - Nächster konkreter Schritt: nächsten Android-relevanten Orca-Core-Fall auswählen, isoliert umsetzen und nativen Verhaltenstest ausführen; APK-Gate bleibt 100/100.
 
 - Version 0.8.475 / versionCode 510: Porträt-Menühost misst sich am Inhalt statt an einer festen Overlayhöhe. Ein bis vier Aktionen belegen eine Zeile; fünf bis acht zwei Zeilen. Zusätzliche Aktionen bleiben in der Rasterliste scrollbar.

@@ -1,6 +1,12 @@
 #include <cassert>
 #include <ctime>
 #include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include "BoostPolygonTraits.hpp"
 #include "PresetBundle.hpp"
