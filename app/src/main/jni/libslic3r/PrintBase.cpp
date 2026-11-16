@@ -1,3 +1,4 @@
+#include "BoostPolygonTraits.hpp"
 #include "Exception.hpp"
 #include "PrintBase.hpp"
 

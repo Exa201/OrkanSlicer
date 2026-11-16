@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 29/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 30/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -6,6 +6,14 @@
 - Ein Schritt zählt nur bei einem konkreten Android-relevanten Orca-Fix/Feature, einer reproduzierbaren Regression oder einer überprüften Korrektur mit nachvollziehbarem Testergebnis. Reine Recherche, Dokumentation und kosmetische Änderungen zählen nicht.
 - APK und GitHub-Prerelease werden nach Schritt **100/100** gebaut/veröffentlicht. Zwischenstände bleiben im Nightly-Entwicklungsbranch; keine vorgezogenen Releases.
 - Die zuvor verwendete 10-Punkte-Batch-Zählung bleibt als historische Dokumentation erhalten und wird nicht als Fortschritt dieses neuen Zyklus angerechnet.
+
+### Schritt 30/100 — Boost-Polygon-Header aus häufig inkludierter Geometrie entkoppelt
+
+- Orca-Upstream `59acdedd065e` verschiebt die vollständigen Boost-Polygon-Traits aus den allgemeinen `Point`, `Line`, `Polygon`- und `ExPolygon`-Headern. Der Nightly-Fork benötigt die Traits an mehreren nativen Aufrufstellen; diese wurden explizit ergänzt und die Traits in `BoostPolygonTraits.hpp` ausgelagert.
+- ARM64-NDK-Rebuild: **202/202 C++-Übersetzungseinheiten erfolgreich**, Shared Library erfolgreich gelinkt. Das reduziert unnötige Boost-Header-Includes beim Kompilieren; eine Laufzeit- oder RAM-Verbesserung wird damit nicht behauptet.
+- Verifikation: Debug-Unit **806/806**, SliceTest-Unit **806/806**, Nightly-Changelog-Prüfung erfolgreich. Native Android-Instrumentierung `multilineGridInfillUsesMiterJoinsAndPreservesGeometry`: API-36-Emulator **1/1 bestanden**.
+- Der parallele Xiaomi-Lauf wurde durch `INSTALL_FAILED_USER_RESTRICTED` vor Teststart abgewiesen; er zählt nicht als bestanden. `git diff --check` erfolgreich.
+- APK/Prerelease bleiben bis **100/100** gesperrt.
 
 ### Schritt 2/100 — Anker-Gesamtzeitprofil gegen Rückfall absichern
 

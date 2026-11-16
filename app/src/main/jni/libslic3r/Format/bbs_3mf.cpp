@@ -1,3 +1,4 @@
+#include "BoostPolygonTraits.hpp"
 #include "../libslic3r.h"
 #include "../Exception.hpp"
 #include "../Model.hpp"

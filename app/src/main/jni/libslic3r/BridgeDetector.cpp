@@ -1,3 +1,4 @@
+#include "BoostPolygonTraits.hpp"
 #include "BridgeDetector.hpp"
 #include "ClipperUtils.hpp"
 #include "Geometry.hpp"

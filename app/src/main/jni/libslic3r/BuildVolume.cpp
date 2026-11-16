@@ -1,3 +1,4 @@
+#include "BoostPolygonTraits.hpp"
 #include "BuildVolume.hpp"
 #include "ClipperUtils.hpp"
 #include "TriangleMesh.hpp"

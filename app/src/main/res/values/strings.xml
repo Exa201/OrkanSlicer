@@ -1270,7 +1270,7 @@
     <string name="MmuAssignmentNoLoadedSlots">The ACE reports no loaded filament slots. Load filament and synchronize again.</string>
     <string name="MmuAssignmentUnavailable">Model color T%1$d is not assigned to a loaded, routable ACE slot. Choose another slot before sending the G-code.</string>
     <string name="MmuDirectSlotUnavailable">The selected ACE gate %2$d for G-code tool T%1$d is not loaded or is not reachable through the printer tool map. Load the selected slot and synchronize the printer again.</string>
-    <string name="MmuDirectToolUnavailable">G-code uses tool T%1$d, which is not present in this job's filament mapping. Slice again and check the tool assignments.</string>
+    <string name="MmuDirectToolUnavailable">G-code uses tool T%1$d, which is not present in the filament mapping for this print. Slice again and check the tool assignments.</string>
     <string name="MmuAssignmentEdit">Color to ACE slot mapping · tap to edit</string>
     <string name="QuickSliceTitle">Quick Slice</string>
     <string name="QuickSliceHelp">Choose a printer, material and a simple quality preset. Values are checked before slicing.</string>

@@ -1,3 +1,4 @@
+#include "BoostPolygonTraits.hpp"
 #include "BoundingBox.hpp"
 #include "Config.hpp"
 #include "GCodeWriter.hpp"

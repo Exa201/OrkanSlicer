@@ -5484,6 +5484,16 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Nächste konkrete Untersuchung: den Android-Datenpfad für Orcas geladene Druckerfilament-IDs prüfen, bevor die Filament-Spar-/Subtype-Gruppierungsänderungen portiert werden. Dabei muss die tatsächliche ACE/Qidi-Zuordnung bis zum erzeugten G-Code nachweisbar bleiben.
 # OrkanSlicer Nightly UI 2.1 – aktueller Durchgang (2026-11-15)
 
+## Nightly-Fortsetzung – Orca-Geometrie-Header und Native Slice-Verifikation (2026-11-16)
+
+- 100-Schritte-Upstream-Zyklus: **30/100 geprüft**. Orca-Upstream `59acdedd065e` hielt vollständige Boost.Polygon-Header aus häufig inkludierten Geometrie-Headern heraus; Nightly übernimmt dies fork-kompatibel mit `BoostPolygonTraits.hpp` und expliziten Includes an den nötigen nativen Aufrufstellen.
+- ARM64-NDK-Rebuild: **202/202** C++-Übersetzungseinheiten und `libslic3r.so` erfolgreich. Debug-Unit **806/806**, SliceTest-Unit **806/806**, `verifyNightlyChangelog` bestanden.
+- API-36-Emulator: `NativeSliceDeviceTest#multilineGridInfillUsesMiterJoinsAndPreservesGeometry` **1/1 bestanden**. Xiaomi Wireless ADB war erreichbar, aber Android verweigerte die Test-APK-Installation mit `INSTALL_FAILED_USER_RESTRICTED`; kein Xiaomi-Testergebnis.
+- Zusätzlich einen AAPT-Blocker in der englischen ACE-Tool-Warnung behoben, indem ein problematischer Apostroph aus dem Stringtext entfernt wurde.
+- Noch offen: Geräteinstallation/Instrumentierung auf Xiaomi, da die Geräteinstallation eingeschränkt ist. Keine APK erzeugt oder veröffentlicht.
+- Relevante Codebasis zu Beginn dieses Arbeitspakets: `a52c8be375a63d6ac94c4caf4c9105d9a0754654`; Orca-Upstream-Basis: `59acdedd065e5213445163a581947353d3208ccd`.
+- Nächster konkreter Schritt: nächsten Android-relevanten Upstream-Core-Fall auswählen und mit einer nativen Regression absichern; bis 100/100 keine APK/Prerelease.
+
 - Version 0.8.475 / versionCode 510: Porträt-Menühost misst sich am Inhalt statt an einer festen Overlayhöhe. Ein bis vier Aktionen belegen eine Zeile; fünf bis acht zwei Zeilen. Zusätzliche Aktionen bleiben in der Rasterliste scrollbar.
 - Aktionsicons auf 30 dp vergrößert und auf kontrastierende Theme-Vordergrundfarben umgestellt; Kachelgrößen und Aktionsabstände bleiben unverändert.
 - Honor-Gerätetest `portraitMenuGridUsesRowsAndFirstVerticalSwipeWorksInModelAndEdit`: **1/1 bestanden** (Android 16, 1280×2800, 426-dpi-Override ≈480 dp, Systemschrift 150 %). Er prüft die Panelhöhe, höchstens 8 dp Leerraum unter der letzten Reihe in Tools/Modell/Ändern und drei Auf-/Abwärts-Wischzyklen in Modell und Ändern.

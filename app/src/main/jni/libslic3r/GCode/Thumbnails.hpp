@@ -1,6 +1,7 @@
 #ifndef slic3r_GCodeThumbnails_hpp_
 #define slic3r_GCodeThumbnails_hpp_
 
+#include "BoostPolygonTraits.hpp"
 #include "../Point.hpp"
 #include "../PrintConfig.hpp"
 #include "../enum_bitmask.hpp"

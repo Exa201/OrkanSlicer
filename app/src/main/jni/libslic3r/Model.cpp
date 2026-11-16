@@ -1,3 +1,4 @@
+#include "BoostPolygonTraits.hpp"
 #include "Model.hpp"
 #include "libslic3r.h"
 #include "BuildVolume.hpp"

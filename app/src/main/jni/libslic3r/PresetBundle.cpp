@@ -1,6 +1,7 @@
 #include <cassert>
 #include <ctime>
 
+#include "BoostPolygonTraits.hpp"
 #include "PresetBundle.hpp"
 #include "PrintConfig.hpp"
 #include "libslic3r.h"

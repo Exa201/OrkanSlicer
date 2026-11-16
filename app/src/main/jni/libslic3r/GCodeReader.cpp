@@ -1,3 +1,4 @@
+#include "BoostPolygonTraits.hpp"
 #include "GCodeReader.hpp"
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>

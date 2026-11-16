@@ -78,6 +78,7 @@ set(lisbslic3r_sources
     BoundingBox.cpp
     BoundingBox.hpp
     BridgeDetector.cpp
+    BoostPolygonTraits.hpp
     BridgeDetector.hpp
     Brim.cpp
     BrimEarsPoint.hpp

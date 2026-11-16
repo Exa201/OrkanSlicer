@@ -1,3 +1,4 @@
+#include "BoostPolygonTraits.hpp"
 #include "ClipperUtils.hpp"
 #include "Model.hpp"
 #include "Print.hpp"
