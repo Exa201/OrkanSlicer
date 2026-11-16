@@ -763,27 +763,17 @@ object SliceUploadController {
                 ?: (if (gates[tool] in loadedGates) liveSlots.getOrNull(tool) else null)
                 ?: ru.ytkab0bp.slicebeam.utils.FilamentSlot(Color.rgb(25, 200, 160), "PLA")
         }
-        val emittedPaintInfo = BooleanArray(4)
-        var hasPaintInfo = false
-        val paintInfo = if (externalSpool) "[]" else buildString {
-            append('[')
-            for (tool in 0 until logicalToolCount) {
+        val paintInfo = if (externalSpool) "[]" else AnycubicGCodeProcessor.formatPaintInfo(
+            (0 until logicalToolCount).mapNotNull { tool ->
                 val mappedTool = remappedTools[tool]
-                if (mappedTool !in 0..3 || emittedPaintInfo[mappedTool]) continue
-                emittedPaintInfo[mappedTool] = true
-                if (hasPaintInfo) append(',')
-                hasPaintInfo = true
+                if (mappedTool !in 0..3) return@mapNotNull null
                 val slot = MmuFilamentSync.gateSlot(printerTitle, gates[tool])
                     ?: (if (gates[tool] in loadedGates) liveSlots.getOrNull(tool) else null)
                 val material = slot?.type ?: scan.materials[minOf(tool, scan.materials.lastIndex)].trim()
                 val paintColor = slot?.color ?: Color.rgb(25, 200, 160)
-                append("{\"material_type\":").append(JSONObject.quote(material))
-                    .append(",\"paint_color\":[").append(Color.red(paintColor)).append(',')
-                    .append(Color.green(paintColor)).append(',').append(Color.blue(paintColor))
-                    .append("],\"paint_index\":").append(mappedTool).append('}')
-            }
-            append(']')
-        }
+                AnycubicGCodeProcessor.PaintInfoEntry(mappedTool, material, paintColor)
+            },
+        )
         val options = AnycubicGCodeProcessor.Options().apply {
             this.remappedTools = remappedTools
             this.gates = gates

@@ -15,6 +15,12 @@ import java.util.regex.Matcher
 
 /** Pure file transformation for the G-code metadata expected by Anycubic Kobra 3 firmware. */
 class AnycubicGCodeProcessor private constructor() {
+    data class PaintInfoEntry(
+        val toolIndex: Int,
+        val material: String,
+        val color: Int,
+    )
+
     class ScanResult private constructor(
         @JvmField val maxTool: Int,
         @JvmField val density: Double,
@@ -125,6 +131,38 @@ class AnycubicGCodeProcessor private constructor() {
                 if (colors) slot?.let { String.format(Locale.ROOT, "#%06X", it.color and 0xFFFFFF) } ?: "#19C8A0"
                 else slot?.type ?: "PLA"
             }
+        }
+
+        /** Serializes tool-indexed ACE color metadata without compacting sparse tool indices. */
+        @JvmStatic
+        fun formatPaintInfo(entries: Iterable<PaintInfoEntry>): String {
+            val byTool = LinkedHashMap<Int, PaintInfoEntry>()
+            entries.forEach { entry ->
+                if (entry.toolIndex in 0..3) byTool.putIfAbsent(entry.toolIndex, entry)
+            }
+            return byTool.values.joinToString(prefix = "[", postfix = "]") { entry ->
+                val color = entry.color
+                "{\"material_type\":${jsonString(entry.material)},\"paint_color\":[" +
+                    "${(color shr 16) and 0xFF},${(color shr 8) and 0xFF},${color and 0xFF}]," +
+                    "\"paint_index\":${entry.toolIndex}}"
+            }
+        }
+
+        private fun jsonString(value: String): String = buildString(value.length + 2) {
+            append('"')
+            value.forEach { char ->
+                when (char) {
+                    '"' -> append("\\\"")
+                    '\\' -> append("\\\\")
+                    '\b' -> append("\\b")
+                    '\u000C' -> append("\\f")
+                    '\n' -> append("\\n")
+                    '\r' -> append("\\r")
+                    '\t' -> append("\\t")
+                    else -> if (char < ' ') append("\\u%04x".format(Locale.ROOT, char.code)) else append(char)
+                }
+            }
+            append('"')
         }
 
         @JvmStatic

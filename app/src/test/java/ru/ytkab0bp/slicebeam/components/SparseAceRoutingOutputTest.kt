@@ -7,6 +7,15 @@ import ru.ytkab0bp.slicebeam.utils.AnycubicGCodeProcessor
 
 /** Empty ACE slots keep their index; later tools are never shifted onto a different gate. */
 class SparseAceRoutingOutputTest {
+    @Test fun paintInfoSerializationKeepsSparseMappedToolIndexAndEscapesMaterialName() {
+        assertEquals(
+            "[{\"material_type\":\"PETG \\\"CF\\\"\",\"paint_color\":[0,255,0],\"paint_index\":2}]",
+            AnycubicGCodeProcessor.formatPaintInfo(listOf(
+                AnycubicGCodeProcessor.PaintInfoEntry(2, "PETG \"CF\"", 0xFF00FF00.toInt()),
+            )),
+        )
+    }
+
     @Test fun kobraThreeToolRoutesToItsAssignedAceGateWhenPaletteContainsAnEmptySlot() {
         val source = File.createTempFile("kobra3-route-source", ".gcode")
         val output = File.createTempFile("kobra3-route-output", ".gcode")
@@ -31,7 +40,11 @@ class SparseAceRoutingOutputTest {
             assertNull(routing.unavailableTool)
             assertEquals(2, routing.toolCommands[2])
             assertEquals(2, routing.gates[2])
-            val serializedPaintInfo = "[{\"material_type\":\"PETG\",\"paint_color\":[0,255,0],\"paint_index\":${routing.toolCommands[2]}}]"
+            val serializedPaintInfo = AnycubicGCodeProcessor.formatPaintInfo(listOf(
+                AnycubicGCodeProcessor.PaintInfoEntry(routing.toolCommands[0], "PLA", 0xFF111111.toInt()),
+                AnycubicGCodeProcessor.PaintInfoEntry(routing.toolCommands[1], "PLA", 0xFF19C8A0.toInt()),
+                AnycubicGCodeProcessor.PaintInfoEntry(routing.toolCommands[2], "PETG", 0xFF00FF00.toInt()),
+            ))
             assertTrue(AnycubicGCodeProcessor.rewrite(source, output, scan,
                 AnycubicGCodeProcessor.Options().apply {
                     remappedTools = routing.toolCommands
