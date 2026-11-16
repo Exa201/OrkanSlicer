@@ -1,8 +1,8 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 4/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 5/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
-- Basis: OrcaSlicer-Upstream zuletzt geprüft bei `4b161be15085f578638752dc891b2795ee6861d3`, Nightly-Code-HEAD `7464f271b136a4085163d10f4cea31734909762d`.
+- Basis: OrcaSlicer-Upstream zuletzt geprüft bei `4b161be15085f578638752dc891b2795ee6861d3`, Nightly-Code-HEAD `07cec538e8`.
 - Ein Schritt zählt nur bei einem konkreten Android-relevanten Orca-Fix/Feature, einer reproduzierbaren Regression oder einer überprüften Korrektur mit nachvollziehbarem Testergebnis. Reine Recherche, Dokumentation und kosmetische Änderungen zählen nicht.
 - APK und GitHub-Prerelease werden nach Schritt **100/100** gebaut/veröffentlicht. Zwischenstände bleiben im Nightly-Entwicklungsbranch; keine vorgezogenen Releases.
 - Die zuvor verwendete 10-Punkte-Batch-Zählung bleibt als historische Dokumentation erhalten und wird nicht als Fortschritt dieses neuen Zyklus angerechnet.
@@ -11,7 +11,7 @@
 
 - Upstream-Abgleich: Orcas jüngste Android-relevante Core-Fixes wurden mit dem Nightly verglichen; bereits vorhandene Änderungen werden nicht erneut portiert. Die Anker-Druckerprofile enthalten den Gesamtzeit-Platzhalter bereits, aber diese für die Druckdatei-Metadaten relevante Regel war nicht automatisiert abgesichert.
 - Neuer Debug- und SliceTest-Unit-Test liest alle 12 gebündelten Anker-Druckerprofile und verlangt `;TIME:{print_time_total_sec}` statt des unvollständigen `{print_time_sec}`.
-- Gezielte Debug-Unit und SliceTest-Unit: **1/1 je Variante bestanden**. `verifyNightlyChangelog` lief in beiden Gradle-Aufgaben erfolgreich; `git diff --check` sauber.
+- Gezielte Debug-Unit und SliceTest-Unit: **1/1 je Variante bestanden**. Danach vollständige Debug-Unit **799/799** und SliceTest-Unit **799/799**, jeweils ohne Fehler/Skips; `verifyNightlyChangelog` und `git diff --check` erfolgreich.
 - Nächster konkreter Schritt: Orca-Upstream erneut auf Android-relevante Core-Änderungen prüfen und den nächsten noch fehlenden, reproduzierbaren Funktionsfall auswählen. APK-Gate bleibt bei 100/100.
 
 ### Schritte 3–4/100 — Tree-Support-Kontakte und beschleunigungsbewusste Kühlung auf Android verifiziert
@@ -20,6 +20,12 @@
 - Orca `8a1cef365e` berechnet Layer-Cooling-Zeit mit Beschleunigungsgrenzen, damit kurze Bewegungen gegenüber der Vorschau korrekt verlangsamt werden. Der Nightly-Regressionstest slicet ein schlankes Modell mit aktivierter Beschleunigungskühlung und kontrolliert die resultierende Schichtzeit. API-36-Emulator: **1/1 bestanden**.
 - Frischer Upstream-Abgleich ergab seit der letzten Basis `4b161be150`: neuer `4b161be150` behebt nur die Größe eines AMS-Popups unter Wayland; kein Android-Port nötig. Weitere relevante kürzliche Core-Fixes für Wipe-Tower, Resonanz-Kühlung, Anker-Zeit und Infill sind im Nightly bereits vorhanden.
 - Als nächste Lücke folgt eine Suche nach Orca-Regressionen, die in Android nicht nur als Desktop-GUI-Code auftreten und für die noch keine Nightly-Testabdeckung existiert. APK-Gate bleibt bei 100/100.
+
+### Schritt 5/100 — Type-2-Priming mit nur einem genutzten Filament
+
+- Orca `0e8e95d516` verhindert bei einem einzelnen Priming-Werkzeug den Zugriff auf `tools[idx_tool - 1]`; stattdessen wird für den ersten Eintrag ein Purge-Volumen von null verwendet. Der identische Guard ist im Nightly-Produktionscode vorhanden.
+- `NativeSliceDeviceTest#type2PrimeTowerSlicesWithOnlyOneUsedFilament` erzeugt auf Android 16/API 36 einen echten Type-2-Slice mit nur einem benutzten Filament und aktivierter Single-Extruder-Priming-Option. Test **1/1 bestanden**, vollständige Layer-Tabelle und Extrusion im G-Code bestätigt.
+- Dieser Prüffall schützt den konkreten Einzelwerkzeug-Grenzfall vor erneutem Indexfehler. APK-Gate bleibt bei 100/100.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
 
