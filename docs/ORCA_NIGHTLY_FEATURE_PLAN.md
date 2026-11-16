@@ -2,7 +2,7 @@
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
-- Basis: OrcaSlicer-Upstream zuletzt geprüft bei `4b161be15085f578638752dc891b2795ee6861d3`, Nightly-Code-HEAD `e326f57dd1`.
+- Basis: OrcaSlicer-Upstream zuletzt geprüft bei `59acdedd065e5213445163a581947353d3208ccd`, Nightly-Code-HEAD `3d97c59497af288b6aa8a0ea8f96ccc2917d46b7`.
 - Ein Schritt zählt nur bei einem konkreten Android-relevanten Orca-Fix/Feature, einer reproduzierbaren Regression oder einer überprüften Korrektur mit nachvollziehbarem Testergebnis. Reine Recherche, Dokumentation und kosmetische Änderungen zählen nicht.
 - APK und GitHub-Prerelease werden nach Schritt **100/100** gebaut/veröffentlicht. Zwischenstände bleiben im Nightly-Entwicklungsbranch; keine vorgezogenen Releases.
 - Die zuvor verwendete 10-Punkte-Batch-Zählung bleibt als historische Dokumentation erhalten und wird nicht als Fortschritt dieses neuen Zyklus angerechnet.
@@ -1392,3 +1392,10 @@ Der weitere Vergleich am 2026-11-04 prüfte Orca `5fd0edf5cc` (Z-Schrumpfung von
 - Der Warnungspfad nutzt jetzt `getOrNull`; fehlt für ein ungültiges Werkzeug ein ACE-Fach, erscheint eine gezielte Meldung mit dem betroffenen T-Werkzeug. Gültige aber nicht erreichbare Werkzeuge behalten die bisherige ACE-Fachmeldung.
 - Regression `SlicePrintPreparationRoutingTest`: außerhalb des Bereichs, nicht erreichbares gültiges Werkzeug und gültige Route getestet. Debug **3/3**, SliceTest **3/3**, keine Fehler/Skips; `verifyNightlyChangelog`, Kotlin-Kompilierung und `git diff --check` erfolgreich.
 - Kein Gerätetest und kein APK-Build in diesem Schritt. APK-Gate bleibt **100/100**. Nächster Schritt: Orca-Upstream und Android-Aufrufpfade erneut abgleichen und einen weiteren reproduzierbaren Fehler-/Featurefall wählen.
+
+
+### Upstream-Abgleich am 2026-11-16 — 59acdedd06
+
+- `orcaslicer-upstream/main` frisch abgerufen: `59acdedd065e5213445163a581947353d3208ccd`. Seit dem zuvor dokumentierten Stand kamen Wayland-/Windows-/Paketierungsänderungen sowie ein breiter C++-Header-Refactor hinzu. Die GUI-/Wayland-Änderungen betreffen keine Android-Aufrufpfade; die jüngsten Android-relevanten Slicing-Fixes sind im gebündelten Nightly-Kern bereits vorhanden.
+- Der Header-Refactor ist nicht direkt auf den Android-Fork übertragbar: `Model.hpp`, `Utils.hpp`, `Point.hpp`, `Polygon.hpp` und `ExPolygon.hpp` enthalten produktive Android-/Bambu-/STEP-Abweichungen. `git apply --check` des nativen `libslic3r`-Teilpatches scheitert auf 14 divergierten Dateien; es wurde kein Teilpatch übernommen. Er zählt nicht als Upgrade-Schritt.
+- Schrittzähler bleibt **29/100**. Nächster Arbeitspunkt: einen noch offenen Android-Aufrufpfad aus dem Funktionsbestand auswählen, der einen messbaren Produktnutzen hat und dessen Änderung sich gegen den divergierten Fork isoliert testen lässt. APK-/Release-Gate bleibt 100/100.
