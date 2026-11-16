@@ -1,5 +1,13 @@
 # Nightly 0.8.481 — Release- und Teststand — 2026-11-16
 
+## Orca Batch 19 — Fortschritt 2/10 — 2026-11-16
+
+- Nightly-only gilt weiter. GitHub führt fünf aufbewahrte Nightly-Pre-Releases; der alte Build 0.8.415 ist weder in der Release-Liste noch als lokale APK vorhanden. Stable wird für diese Arbeit nicht verwendet.
+- Portiert Orca `0e8e95d516` in `WipeTower2::prime`: Wenn beim Type-2-Wipe-Tower nur ein Werkzeug primt, wird das Wipe-Volumen sicher auf null gesetzt, statt `tools[idx_tool - 1]` zu dereferenzieren.
+- Neue Regression `NativeSliceDeviceTest#type2PrimeTowerSlicesWithOnlyOneUsedFilament` erstellt ein echtes Flashforge-AD5X-Slice mit Type-2-Turm und nur einem verwendeten Filament. ARM64-Native-Build erfolgreich; Instrumentierung auf Android 16/API 36 **1/1 bestanden**. Das Test-AVD war x86_64 mit ARM64-Übersetzungsbrücke; kein physisches Gerät wurde geprüft.
+- Vollständige Debug-Unit-Tests **794/794** und SliceTest-Unit-Tests **794/794**, ohne Fehler oder Skips. `git diff --check` sauber.
+- Kein APK erstellt und kein neuer Release: Batch 19 steht bei 2/10. Der letzte veröffentlichte Nightly-Stand bleibt 0.8.481; nächster Schritt ist ein weiterer Upstream-Abgleich und ein eigenständiger, erreichbarer Regressionstest.
+
 ## Veröffentlichungsziel bestätigt — 2026-11-16
 
 - Es gilt ausschließlich das Nightly-Repository. Die Stable-Version `0.8.415` (Code 450) war ein veralteter Build und wurde nicht veröffentlicht; ihre lokale APK-Kopie wurde auf Nutzerwunsch entfernt.

@@ -4800,6 +4800,42 @@ class NativeSliceDeviceTest {
     }
 
     @Test(timeout = 180_000)
+    fun type2PrimeTowerSlicesWithOnlyOneUsedFilament() = withFlashforgeAd5xProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.20mm Standard @FF AD5X"))
+        process.put("enable_prime_tower", "1")
+        process.put("wipe_tower_type", "type2")
+        process.put("single_extruder_multi_material_priming", "1")
+
+        val source = copyCube(context, "type2-single-filament-prime-source.stl")
+        val output = File(context.cacheDir, "type2-single-filament-prime.gcode")
+        val model = Model(source)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.ensureOnBed(0)
+            model.setUniformFilament(0, 1)
+            SliceBeam.genCurrentConfig(model)
+            val generatedConfig = SliceBeam.getCurrentConfigFile()
+            val configText = generatedConfig.readText()
+            assertTrue("single-extruder Type-2 priming must reach the native slice config",
+                configText.contains("single_extruder_multi_material_priming = 1") &&
+                    configText.contains("wipe_tower_type = type2"))
+            result = model.slice(generatedConfig.absolutePath, output.absolutePath, null)
+
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("single-filament priming must finish and emit the complete layer table",
+                gcode.contains("; total layer number:"))
+        } finally {
+            result?.release()
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test(timeout = 180_000)
     fun qidiCompatibleType1AndType2TowersReportPerFilamentPurgeVolumes() = withToolChangerProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.20mm Standard"))
@@ -9658,6 +9694,31 @@ class NativeSliceDeviceTest {
             val printer = requireNotNull(config.findPrinter("MyToolChanger 0.4 nozzle"))
             val process = requireNotNull(config.findPrint("0.20mm Standard"))
             val filament = requireNotNull(config.findFilament("Generic PLA"))
+            config.presets = ConfigObject("presets").apply {
+                put("printer", printer.title)
+                put("print", process.title)
+                put("filament", filament.title)
+            }
+            block()
+        } finally {
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    private inline fun withFlashforgeAd5xProfile(block: () -> Unit) {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+        val previousConfig = SliceBeam.CONFIG
+        try {
+            context.assets.open("orca_profiles/Flashforge.ini").use {
+                SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+            }
+            val config = requireNotNull(SliceBeam.CONFIG)
+            val printer = requireNotNull(config.findPrinter("Flashforge AD5X 0.4 nozzle"))
+            val process = requireNotNull(config.findPrint("0.20mm Standard @FF AD5X"))
+            val filament = requireNotNull(config.findFilament("Flashforge Generic PLA"))
             config.presets = ConfigObject("presets").apply {
                 put("printer", printer.title)
                 put("print", process.title)
