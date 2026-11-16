@@ -372,6 +372,35 @@ GLShaderProgram* get_current_shader() {
     return program;
 }
 
+namespace {
+bool flatten_model_object(ModelObject* object, const Vec3d& surface_normal)
+{
+    if (object == nullptr || object->volumes.empty() || !surface_normal.allFinite()) return false;
+    const double normal_length = surface_normal.norm();
+    if (!std::isfinite(normal_length) || normal_length <= 1e-9 ||
+        std::any_of(object->volumes.begin(), object->volumes.end(),
+                    [](const ModelVolume* volume) { return volume == nullptr; }))
+        return false;
+
+    // A ModelObject may contain multiple volumes with different local offsets.
+    // Rotate the assembly once around its shared center; rotating after each
+    // volume's own offset would move the mesh parts independently and break the
+    // assembled geometry when laying one face on the bed.
+    const Vec3d center = object->bounding_box_exact().center();
+    const Vec3d normal = surface_normal / normal_length;
+    Transform3d rotation = Transform3d::Identity();
+    rotation.linear() = Eigen::Quaterniond().setFromTwoVectors(normal, -Vec3d::UnitZ()).toRotationMatrix();
+    const Transform3d around_center = Geometry::translation_transform(center) * rotation *
+                                      Geometry::translation_transform(-center);
+    for (ModelVolume* volume : object->volumes) {
+        const Transform3d old_matrix = volume->get_transformation().get_matrix();
+        volume->set_transformation(Geometry::Transformation(around_center * old_matrix));
+    }
+    object->invalidate_bounding_box();
+    return true;
+}
+} // namespace
+
 extern "C" {
     int JNI_OnLoad(JavaVM *vm, void*) {
         JNIEnv *env;
@@ -2362,22 +2391,7 @@ extern "C" {
         GLModelRef* surface = (GLModelRef*) (intptr_t) surface_ptr;
         if (model == nullptr || surface == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size()) return;
         ModelObject* object = model->model.objects[i];
-        const Vec3d& surface_normal = surface->flatten_normal;
-        const double normal_length = surface_normal.norm();
-        if (object == nullptr || object->volumes.empty() || !surface_normal.allFinite() ||
-            !std::isfinite(normal_length) || normal_length <= 1e-9 ||
-            std::any_of(object->volumes.begin(), object->volumes.end(),
-                [](const ModelVolume* volume) { return volume == nullptr; })) return;
-        const Vec3d normal = surface_normal / normal_length;
-        ModelVolumePtrs& ptrs = object->volumes;
-        for (int i = 0, c = ptrs.size(); i < c; i++) {
-            auto vol = ptrs[i];
-            const Geometry::Transformation& old_transform = vol->get_transformation();
-            const Vec3d tnormal = normal;
-            const Transform3d rotation_matrix = Transform3d(Eigen::Quaterniond().setFromTwoVectors(tnormal, -Vec3d::UnitZ()));
-            vol->set_transformation(old_transform.get_offset_matrix() * rotation_matrix * old_transform.get_matrix_no_offset());
-        }
-        object->invalidate_bounding_box();
+        flatten_model_object(object, surface->flatten_normal);
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1translate_1global(JNIEnv* env, jclass, jlong ptr, jdouble x, jdouble y, jdouble z) {
@@ -7758,6 +7772,46 @@ extern "C" {
             };
             jintArray result = env->NewIntArray(2);
             if (result != nullptr) env->SetIntArrayRegion(result, 0, 2, values);
+            return result;
+        } catch (const std::exception& error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
+    }
+
+    // Laying one face down must rotate a multipart object as one assembly,
+    // preserving the relative placement of every volume.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_flatten_1keeps_1multipart_1layout_1regression(
+        JNIEnv* env, jclass)
+    {
+        try {
+            Model model;
+            ModelObject* object = model.add_object();
+            ModelVolume* first = object->add_volume(make_cube(10.f, 10.f, 10.f));
+            ModelVolume* second = object->add_volume(make_cube(6.f, 8.f, 4.f));
+            if (first == nullptr || second == nullptr)
+                throw std::runtime_error("Could not create multipart flatten fixture");
+            second->set_offset(Vec3d(23., -11., 7.));
+
+            const Vec3d normal = Vec3d(1., 2., 3.).normalized();
+            const Eigen::Quaterniond expected_rotation =
+                Eigen::Quaterniond().setFromTwoVectors(normal, -Vec3d::UnitZ());
+            const Transform3d first_before = first->get_transformation().get_matrix();
+            const Vec3d before_delta = second->get_transformation().get_offset() -
+                                       first->get_transformation().get_offset();
+            const bool applied = flatten_model_object(object, normal);
+            const Vec3d after_delta = second->get_transformation().get_offset() -
+                                      first->get_transformation().get_offset();
+            const Transform3d first_after = first->get_transformation().get_matrix();
+            const Vec3d actual_normal = first_after.linear() * first_before.linear().inverse() * normal;
+            const bool relative_layout_preserved =
+                (after_delta - expected_rotation * before_delta).norm() < 1e-6;
+            const bool normal_is_flat =
+                actual_normal.normalized().dot(-Vec3d::UnitZ()) > 0.999999;
+            const jint values[] = {applied ? 1 : 0, relative_layout_preserved ? 1 : 0, normal_is_flat ? 1 : 0};
+            jintArray result = env->NewIntArray(3);
+            if (result != nullptr) env->SetIntArrayRegion(result, 0, 3, values);
             return result;
         } catch (const std::exception& error) {
             jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
