@@ -30,6 +30,8 @@ class Native {
     /** Verifies the bundled Expat build enables DTD-aware amplification protection. */
     @JvmStatic
     external fun expat_entity_amplification_guard_regression(): IntArray
+    @JvmStatic
+    external fun arachne_unrepairable_voronoi_regression(): Int
     /** Exercises the native Auto For Match solver against four synthetic two-slot palettes. */
     @JvmStatic
     external fun filament_group_match_regression(): IntArray

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.483 — Arachne: Schutz vor ungültigen Voronoi-Diagrammen — 2026-11-16
+
+- Arachne überspringt Konturen, deren Voronoi-Diagramm nicht repariert werden konnte, statt beim Aufbau des Wandgraphen mit ungültigen Kanten abzustürzen.
+- Eine native Regression prüft Orcas reproduzierbare Sliver-Geometrie und bestätigt, dass daraus keine unsicheren Werkzeugwege entstehen.
+
 ## 0.8.482 — Drehvorschau, Flachlegen und Anycubic-ACE — 2026-11-16
 
 - Die Rotationsvorschau dreht einzelne Modelle und Mehrfachauswahlen um denselben sichtbaren Begrenzungsrahmen-Pivot wie die bestätigte Drehung.

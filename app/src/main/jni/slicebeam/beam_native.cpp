@@ -38,6 +38,8 @@
 #include "libslic3r/PaintedSegmentationPolicy.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/Arachne/SkeletalTrapezoidation.hpp"
+#include "libslic3r/Arachne/BeadingStrategy/BeadingStrategyFactory.hpp"
 #include "libslic3r/Surface.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -468,6 +470,27 @@ extern "C" {
         if (result != nullptr)
             env->SetIntArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
         return result;
+    }
+
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_arachne_1unrepairable_1voronoi_1regression(JNIEnv*, jclass) {
+        using namespace Slic3r;
+        using namespace Slic3r::Arachne;
+        const Polygon sliver{{7085722, -9761944}, {7086662, -16961944}, {8169022, -8295690726}};
+        const Polygons outline{sliver};
+        const coord_t spacing = scaled<coord_t>(0.4);
+        const coord_t min_bead_width = scaled<coord_t>(0.85 * 0.4);
+        const auto strategy = BeadingStrategyFactory::makeStrategy(
+            spacing, spacing, scaled<coord_t>(0.4), static_cast<float>(Geometry::deg2rad(10.)),
+            false, min_bead_width, scaled<coord_t>(0.25 * 0.4), 0.5, 0.5, 260, 0, 1);
+        SkeletalTrapezoidation wall_maker(outline, *strategy, strategy->getTransitioningAngle(),
+            scaled<coord_t>(0.8), scaled<coord_t>(100.), scaled<coord_t>(0.25 * 0.4), scaled<coord_t>(0.4));
+        std::vector<VariableWidthLines> toolpaths;
+        wall_maker.generateToolpaths(toolpaths);
+        int junctions = 0;
+        for (const VariableWidthLines& lines : toolpaths)
+            for (const ExtrusionLine& line : lines)
+                junctions += static_cast<int>(line.size());
+        return junctions;
     }
 
     JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_lightning_1distance_1field_1bounds_1probe(

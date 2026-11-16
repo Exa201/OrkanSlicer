@@ -1,4 +1,16 @@
-# Aktueller Stand — Nightly 0.8.481; Batch 19: 9/10 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 Kandidat; Batch 19: 10/10 geprüft — 2026-11-16
+
+### Batch 19, Punkt 10/10 — Arachne überspringt unreparierbare Voronoi-Diagramme — 2026-11-16
+
+- Orca-Upstream `c7d2b83095` ergänzt vor der Überführung von Voronoi-Zellen in Arachne-Wandgraphen eine Gültigkeitsprüfung. Im Nightly fehlte diese Schranke; ein unrepariertes Diagramm kann Kanten ohne Zwilling enthalten, die der folgende Graphaufbau dereferenziert.
+- Nightly übernimmt den Schutz im Android-produktiven `SkeletalTrapezoidation::constructFromPolygons`: ungültige Konturen werden protokolliert und für diese Kontur ohne Wandwege beendet. Der restliche Slice bleibt ausführbar.
+- Neue Regression `NativeSliceDeviceTest#arachneSkipsToolpathsForUnrepairableVoronoiInsteadOfCrashing` verwendet Orcas problematische Sliver-Geometrie direkt im Produktions-Wandgenerator und bestätigt null unsichere Werkzeugwege. API-36-AVD **1/1 bestanden**; ARM64-SliceTest-Native-Build und Instrumentierungs-Build erfolgreich.
+- Die Xiaomi-ADB-Installation wurde vor Testbeginn durch `INSTALL_FAILED_USER_RESTRICTED` blockiert. Der Emulatorlauf ist der nachgewiesene Gerätetest; keine Aussage über einen physischen Lauf.
+- Batch 19 ist damit **10/10 gezielt geprüft**. Vollständige Debug-/SliceTest-Suiten, Release-Build, Signatur, Installationsstart und GitHub-Prerelease folgen als Release-Gate.
+
+### Batch-19-Abschluss und Release 0.8.483
+
+Release-Prüfungen stehen noch aus; nach erfolgreichem Gate werden APK-SHA-256, Commit und Nightly-Tag hier protokolliert.
 
 ### Batch 19, Punkt 9/10 — Painted Modifier im klassischen 3MF erhalten — 2026-11-16
 

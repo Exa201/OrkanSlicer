@@ -4766,6 +4766,15 @@ class NativeSliceDeviceTest {
     }
 
     @Test(timeout = 120_000)
+    fun arachneSkipsToolpathsForUnrepairableVoronoiInsteadOfCrashing() {
+        assertEquals(
+            "an invalid Voronoi graph must be skipped without creating unsafe Arachne walls",
+            0,
+            Native.arachne_unrepairable_voronoi_regression(),
+        )
+    }
+
+    @Test(timeout = 120_000)
     fun toolchangerSkipsFinalWipeTowerUnloadWhenTheTowerStopsBelowTheModel() {
         assertArrayEquals(
             "SEMM, or a tower reaching the final layer can emit a final purge without ramming",
