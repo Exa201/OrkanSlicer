@@ -1,6 +1,15 @@
-# Nightly 0.8.483 — Release- und Teststand — 2026-11-16
+# Nightly 0.8.484 — Release- und Teststand — 2026-11-16
 
-## Aktuelle Fortsetzung — Orca-Upgrade-Zyklus 33/100
+## Aktuelle Fortsetzung — Orca-Upgrade-Zyklus 34/100
+
+### Verifikation für 0.8.484
+
+- Enthalten ist der bereits gepushte Fix `6f7637e61d`: Flachlegen behält beim gedrehten/verschobenen Mehrfachteil-Modell den gemeinsamen lokalen Pivot und die relative Teilanordnung. ACE-Routing bleibt für logische T0–T15 getestet; die physische Gatewahl eines realen Druckers wurde nicht nachgewiesen.
+- `NativeSliceDeviceTest#flatteningKeepsMultipartVolumeLayoutAndAlignsTheSelectedFace`: **1/1 bestanden** auf API-36-Emulator. Der separate bestehende Test `paintedModifierSlicesOnlyThePaintedHostSide` reproduziert weiterhin leere bemalte Slice-Fläche (0 statt erwarteter 200 mm²); ein versuchter Prism-Fix wurde zurückgenommen und ist ausdrücklich offen.
+- `:app:assembleDebug` und `:app:assembleRelease` erfolgreich. Signierte Release-APK startete auf API-36-Emulator; Prozess blieb aktiv und Logcat-Ausschnitt enthielt keinen Crash. Honor/Xiaomi-Instrumentierung ist nicht erfolgt; das verbundene Gerät verweigerte Test-APK-Installation mit `INSTALL_FAILED_USER_RESTRICTED`.
+- Signierte APK: `OrkanSlicerNightly25_6f7637e61d-signed.apk`, 0.8.484 / Code 519, SHA-256 `85379DE2522BCC539AB42C2A1A6E254F2F3EEF5550A49568704315B196FBAB37`, Nightly-Signer verifiziert.
+- Der vollständige NativeSlice-Lauf wurde in diesem Release-Schritt nicht erneut ausgeführt. Letzter bekannter Lauf: 206/214 bestanden, 7 fehlgeschlagen, 1 übersprungen; darunter der oben dokumentierte Modifier-Test. Kein vollständiger grüner Integrationslauf behauptet.
+- Nächster konkreter Schritt im Orca-Zyklus: einen der noch relevanten NativeSlice-Fehler isolieren und reproduzierbar beheben; die UI-Menüabnahme bleibt auf dem Emulator, das Honor bleibt bis zum gemeinsamen 100-Punkte-Gate unberührt.
 
 - Arbeitsbranch: `codex/ui-2.1-redesign`; aktueller Code-HEAD vor Schritt 32: `388b58e996749f2a9b9c52488aabbd7c85624a6d`; Upstream: `59acdedd065e5213445163a581947353d3208ccd`.
 - Schritt 32 portiert Orcas Semver-Formatierung von Boost.Format auf `std::to_string` und ergänzt 16 zuvor transitive Boost.Format-Nutzer um direkte Includes.

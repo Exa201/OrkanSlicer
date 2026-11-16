@@ -21,8 +21,8 @@ android {
         applicationId "com.exa201.orkanslicer.nightly25"
         minSdk 23
         targetSdk 36
-        versionCode 518
-        versionName "0.8.483"
+        versionCode 519
+        versionName "0.8.484"
         buildConfigField "boolean", "USE_PREBUILT_NATIVE", usePrebuiltNative.toString()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

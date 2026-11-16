@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.484 — Flachlegen und ACE-Werkzeugzuordnung — 2026-11-16
+
+- Flachlegen dreht ein zusammengesetztes Objekt um einen gemeinsamen lokalen Pivot; verschobene, rotierte und skalierte Instanzen behalten Lage und Abstände ihrer Teile.
+- Anycubic-ACE-Metadaten und G-Code-Werkzeugnummern behalten die logischen T0–T15-Indizes auch bei leeren Zwischenfächern. Der konkrete physische Slot bleibt am Drucker mit dessen aktueller Gate-Zuordnung zu verifizieren.
+- Die Vorschau für Flachlegen blendet nicht unterstützte Flächen aus.
+
 ## 0.8.483 — Arachne: Schutz vor ungültigen Voronoi-Diagrammen — 2026-11-16
 
 - Arachne überspringt Konturen, deren Voronoi-Diagramm nicht repariert werden konnte, statt beim Aufbau des Wandgraphen mit ungültigen Kanten abzustürzen.
