@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 19/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 20/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -112,6 +112,12 @@
 - `InitialProjectMenuDeviceTest#modelMenuArrangeRepacksSeveralMovedObjectsInsteadOfFillingWithCopies` bestätigt: alle vier Objekte werden neu gepackt, es entstehen keine Kopien, Objekt-/Filamentdaten bleiben erhalten und Undo/Redo stellt Vorher- und Nachherpositionen wieder her. Der Test slicet außerdem das resultierende Workspace-Modell.
 - Android 16/API-36-Emulator: **1/1 bestanden**, 0 Fehler, 0 Skips. Der Test wurde im SliceTest-Instrumentierungsvariant ausgeführt; ARM64-Native- und App-/Test-APK-Build erfolgreich.
 - APK-Gate bleibt bei 100/100. Nächster Schritt: einen weiteren Android-relevanten Orca-Core-Fall oder fehlenden Workspace-Regressionstest auswählen.
+
+### Schritt 20/100 — Anordnung nutzt den realen Randplatz für fast bettgroße Objekte
+
+- `NativeSliceDeviceTest#arrangementUsesAvailableBedAreaForNearBedSizeObjects` prüft die native Packer-Regression mit einem 197-mm-Objekt und 1-mm-Brim auf einem 200-mm-Bett. Das Objekt muss passen und auf dem Bett bleiben; nur der ungenutzte Standardrand wird auf 0,5 mm reduziert, die quadratische Grundfläche bleibt 197 × 197 mm.
+- Android 16/API-36-Emulator: **1/1 bestanden**, 0 Fehler, 0 Errors, 0 Skips. ARM64-Native- und Instrumentierungsbuild erfolgreich.
+- APK-Gate bleibt bei 100/100. Nächster Schritt: weiteren Android-relevanten Kern- oder Arrange-Grenzfall auswählen.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
 
