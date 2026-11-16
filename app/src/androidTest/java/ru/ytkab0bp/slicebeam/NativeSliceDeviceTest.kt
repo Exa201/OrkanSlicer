@@ -1375,6 +1375,78 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test(timeout = 180_000)
+    fun layerCoolingKeepsOuterWallsOutsideResonanceAvoidanceRange() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val printer = requireNotNull(SliceBeam.CONFIG?.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(SliceBeam.CONFIG?.findFilament("Anycubic Generic PLA"))
+        val printerKeys = listOf("resonance_avoidance", "min_resonance_avoidance_speed", "max_resonance_avoidance_speed")
+        val processKeys = listOf("layer_height", "initial_layer_print_height", "outer_wall_speed")
+        val filamentKeys = listOf("filament_max_volumetric_speed", "slow_down_for_layer_cooling", "slow_down_layer_time", "slow_down_min_speed")
+        val previousPrinter = printerKeys.associateWith(printer::get)
+        val previousProcess = processKeys.associateWith(process::get)
+        val previousFilament = filamentKeys.associateWith(filament::get)
+        val source = createThinCubeFixture("resonance-cooling-outer-wall.stl", 20.0, 20.0, 12.0)
+        val output = File(context.cacheDir, "resonance-cooling-outer-wall.gcode")
+        val model = Model(source).also { it.ensureOnBed(0) }
+
+        fun outerWallSpeeds(resonanceAvoidance: Boolean): List<Double> {
+            printer.put("resonance_avoidance", if (resonanceAvoidance) "1" else "0")
+            printer.put("min_resonance_avoidance_speed", "70")
+            printer.put("max_resonance_avoidance_speed", "120")
+            process.put("layer_height", "0.3")
+            process.put("initial_layer_print_height", "0.3")
+            process.put("outer_wall_speed", "200")
+            filament.put("filament_max_volumetric_speed", "100")
+            filament.put("slow_down_for_layer_cooling", "1")
+            filament.put("slow_down_layer_time", "10")
+            filament.put("slow_down_min_speed", "1")
+            SliceBeam.genCurrentConfig(model)
+            val config = SliceBeam.getCurrentConfigFile()
+            val serialized = config.readText()
+            assertTrue("Resonance avoidance must reach native slicing", Regex("(?m)^resonance_avoidance\\s*=\\s*${if (resonanceAvoidance) "1" else "0"}\\s*$").containsMatchIn(serialized))
+            output.delete()
+            val result = model.slice(config.absolutePath, output.absolutePath, null)
+            try {
+                assertTrue("Cooling regression fixture must produce G-code", output.isFile && output.length() > 0L)
+                var feature = ""
+                var feedrate = 0.0
+                val speeds = mutableListOf<Double>()
+                val words = Regex("([EFXY])-?(?:\\d+(?:\\.\\d*)?|\\.\\d+)")
+                output.forEachLine { line ->
+                    if (line.startsWith(";TYPE:")) feature = line.removePrefix(";TYPE:")
+                    val command = line.substringBefore(';').trim()
+                    if (!command.startsWith("G0 ") && !command.startsWith("G1 ")) return@forEachLine
+                    val values = words.findAll(command).associate { it.groupValues[1] to it.value.drop(1).toDouble() }
+                    values["F"]?.let { feedrate = it }
+                    if (feature == "Outer wall" && values.containsKey("E") && (values.containsKey("X") || values.containsKey("Y")))
+                        speeds += feedrate / 60.0
+                }
+                return speeds
+            } finally {
+                result.release()
+            }
+        }
+
+        try {
+            val reproduced = outerWallSpeeds(resonanceAvoidance = false)
+            assertTrue("Fixture must reproduce outer walls slowed into the configured resonance band: ${reproduced}",
+                reproduced.any { it > 70.0 && it < 120.0 })
+            val protected = outerWallSpeeds(resonanceAvoidance = true)
+            assertTrue("Resonance protection must keep external walls outside 70–120 mm/s: ${protected}",
+                protected.isNotEmpty() && protected.none { it > 70.0 && it < 120.0 })
+        } finally {
+            printerKeys.forEach { printer.put(it, previousPrinter[it]) }
+            processKeys.forEach { process.put(it, previousProcess[it]) }
+            filamentKeys.forEach { filament.put(it, previousFilament[it]) }
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
     @Test
     fun lightningDistanceFieldExpandsBoundsToContainOpenedOverhangSamples() = withKobraProfile {
         val probe = Native.lightning_distance_field_bounds_probe()

@@ -313,6 +313,42 @@ finished:
 	return new_feedrate;
 }
 
+static bool outer_wall_slowed_into_range(const PerExtruderAdjustments &adjustment, float min_speed, float max_speed)
+{
+    return std::any_of(adjustment.lines.begin(), adjustment.lines.end(), [min_speed, max_speed](const CoolingLine &line) {
+        return line.slowdown && (line.type & CoolingLine::TYPE_EXTERNAL_PERIMETER) &&
+               line.feedrate > min_speed + EPSILON && line.feedrate < max_speed - EPSILON;
+    });
+}
+
+static void hold_outer_walls(std::vector<PerExtruderAdjustments> &unslowed,
+                             const std::vector<PerExtruderAdjustments> &slowed,
+                             float min_speed, float max_speed, float speed)
+{
+    for (size_t i = 0; i < unslowed.size(); ++i) {
+        if (!outer_wall_slowed_into_range(slowed[i], min_speed, max_speed))
+            continue;
+        for (CoolingLine &line : unslowed[i].lines) {
+            if ((line.type & CoolingLine::TYPE_ADJUSTABLE) && (line.type & CoolingLine::TYPE_EXTERNAL_PERIMETER) &&
+                line.feedrate > max_speed - EPSILON) {
+                line.type &= ~size_t(CoolingLine::TYPE_ADJUSTABLE);
+                line.feedrate = speed;
+                line.time = line.length / speed;
+                line.slowdown = true;
+            }
+        }
+    }
+}
+
+static float longest_minimum_layer_time(const std::vector<PerExtruderAdjustments> &adjustments)
+{
+    float longest = 0.f;
+    for (const PerExtruderAdjustments &adjustment : adjustments)
+        if (adjustment.cooling_slow_down_enabled && !adjustment.lines.empty())
+            longest = std::max(longest, adjustment.slow_down_layer_time);
+    return longest;
+}
+
 std::string CoolingBuffer::process_layer(std::string &&gcode, size_t layer_id, bool flush)
 {
     // Cache the input G-code.
@@ -326,7 +362,30 @@ std::string CoolingBuffer::process_layer(std::string &&gcode, size_t layer_id, b
         // This is either an object layer or the very last print layer. Calculate cool down over the collected support layers
         // and one object layer.
         std::vector<PerExtruderAdjustments> per_extruder_adjustments = this->parse_layer_gcode(m_gcode, m_current_pos);
+        const float ra_min = float(m_config.min_resonance_avoidance_speed.value);
+        const float ra_max = float(m_config.max_resonance_avoidance_speed.value);
+        const bool avoid_resonance = m_config.resonance_avoidance.value && ra_min > 0.f && ra_max > ra_min;
+        std::vector<PerExtruderAdjustments> unslowed;
+        if (avoid_resonance)
+            unslowed = per_extruder_adjustments;
         float layer_time_stretched = this->calculate_layer_slowdown(per_extruder_adjustments);
+        if (avoid_resonance && std::any_of(per_extruder_adjustments.begin(), per_extruder_adjustments.end(),
+                                           [ra_min, ra_max](const PerExtruderAdjustments &adjustment) {
+                                               return outer_wall_slowed_into_range(adjustment, ra_min, ra_max);
+                                           })) {
+            // Keep an outer wall that cooling pulled into the resonance band at its upper edge, then
+            // use the remaining adjustable moves to meet the layer-time target.
+            std::vector<PerExtruderAdjustments> held = unslowed;
+            hold_outer_walls(held, per_extruder_adjustments, ra_min, ra_max, ra_max);
+            float held_time = this->calculate_layer_slowdown(held);
+            if (held_time < 0.998f * std::min(layer_time_stretched, longest_minimum_layer_time(unslowed))) {
+                held = unslowed;
+                hold_outer_walls(held, per_extruder_adjustments, ra_min, ra_max, ra_min);
+                held_time = this->calculate_layer_slowdown(held);
+            }
+            per_extruder_adjustments = std::move(held);
+            layer_time_stretched = held_time;
+        }
         out = this->apply_layer_cooldown(m_gcode, layer_id, layer_time_stretched, per_extruder_adjustments);
         m_gcode.clear();
     }
