@@ -1393,8 +1393,10 @@ class NativeSliceDeviceTest {
 
         fun outerWallSpeeds(resonanceAvoidance: Boolean): List<Double> {
             printer.put("resonance_avoidance", if (resonanceAvoidance) "1" else "0")
-            printer.put("min_resonance_avoidance_speed", "70")
-            printer.put("max_resonance_avoidance_speed", "120")
+            // The acceleration-aware cooler slows this small model below 70 mm/s. Use its observed
+            // 30–45 mm/s range so the unprotected slice still exercises the resonance guard.
+            printer.put("min_resonance_avoidance_speed", "30")
+            printer.put("max_resonance_avoidance_speed", "45")
             process.put("layer_height", "0.3")
             process.put("initial_layer_print_height", "0.3")
             process.put("outer_wall_speed", "200")
@@ -1432,10 +1434,81 @@ class NativeSliceDeviceTest {
         try {
             val reproduced = outerWallSpeeds(resonanceAvoidance = false)
             assertTrue("Fixture must reproduce outer walls slowed into the configured resonance band: ${reproduced}",
-                reproduced.any { it > 70.0 && it < 120.0 })
+                reproduced.any { it > 30.0 && it < 45.0 })
             val protected = outerWallSpeeds(resonanceAvoidance = true)
-            assertTrue("Resonance protection must keep external walls outside 70–120 mm/s: ${protected}",
-                protected.isNotEmpty() && protected.none { it > 70.0 && it < 120.0 })
+            assertTrue("Resonance protection must keep external walls outside 30–45 mm/s: ${protected}",
+                protected.isNotEmpty() && protected.none { it > 30.0 && it < 45.0 })
+        } finally {
+            printerKeys.forEach { printer.put(it, previousPrinter[it]) }
+            processKeys.forEach { process.put(it, previousProcess[it]) }
+            filamentKeys.forEach { filament.put(it, previousFilament[it]) }
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test(timeout = 180_000)
+    fun layerCoolingTargetsPreviewLayerTimeWhenAccelerationLimitsShortMoves() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val printer = requireNotNull(SliceBeam.CONFIG?.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(SliceBeam.CONFIG?.findFilament("Anycubic Generic PLA"))
+        val printerKeys = listOf("machine_max_acceleration_extruding")
+        val processKeys = listOf(
+            "layer_height", "initial_layer_print_height", "outer_wall_speed", "inner_wall_speed",
+            "internal_solid_infill_speed", "sparse_infill_speed", "top_surface_speed",
+        )
+        val filamentKeys = listOf(
+            "filament_max_volumetric_speed", "slow_down_for_layer_cooling", "slow_down_layer_time", "slow_down_min_speed",
+        )
+        val previousPrinter = printerKeys.associateWith(printer::get)
+        val previousProcess = processKeys.associateWith(process::get)
+        val previousFilament = filamentKeys.associateWith(filament::get)
+        val source = createThinCubeFixture("acceleration-layer-cooling.stl", 10.0, 10.0, 6.0)
+        val output = File(context.cacheDir, "acceleration-layer-cooling.gcode")
+        val model = Model(source).also { it.ensureOnBed(0) }
+
+        fun layerTimes(cooling: Boolean): FloatArray {
+            printer.put("machine_max_acceleration_extruding", "300,300")
+            process.put("layer_height", "0.3")
+            process.put("initial_layer_print_height", "0.3")
+            process.put("outer_wall_speed", "200")
+            process.put("inner_wall_speed", "200")
+            process.put("internal_solid_infill_speed", "200")
+            process.put("sparse_infill_speed", "200")
+            process.put("top_surface_speed", "200")
+            filament.put("filament_max_volumetric_speed", "100")
+            filament.put("slow_down_for_layer_cooling", if (cooling) "1" else "0")
+            filament.put("slow_down_layer_time", "8")
+            filament.put("slow_down_min_speed", "1")
+            SliceBeam.genCurrentConfig(model)
+            val config = SliceBeam.getCurrentConfigFile()
+            output.delete()
+            val result = model.slice(config.absolutePath, output.absolutePath, null)
+            return try {
+                assertTrue("Acceleration fixture must generate G-code", output.isFile && output.length() > 0L)
+                result.getLayerTimes()
+            } finally {
+                result.release()
+            }
+        }
+
+        try {
+            val unslowed = layerTimes(cooling = false)
+            val slowed = layerTimes(cooling = true)
+            assertEquals("Cooling must preserve the preview's layer count", unslowed.size, slowed.size)
+            val quickLayers = (1 until unslowed.lastIndex).filter { unslowed[it] < 8f }
+            assertTrue("The small, acceleration-limited cube must have several layers below 8s", quickLayers.size >= 5)
+            for (layer in 1 until slowed.lastIndex) {
+                if (unslowed[layer] < 8f) {
+                    assertTrue("Layer $layer should reach the 8s preview target (was ${slowed[layer]}s)", slowed[layer] in 7.92f..8.24f)
+                } else {
+                    val tolerance = maxOf(0.01f, unslowed[layer] * 0.001f)
+                    assertTrue("Already-long layer $layer should remain unchanged", kotlin.math.abs(slowed[layer] - unslowed[layer]) <= tolerance)
+                }
+            }
         } finally {
             printerKeys.forEach { printer.put(it, previousPrinter[it]) }
             processKeys.forEach { process.put(it, previousProcess[it]) }

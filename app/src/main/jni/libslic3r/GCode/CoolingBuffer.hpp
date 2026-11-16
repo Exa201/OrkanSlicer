@@ -2,9 +2,12 @@
 #define slic3r_CoolingBuffer_hpp_
 
 #include "../libslic3r.h"
+#include "../PrintConfig.hpp"
+#include "GCodeProcessor.hpp"
 #include <map>
 #include <string>
 #include <cfloat>
+#include <utility>
 
 namespace Slic3r {
 
@@ -27,11 +30,16 @@ public:
     void        reset(const Vec3d &position);
     void        set_current_extruder(unsigned int extruder_id) { m_current_extruder = extruder_id; }
     std::string process_layer(std::string &&gcode, size_t layer_id, bool flush);
+    void        remember_motion_settings(const std::string &gcode);
 
 private:
 	CoolingBuffer& operator=(const CoolingBuffer&) = delete;
-    std::vector<PerExtruderAdjustments> parse_layer_gcode(const std::string &gcode, std::vector<float> &current_pos) const;
-    float       calculate_layer_slowdown(std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
+    std::vector<PerExtruderAdjustments> parse_layer_gcode(const std::string &gcode, std::vector<float> &current_pos);
+    float       calculate_layer_slowdown(std::vector<PerExtruderAdjustments> &per_extruder_adjustments, float time_scale);
+    float       slow_down_layer(const std::string &gcode, std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
+    float       estimate_layer_time(const std::string &gcode, const std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
+    void        remember_motion_setting(const std::string &line);
+    std::string timer_setup(unsigned int extruder, const std::vector<float> &position) const;
     // Apply slow down over G-code lines stored in per_extruder_adjustments, enable fan if needed.
     // Returns the adjusted G-code.
     std::string apply_layer_cooldown(const std::string &gcode, size_t layer_id, float layer_time, std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
@@ -57,6 +65,12 @@ private:
     unsigned int                m_current_extruder;
     //BBS: current fan speed
     int                         m_current_fan_speed;
+    GCodeProcessor              m_layer_timer;
+    PrintConfig                 m_layer_timer_config;
+    std::map<std::string, std::pair<size_t, std::string>> m_motion_settings;
+    size_t                      m_motion_settings_count { 0 };
+    size_t                      m_timed_from { std::string::npos };
+    std::string                 m_timer_setup;
 };
 
 }

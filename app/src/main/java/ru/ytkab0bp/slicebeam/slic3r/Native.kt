@@ -83,6 +83,9 @@ class Native {
 
     @JvmStatic
     external fun gcoderesult_get_initial_layer_time(ptr: Long): Float
+    /** Sum of motion durations by analyzed layer, used to verify layer-cooling estimates against the preview. */
+    @JvmStatic
+    external fun gcoderesult_get_layer_times(ptr: Long): FloatArray
     /** Verifies by-layer/as-object-list ordering preserves rotated copies' model-list order. */
     @JvmStatic
     external fun by_layer_copy_order_regression(model: Long, configPath: String): IntArray

@@ -4116,6 +4116,24 @@ extern "C" {
         return ref->result.initial_layer_time;
     }
 
+    JNIEXPORT jfloatArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_gcoderesult_1get_1layer_1times(JNIEnv* env, jclass, jlong ptr) {
+        GCodeResultRef* ref = (GCodeResultRef*) (intptr_t) ptr;
+        if (ref == nullptr) return env->NewFloatArray(0);
+        size_t layer_count = 0;
+        for (const GCodeProcessorResult::MoveVertex& move : ref->result.moves)
+            layer_count = std::max(layer_count, size_t(move.layer_id) + 1);
+        std::vector<float> times(layer_count, 0.f);
+        for (const GCodeProcessorResult::MoveVertex& move : ref->result.moves)
+            times[move.layer_id] += move.time[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)];
+        jfloatArray result = env->NewFloatArray(static_cast<jsize>(times.size()));
+        if (result != nullptr && !times.empty()) env->SetFloatArrayRegion(result, 0, static_cast<jsize>(times.size()), times.data());
+        return result;
+    }
+
+    JNIEXPORT jfloatArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_00024Companion_gcoderesult_1get_1layer_1times(JNIEnv* env, jobject, jlong ptr) {
+        return Java_ru_ytkab0bp_slicebeam_slic3r_Native_gcoderesult_1get_1layer_1times(env, nullptr, ptr);
+    }
+
     JNIEXPORT jfloat JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_00024Companion_gcoderesult_1get_1initial_1layer_1time(JNIEnv*, jobject, jlong ptr) {
         GCodeResultRef* ref = (GCodeResultRef*) (intptr_t) ptr;
         return ref->result.initial_layer_time;

@@ -25,6 +25,9 @@ open class GCodeProcessorResult {
     /** Motion time spent printing the first layer, independent of machine preparation time. */
     open fun getInitialLayerTime(): Float = if (pointer == 0L) 0f else Native.gcoderesult_get_initial_layer_time(pointer)
 
+    /** Per-layer motion duration estimated by the same native processor used by G-code preview. */
+    open fun getLayerTimes(): FloatArray = if (pointer == 0L) FloatArray(0) else Native.gcoderesult_get_layer_times(pointer)
+
     @JvmField
     internal var pointer: Long
 

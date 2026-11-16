@@ -1,14 +1,16 @@
 # Nightly 0.8.481 — Release- und Teststand — 2026-11-16
 
-## Orca Batch 19 — Fortschritt 3/10 — 2026-11-16
+## Orca Batch 19 — Fortschritt 4/10 — 2026-11-16
 
 - Nightly-only gilt weiter. GitHub führt fünf aufbewahrte Nightly-Pre-Releases; der alte Build 0.8.415 ist weder in der Release-Liste noch als lokale APK vorhanden. Stable wird für diese Arbeit nicht verwendet.
 - Portiert Orca `0e8e95d516` in `WipeTower2::prime`: Wenn beim Type-2-Wipe-Tower nur ein Werkzeug primt, wird das Wipe-Volumen sicher auf null gesetzt, statt `tools[idx_tool - 1]` zu dereferenzieren.
 - Neue Regression `NativeSliceDeviceTest#type2PrimeTowerSlicesWithOnlyOneUsedFilament` erstellt ein echtes Flashforge-AD5X-Slice mit Type-2-Turm und nur einem verwendeten Filament. ARM64-Native-Build erfolgreich; Instrumentierung auf Android 16/API 36 **1/1 bestanden**. Das Test-AVD war x86_64 mit ARM64-Übersetzungsbrücke; kein physisches Gerät wurde geprüft.
 - Vollständige Debug-Unit-Tests **794/794** und SliceTest-Unit-Tests **794/794**, ohne Fehler oder Skips. `git diff --check` sauber.
 - Punkt 3/10 portiert Orca `8b8d573a85`: Bei aktivem Resonanzschutz werden durch Layer-Kühlung in den Resonanzbereich gezogene Außenwände an dessen oberer oder – falls für die Layerzeit nötig – unterer Grenze gehalten. Die neue echte Slice-Regression `NativeSliceDeviceTest#layerCoolingKeepsOuterWallsOutsideResonanceAvoidanceRange` reproduziert den Bereichsverstoß zuerst ohne Schutz und prüft danach die Korrektur; Android-16/API-36-Instrumentierung **1/1 bestanden**.
-- Orcas zugehörige Beschleunigungs-genaue Layerzeitschätzung (`8a1cef365e`) ist ein separater noch offener Port und wurde nicht als umgesetzt gezählt.
-- Kein APK erstellt und kein neuer Release: Batch 19 steht bei 3/10. Der letzte veröffentlichte Nightly-Stand bleibt 0.8.481; nächster Schritt ist der Port und Verhaltenstest der Layerzeitschätzung mit Beschleunigung.
+- Portiert Orcas beschleunigungsgenaue Layerzeitschätzung `8a1cef365e`: Kühlungs-Layer werden mit einem separaten nativen G-Code-Prozessor anhand der aktiven Beschleunigungsgrenzen ausgewertet; Start- und Filament-Start-G-Code mit Motion-Limits werden berücksichtigt.
+- `NativeSliceDeviceTest#layerCoolingTargetsPreviewLayerTimeWhenAccelerationLimitsShortMoves` slicet einen kleinen Würfel und vergleicht die resultierenden nativen Layerzeiten mit dem 8-s-Kühlungsziel; bestanden 1/1. Die Resonanzschutz- und relative/absolute-E-Layer-Cooling-Regressionen bestanden ebenfalls je 1/1.
+- ARM64-`assembleSliceTest` erfolgreich. Debug-Unit **794/794** und SliceTest-Unit **794/794**, jeweils keine Fehler oder Skips; `git diff --check` sauber. Gerät: x86_64-API-36-AVD mit ARM64-Übersetzungsbrücke, kein physisches Telefon.
+- Der alte Build 0.8.415 ist nicht als Nightly-Release vorhanden; fünf neueste Nightly-Releases bleiben erhalten. Kein APK erstellt und kein Release veröffentlicht: Batch 19 steht bei 4/10. Nächster Schritt: nächsten unabhängigen Orca-Upstream-Port auswählen und durch einen reproduzierbaren Verhaltenstest absichern.
 
 ## Veröffentlichungsziel bestätigt — 2026-11-16
 

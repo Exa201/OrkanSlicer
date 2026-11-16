@@ -3235,6 +3235,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     // Write the custom start G-code
     file.writeln(machine_start_gcode);
+    m_cooling_buffer->remember_motion_settings(machine_start_gcode);
 
     //BBS: gcode writer doesn't know where the real position of extruder is after inserting custom gcode
     m_writer.set_current_position_clear(false);
@@ -3249,6 +3250,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
             std::string filament_start_gcode = this->placeholder_parser_process("filament_start_gcode", print.config().filament_start_gcode.values.at(initial_non_support_extruder_id), initial_non_support_extruder_id,&config);
             file.writeln(filament_start_gcode);
+            m_cooling_buffer->remember_motion_settings(filament_start_gcode);
             // mark the first filament used in print
             file.write_format(";VT%d\n", initial_extruder_id);
         }
