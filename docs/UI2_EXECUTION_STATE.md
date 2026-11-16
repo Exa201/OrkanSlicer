@@ -4,7 +4,11 @@
 - Das Video zeigte, dass das ausgewählte Modell während der Rotation sichtbar um einen falschen Punkt schwenkt. Ursache: Die Vorschau drehte ein einzelnes Objekt um seinen Instanzursprung, während die Übernahme – wie bei Gruppen – den Mittelpunkt der sichtbaren Auswahlgrenzen fixiert.
 - Die GL-Vorschau verwendet jetzt den gemeinsamen Begrenzungsrahmen-Pivot für alle ausgewählten Objekte. Dadurch folgt die Einzeldrehung demselben Pivot wie die bestätigte Drehung; Gruppen bleiben gemeinsam drehbar.
 - Neue Regression `InitialProjectMenuDeviceTest#singleObjectRotationPreviewUsesVisibleBoundsCenterAsItsPivot`: **1/1 bestanden** auf API-36-Emulator. Bestehende Gruppen-Drehung samt Undo/Redo `rotationEditorRotatesSelectedGroupAsOneAssemblyAndSupportsUndoRedo`: **1/1 bestanden**. Beide Instrumentierungsläufe und der Kotlin-/Native-Build erfolgreich; `git diff --check` sauber.
-- Version 0.8.482 / Code 517 wurde für diesen Fix erhöht; APK-Erstellung und GitHub-Pre-Release stehen noch aus.
+- Version 0.8.482 / Code 517: `:app:assembleRelease` erfolgreich; APK mit dem historischen Nightly-Zertifikat signiert und verifiziert.
+- APK `OrkanSlicerNightly25_3776791116-signed.apk`, 239.809.466 Byte; SHA-256 `5BB9A16C4081B07A92519E7EC6AB14936DA33922BC9493122A2E0F0C457D1A49`.
+- GitHub Nightly-Pre-Release `v0.8.482-nightly.1` veröffentlicht: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.482-nightly.1. Upload-Prüfsumme stimmt mit GitHub überein.
+- Codecommit `3776791116deb2d7d06fc5a748ff90210b5c1a7e` auf `nightly25/codex/ui-2.1-redesign` gepusht. Debug-Unit `SparseAceRoutingOutputTest` sowie beide API-36-Rotations-Instrumentierungstests bestanden; `verifyNightlyChangelog`, Release-Build und `git diff --check` erfolgreich.
+- Der Honor-Test wurde nicht ausgeführt; ein Hardware-Druck oder Druckstart fand nicht statt.
 
 ## Lay-flat-Flächen und Anycubic-ACE-Zuordnung — 2026-11-16
 
