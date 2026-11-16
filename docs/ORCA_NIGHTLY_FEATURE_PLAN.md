@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 20/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 21/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -118,6 +118,12 @@
 - `NativeSliceDeviceTest#arrangementUsesAvailableBedAreaForNearBedSizeObjects` prüft die native Packer-Regression mit einem 197-mm-Objekt und 1-mm-Brim auf einem 200-mm-Bett. Das Objekt muss passen und auf dem Bett bleiben; nur der ungenutzte Standardrand wird auf 0,5 mm reduziert, die quadratische Grundfläche bleibt 197 × 197 mm.
 - Android 16/API-36-Emulator: **1/1 bestanden**, 0 Fehler, 0 Errors, 0 Skips. ARM64-Native- und Instrumentierungsbuild erfolgreich.
 - APK-Gate bleibt bei 100/100. Nächster Schritt: weiteren Android-relevanten Kern- oder Arrange-Grenzfall auswählen.
+
+### Schritt 21/100 — G-Code-Routing prüft alle 16 Slicer-Tools bis zu zweistelligen T-Befehlen
+
+- Die Routing-Regression läuft für T0–T15 über eine vollständige Umkehrzuordnung auf 16 physische Slots. Sie prüft die Gate-Liste, jeden ausgegebenen zweistelligen bzw. einstelligen Tool-Befehl, Erhalt der Kommentarzeichenfolge und unveränderte Nicht-Tool-Befehle.
+- `MmuColorAssignmentPolicyTest#allSixteenLogicalToolsRouteToTheirSelectedPhysicalSlots`: gezielte Debug-Unit **1/1** und SliceTest-Unit **1/1** bestanden. Changelog-Prüfung erfolgreich; keine Fehler.
+- APK-Gate bleibt bei 100/100. Nächster Schritt: weiteren Mehrfarben- oder Slicingpfad mit einem konkreten Android-Aufrufnachweis absichern.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
 

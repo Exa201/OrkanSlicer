@@ -46,6 +46,17 @@ class MmuColorAssignmentPolicyTest {
         assertEquals("T0", GCodeToolMapper.remapToolLine("T1", mapping))
         assertEquals("T1", GCodeToolMapper.remapToolLine("T2", mapping))
     }
+    @Test fun allSixteenLogicalToolsRouteToTheirSelectedPhysicalSlots() {
+        val outputSlots = IntArray(16) { 15 - it }
+        assertEquals("16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1",
+            GCodeToolMapper.formatGateList(outputSlots))
+        outputSlots.indices.forEach { slicerTool ->
+            val physicalSlot = outputSlots[slicerTool]
+            assertEquals("T$physicalSlot ; keep tool comment",
+                GCodeToolMapper.remapToolLine("T$slicerTool ; keep tool comment", outputSlots))
+        }
+        assertEquals("M104 S220", GCodeToolMapper.remapToolLine("M104 S220", outputSlots))
+    }
     @Test fun compatibleMaterialIsPreferredOverAnIdenticalColorInAnotherMaterial() {
         val targets = listOf(MmuColorAssignmentPolicy.Slot(0, 0xFFFFFF, "PETG"),
             MmuColorAssignmentPolicy.Slot(2, 0xCCCCCC, "PLA"))
