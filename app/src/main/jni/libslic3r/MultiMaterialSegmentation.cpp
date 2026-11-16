@@ -1988,7 +1988,8 @@ static std::vector<std::vector<ExPolygons>> segmentation_by_painting_impl(const 
                                                               const IncludeTopAndBottomLayers                                  include_top_and_bottom_layers,
                                                               const std::function<void()>                                     &throw_on_cancel_callback,
                                                               const ModelVolume *only_painted_volume,
-                                                              const std::vector<ExPolygons> *sliced_input_override)
+                                                              const std::vector<ExPolygons> *sliced_input_override,
+                                                              const bool merge_layer_segments = true)
 {
     const size_t                          num_layers    = print_object.layers().size();
     std::vector<std::vector<ExPolygons>>  segmented_regions(num_layers);
@@ -2042,7 +2043,12 @@ static std::vector<std::vector<ExPolygons>> segmentation_by_painting_impl(const 
     std::vector<BoundingBox> layer_bboxes(num_layers);
     for (size_t layer_idx = 0; layer_idx < num_layers; ++layer_idx) {
         throw_on_cancel_callback();
-        layer_bboxes[layer_idx] = get_extents(layers[layer_idx]->regions());
+        // Painted modifiers are segmented while volume slices are being prepared,
+        // before LayerRegions have been populated. In that path, use the actual
+        // host slice contours as the edge-grid bounds instead of empty regions.
+        layer_bboxes[layer_idx] = sliced_input_override != nullptr
+            ? get_extents((*sliced_input_override)[layer_idx])
+            : get_extents(layers[layer_idx]->regions());
         layer_bboxes[layer_idx].merge(get_extents(input_expolygons[layer_idx]));
     }
 
@@ -2217,6 +2223,9 @@ static std::vector<std::vector<ExPolygons>> segmentation_by_painting_impl(const 
         throw_on_cancel_callback();
     }
 
+    if (!merge_layer_segments)
+        return segmented_regions;
+
     std::vector<std::vector<ExPolygons>> segmented_regions_merged = merge_segmented_layers(segmented_regions, std::move(top_and_bottom_layers), num_facets_states, throw_on_cancel_callback);
     throw_on_cancel_callback();
 
@@ -2346,7 +2355,7 @@ std::vector<ExPolygons> painted_modifier_segmentation(const PrintObject &print_o
         return {volume.painted_modifier_facets, true, false};
     };
     auto segmented = segmentation_by_painting_impl(print_object, extract_facets_info, 2, 0.f, 0.f, false, IncludeTopAndBottomLayers::No,
-                                               throw_on_cancel_callback, &painted_modifier, &slices);
+                                                 throw_on_cancel_callback, &painted_modifier, &slices, false);
     if (painted_modifier.painted_modifier_depth > 0.f)
         cut_segmented_layers(segmented_input, segmented, float(scale_(painted_modifier.painted_modifier_depth)), 0.f, throw_on_cancel_callback);
     std::vector<ExPolygons> out = painted_modifier_top_and_bottom(print_object, painted_modifier, segmented_input, throw_on_cancel_callback);

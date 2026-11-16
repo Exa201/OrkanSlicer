@@ -1,15 +1,25 @@
 # Nightly 0.8.484 — Release- und Teststand — 2026-11-16
 
-## Aktuelle Fortsetzung — Orca-Upgrade-Zyklus 34/100
+## Aktuelle Fortsetzung — Orca-Upgrade-Zyklus 35/100
+
+### Schritt 35 — Painted-Modifier-Slicing wiederherstellen
+
+- Ursache: Modifier-Segmentierung läuft vor dem Befüllen der `LayerRegions`. Der gemeinsame Paint-Pfad verwendete dadurch leere Bounds und führte danach die Modifier-Segmente zusammen, sodass die bemalte Teilfläche im Slice nicht erhalten blieb.
+- `MultiMaterialSegmentation.cpp` verwendet jetzt die tatsächlichen Host-Slice-Konturen als Bounds und liefert Painted-Modifier-Segmente ungemerged zurück; gewöhnliche Paint-Segmentierung behält ihr bisheriges Merge-Verhalten.
+- `NativeSliceDeviceTest#paintedModifierSlicesOnlyThePaintedHostSide`: bestanden; die +X-Seitenbemalung belegt die erwartete Dreiecksfläche von 100 mm², der Host-Rest 300 mm². `paintedModifierBbs3mfRoundtripPreservesTypePaintAndSettings`: bestanden.
+- Vollständiger API-36-Lauf `NativeSliceDeviceTest`: **214 Tests, 207 bestanden, 6 fehlgeschlagen, 1 übersprungen, 0 Errors**. Die 6 bekannten Fehler: `spiralInsetSparsePatternProducesADistinctNativeToolpath`, `booleanOperationsPreservePaintedTargetFilamentsThroughThreeMfAndSlice`, `liftedNozzleStaysUpAcrossAvoidCrossingDetours`, `preciseZSliverLayersJoinThePrimeTowerLayerBelowAndStillSlice`, `paintedSegmentationUsesFilamentCountWhenColorPaletteIsShorter`, `orcaOpenEyePeacockV2ProfilesUseMoonrakerAndSlice`. Das KromaCut-Fixture bleibt mangels privater Fixturedatei übersprungen.
+- Der APK-Stand bleibt 0.8.484 / Code 519; dieser Fix ist noch nicht in einem APK oder GitHub-Release enthalten. Kein Geräte- oder G-Code-Hardwaretest in diesem Schritt.
+- Ausgangs-Code-HEAD: `d1e610594cf1baaab562341e09a0d077271b9e33`. Geänderte Dateien für diesen Schritt: `MultiMaterialSegmentation.cpp` und `NativeSliceDeviceTest.kt`. Der vorhandene nicht zugehörige lokale Änderungsstand wurde nicht aufgenommen.
+- Nächster konkreter Schritt: den ältesten relevanten Slice-Fehler `paintedSegmentationUsesFilamentCountWhenColorPaletteIsShorter` mit gezieltem Fixture isolieren und den korrekten Filamentindex bis in den erzeugten G-Code verfolgen.
 
 ### Verifikation für 0.8.484
 
 - Enthalten ist der bereits gepushte Fix `6f7637e61d`: Flachlegen behält beim gedrehten/verschobenen Mehrfachteil-Modell den gemeinsamen lokalen Pivot und die relative Teilanordnung. ACE-Routing bleibt für logische T0–T15 getestet; die physische Gatewahl eines realen Druckers wurde nicht nachgewiesen.
-- `NativeSliceDeviceTest#flatteningKeepsMultipartVolumeLayoutAndAlignsTheSelectedFace`: **1/1 bestanden** auf API-36-Emulator. Der separate bestehende Test `paintedModifierSlicesOnlyThePaintedHostSide` reproduziert weiterhin leere bemalte Slice-Fläche (0 statt erwarteter 200 mm²); ein versuchter Prism-Fix wurde zurückgenommen und ist ausdrücklich offen.
+- `NativeSliceDeviceTest#flatteningKeepsMultipartVolumeLayoutAndAlignsTheSelectedFace`: **1/1 bestanden** auf API-36-Emulator. Der Painted-Modifier-Fehler wurde nach dem APK-Release in Schritt 35 behoben; der Fix liegt noch nicht im Release-APK.
 - `:app:assembleDebug` und `:app:assembleRelease` erfolgreich. Signierte Release-APK startete auf API-36-Emulator; Prozess blieb aktiv und Logcat-Ausschnitt enthielt keinen Crash. Honor/Xiaomi-Instrumentierung ist nicht erfolgt; das verbundene Gerät verweigerte Test-APK-Installation mit `INSTALL_FAILED_USER_RESTRICTED`.
 - Signierte APK: `OrkanSlicerNightly25_6f7637e61d-signed.apk`, 0.8.484 / Code 519, SHA-256 `85379DE2522BCC539AB42C2A1A6E254F2F3EEF5550A49568704315B196FBAB37`, Nightly-Signer verifiziert.
 - Nightly-Prerelease veröffentlicht: [v0.8.484-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.484-nightly.1). GitHub-Assetdigest stimmt mit der lokalen SHA-256 überein. Nach Upload wurde `v0.8.460-nightly.1` gelöscht; die fünf neuesten Nightly-Releases bleiben erhalten.
-- Der vollständige NativeSlice-Lauf wurde in diesem Release-Schritt nicht erneut ausgeführt. Letzter bekannter Lauf: 206/214 bestanden, 7 fehlgeschlagen, 1 übersprungen; darunter der oben dokumentierte Modifier-Test. Kein vollständiger grüner Integrationslauf behauptet.
+- Der vollständige NativeSlice-Lauf nach Schritt 35: 207/214 bestanden, 6 fehlgeschlagen, 1 übersprungen. Kein vollständiger grüner Integrationslauf behauptet.
 - Nächster konkreter Schritt im Orca-Zyklus: einen der noch relevanten NativeSlice-Fehler isolieren und reproduzierbar beheben; die UI-Menüabnahme bleibt auf dem Emulator, das Honor bleibt bis zum gemeinsamen 100-Punkte-Gate unberührt.
 
 - Arbeitsbranch: `codex/ui-2.1-redesign`; aktueller Code-HEAD vor Schritt 32: `388b58e996749f2a9b9c52488aabbd7c85624a6d`; Upstream: `59acdedd065e5213445163a581947353d3208ccd`.

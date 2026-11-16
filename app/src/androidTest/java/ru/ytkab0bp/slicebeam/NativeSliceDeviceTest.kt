@@ -177,8 +177,8 @@ class NativeSliceDeviceTest {
     fun paintedModifierSlicesOnlyThePaintedHostSide() {
         val result = Native.painted_modifier_slice_regression()
         assertEquals("painted modifier probe result shape", 7, result.size)
-        assertEquals("painted +X face applies its settings to about half the cube layer", 200.0, result[0], 4.0)
-        assertEquals("the unpainted host area keeps its original settings", 200.0, result[1], 4.0)
+        assertEquals("painted +X face applies settings to the nearest half of its side", 100.0, result[0], 4.0)
+        assertEquals("the rest of the host layer keeps its original settings", 300.0, result[1], 4.0)
         assertTrue("painted region stays on the +X half", result[2] >= -0.5)
         assertTrue("painted region reaches the +X outer edge", result[3] <= 0.5)
         assertTrue("the layer must retain separate print regions", result[4] >= 2.0)
