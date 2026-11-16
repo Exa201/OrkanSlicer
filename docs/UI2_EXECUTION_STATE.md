@@ -15,9 +15,11 @@
 - SHA-256: `D5A217430F0140AFA31F0105AB71FCBEC3057714D8337211C1D457EF01DC4444`.
 - APK-Installation auf dem Honor steht aus, bis Wireless-ADB wieder erreichbar ist. Kein offizielles Release und kein Merge.
 
-## Nächster konkreter Schritt
+## Veröffentlichung und Restprüfung
 
-Nightly-Pre-Release `v0.8.481-nightly.1` mit diesem APK und der Versionsdoku veröffentlichen. Anschließend nach erneuter Honor-ADB-Verbindung installieren und die noch offenen Quick-Slice-/Kalibrierungs-Gerätetests ausführen.
+- Nightly-Pre-Release `v0.8.481-nightly.1` veröffentlicht: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.481-nightly.1
+- Das Release enthält `OrkanSlicerNightly25_ccf3772986.apk`; SHA-256 siehe oben. Der Tag zeigt auf Codecommit `ccf3772986`.
+- Noch offen: APK auf dem Honor installieren und Quick-Slice-/Kalibrierungs-Gerätetests vervollständigen, sobald Wireless-ADB wieder erreichbar ist.
 
 # UI 2.1 ColorFlow — aktueller Nightly-Fortsetzungsstand — 2026-11-15
 
