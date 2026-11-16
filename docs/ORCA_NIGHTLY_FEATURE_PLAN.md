@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 18/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 19/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -105,6 +105,13 @@
 - `NativeSliceDeviceTest#byObjectArrangementKeepsShortObjectsInsideBedAndSeparated` prüft echte native Arrange-Geometrie: kurze Modelle, ein gedrehtes Modell, Packen mehrerer Modelle auf einer vollen Platte, keine Modelle außerhalb der Bettgrenzen und Einhaltung des nötigen Objektabstands.
 - Android 16/API-36-Emulator: **1/1 bestanden**, 0 Fehler, 0 Errors, 0 Skips. ARM64-Native- und Instrumentierungsbuild erfolgreich.
 - APK-Gate bleibt bei 100/100. Nächster Schritt: Orca-Upstream erneut nach einem Android-erreichbaren Regressionstest durchsuchen.
+
+### Schritt 19/100 — Menüaktion „Alle anordnen“ packt verschobene Mehrmodellprojekte neu
+
+- Der echte Compose-/GL-Menüpfad wurde mit vier getrennten Modellen geprüft, die absichtlich weit außerhalb des Druckbetts lagen. Das Öffnen des Menüs allein verändert die Positionen nicht; erst die ausdrücklich gewählte Anordnungsaktion setzt die Modelle zurück ins Arbeitsfeld.
+- `InitialProjectMenuDeviceTest#modelMenuArrangeRepacksSeveralMovedObjectsInsteadOfFillingWithCopies` bestätigt: alle vier Objekte werden neu gepackt, es entstehen keine Kopien, Objekt-/Filamentdaten bleiben erhalten und Undo/Redo stellt Vorher- und Nachherpositionen wieder her. Der Test slicet außerdem das resultierende Workspace-Modell.
+- Android 16/API-36-Emulator: **1/1 bestanden**, 0 Fehler, 0 Skips. Der Test wurde im SliceTest-Instrumentierungsvariant ausgeführt; ARM64-Native- und App-/Test-APK-Build erfolgreich.
+- APK-Gate bleibt bei 100/100. Nächster Schritt: einen weiteren Android-relevanten Orca-Core-Fall oder fehlenden Workspace-Regressionstest auswählen.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
 
