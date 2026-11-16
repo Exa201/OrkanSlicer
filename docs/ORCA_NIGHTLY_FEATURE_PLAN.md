@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 8/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 9/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -43,6 +43,12 @@
 
 - Orca `82135af6ff` behebt Nahtdellen, indem nach Außenwandpfaden wieder korrekt zurückgezogen wird. Der Android-Test slicet dieselbe Geometrie mit der Einstellung aus und an und vergleicht tatsächliche negative E-Bewegungen für kurze Reisen.
 - Android 16/API-36-Emulator: `NativeSliceDeviceTest#outerWallRetractionOptionChangesRealShortTravelGcode` **1/1 bestanden**; beide Slices sind vollständig, und der aktivierte Modus erzeugt zusätzliche Retraktionen.
+- APK-Gate bleibt bei 100/100.
+
+### Schritt 9/100 — Relative und absolute E-Modi bei Layer-Kühlung
+
+- Orca `36815b4f03` setzt den relativen E-Akkumulator vor der Analyse jeder G-Code-Zeile zurück. Damit wird ein reiner Feedrate-Befehl nicht als zusätzliche Extrusionszeit interpretiert.
+- `NativeSliceDeviceTest#layerCoolingKeepsExtrusionSpeedsEquivalentForRelativeAndAbsoluteE` slicet dieselbe Geometrie mit relativem und absolutem E und vergleicht die Anzahl und Feedrates der XY-Extrusionsbewegungen. Android 16/API-36-Emulator: **1/1 bestanden**; Bewegungsanzahl stimmt und maximale Feedrate-Abweichung bleibt unter 1 mm/min.
 - APK-Gate bleibt bei 100/100.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
