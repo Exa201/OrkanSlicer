@@ -1,5 +1,13 @@
 # Nightly 0.8.483 — Release- und Teststand — 2026-11-16
 
+## Aktuelle Fortsetzung — Orca-Upgrade-Zyklus 32/100
+
+- Arbeitsbranch: `codex/ui-2.1-redesign`; aktueller Code-HEAD vor Schritt 32: `388b58e996749f2a9b9c52488aabbd7c85624a6d`; Upstream: `59acdedd065e5213445163a581947353d3208ccd`.
+- Schritt 32 portiert Orcas Semver-Formatierung von Boost.Format auf `std::to_string` und ergänzt 16 zuvor transitive Boost.Format-Nutzer um direkte Includes.
+- ARM64-NDK-Build erfolgreich. Debug-Unit **806/806**, SliceTest-Unit **806/806**, 0 Fehler/Errors/Skips; Changelog-Validierung erfolgreich.
+- Kein APK-Build, Upload oder Geräteabnahmetest in diesem Schritt; APK/Prerelease erst nach 100/100.
+- Nächster konkreter Schritt: nächsten noch fehlenden Android-relevanten Orca-Kernfall aussuchen und mit einem gezielten Test abdecken.
+
 ## Orca Nightly Upgrade-Zyklus — Schritt 28/100 — 2026-11-16
 
 - Basisstand: Nightly **0.8.483**, Branch `codex/ui-2.1-redesign`, Codebasis HEAD `7464f271b1`, aktueller Doku-HEAD `e326f57dd1`; zuletzt geprüfter Upstream `4b161be15085f578638752dc891b2795ee6861d3`.

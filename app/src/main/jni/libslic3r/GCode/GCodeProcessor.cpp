@@ -8,6 +8,7 @@
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/format.hpp"
 #include "GCodeProcessor.hpp"
+#include <boost/format.hpp>
 #include "ExclusionVolumePathCheck.hpp"
 
 #include <boost/log/trivial.hpp>

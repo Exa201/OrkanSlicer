@@ -7,6 +7,7 @@
 #include <expat.h>
 
 #include <boost/nowide/cstdio.hpp>
+#include <boost/format.hpp>
 
 #include "../libslic3r.h"
 #include "../Exception.hpp"

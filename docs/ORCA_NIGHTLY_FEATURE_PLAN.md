@@ -1,8 +1,8 @@
-# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 31/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 32/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
-- Basis: OrcaSlicer-Upstream zuletzt geprüft bei `59acdedd065e5213445163a581947353d3208ccd`, Nightly-Code-HEAD `3d97c59497af288b6aa8a0ea8f96ccc2917d46b7`.
+- Basis: OrcaSlicer-Upstream zuletzt geprüft bei `59acdedd065e5213445163a581947353d3208ccd`, Nightly-Code-HEAD `388b58e996749f2a9b9c52488aabbd7c85624a6d`.
 - Ein Schritt zählt nur bei einem konkreten Android-relevanten Orca-Fix/Feature, einer reproduzierbaren Regression oder einer überprüften Korrektur mit nachvollziehbarem Testergebnis. Reine Recherche, Dokumentation und kosmetische Änderungen zählen nicht.
 - APK und GitHub-Prerelease werden nach Schritt **100/100** gebaut/veröffentlicht. Zwischenstände bleiben im Nightly-Entwicklungsbranch; keine vorgezogenen Releases.
 - Die zuvor verwendete 10-Punkte-Batch-Zählung bleibt als historische Dokumentation erhalten und wird nicht als Fortschritt dieses neuen Zyklus angerechnet.
@@ -21,6 +21,14 @@
 - ARM64-NDK-Rebuild nach Korrektur: **66/66 betroffene C++-Einheiten erfolgreich**, `libslic3r.so` gelinkt. Der erste Compileversuch scheiterte erwartungsgemäß an den zuvor indirekten Includes; die Fehler wurden lokalisiert und korrigiert.
 - Verifikation: Debug-Unit **806/806**, SliceTest-Unit **806/806**, `verifyNightlyChangelog` erfolgreich. Native Slice `multilineGridInfillUsesMiterJoinsAndPreservesGeometry`: API-36-Emulator **1/1 bestanden**.
 - Xiaomi-Installation bleibt durch `INSTALL_FAILED_USER_RESTRICTED` blockiert; kein Xiaomi-Testpass behauptet. APK/Prerelease bleibt bis **100/100** gesperrt.
+
+### Schritt 32/100 — Semver entfernt Boost.Format aus breit genutztem Header
+
+- Orca `59acdedd065e` formatiert `Semver::to_string()` und `to_string_sf()` mit `std::to_string` statt `boost::format`. Der Nightly-Port erhält die bestehenden 4- und 3-Komponentenformate samt Prerelease-/Metadata-Suffixen.
+- Der erste ARM64-Build fand `boost::format`-Nutzung in 16 weiteren nativen Dateien, die bislang nur transitiv über `Semver.hpp` kompilierten. Diese Nutzungsstellen binden Boost.Format nun explizit ein.
+- ARM64-NDK `externalNativeBuildDebug`: erfolgreich, `libslic3r` gelinkt. Debug-Unit **806/806**, SliceTest-Unit **806/806**, jeweils 0 Fehler/Errors/Skips. `verifyNightlyChangelog` und `git diff --check` bestanden.
+- Wirkung: die Semver-Schnittstelle zieht Boost.Format nicht mehr allein für Versionsformatierung ein. Kein Laufzeit- oder RAM-Gewinn behauptet. Kein APK gebaut/veröffentlicht; Geräte- und G-Code-Verhalten sind von dieser Änderung nicht direkt betroffen.
+- Nächster Schritt: nächsten Android-relevanten Orca-Core-Aufrufpfad samt fokussiertem Verhaltenstest auswählen. APK/Prerelease bleibt bis **100/100** gesperrt.
 
 ### Schritt 2/100 — Anker-Gesamtzeitprofil gegen Rückfall absichern
 

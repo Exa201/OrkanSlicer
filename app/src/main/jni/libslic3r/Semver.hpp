@@ -6,7 +6,6 @@
 #include <ostream>
 #include <stdexcept>
 #include <boost/optional.hpp>
-#include <boost/format.hpp>
 
 #include "semver/semver.h"
 
@@ -155,7 +154,8 @@ public:
 		std::string res;
 		int patch_1 = ver.patch/100;
 		int patch_2 = ver.patch%100;
-		res = (boost::format("%1%.%2%.%3%.%4%") % ver.major % ver.minor % patch_1 % patch_2).str();
+		res = std::to_string(ver.major) + "." + std::to_string(ver.minor) + "." +
+			std::to_string(patch_1) + "." + std::to_string(patch_2);
 
 		if (ver.prerelease != nullptr) { res += '-'; res += ver.prerelease; }
 		if (ver.metadata != nullptr)   { res += '+'; res += ver.metadata; }
@@ -164,7 +164,8 @@ public:
 	std::string to_string_sf() const {
 		//BBS: version format
 		std::string res;
-		res = (boost::format("%1%.%2%.%3%") % ver.major % ver.minor % ver.patch).str();
+		res = std::to_string(ver.major) + "." + std::to_string(ver.minor) + "." +
+			std::to_string(ver.patch);
 
 		if (ver.prerelease != nullptr) { res += '-'; res += ver.prerelease; }
 		if (ver.metadata != nullptr) { res += '+'; res += ver.metadata; }

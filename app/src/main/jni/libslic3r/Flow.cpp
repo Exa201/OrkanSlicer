@@ -5,6 +5,8 @@
 #include <cmath>
 #include <assert.h>
 
+#include <boost/format.hpp>
+
 #include <boost/algorithm/string/predicate.hpp>
 
 // Mark string for localization and translate.

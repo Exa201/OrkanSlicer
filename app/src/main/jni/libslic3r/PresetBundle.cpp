@@ -1,5 +1,6 @@
 #include <cassert>
 #include <ctime>
+#include <boost/format.hpp>
 
 #include "BoostPolygonTraits.hpp"
 #include "PresetBundle.hpp"

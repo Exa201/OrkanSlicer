@@ -9,6 +9,7 @@
 #include "Arrange.hpp"
 #include "Geometry.hpp"
 #include "MTUtils.hpp"
+#include <boost/format.hpp>
 #include "TriangleMeshSlicer.hpp"
 #include "TriangleSelector.hpp"
 #include "MaterialType.hpp"

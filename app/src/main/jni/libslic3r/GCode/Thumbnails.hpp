@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <memory>
+#include <boost/format.hpp>
 #include <string_view>
 
 #include <boost/beast/core/detail/base64.hpp>

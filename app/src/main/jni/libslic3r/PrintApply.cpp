@@ -4,6 +4,7 @@
 #include "Print.hpp"
 
 #include <algorithm>
+#include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <cfloat>
 

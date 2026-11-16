@@ -1,4 +1,5 @@
 #include "libslic3r/libslic3r.h"
+#include <boost/format.hpp>
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Format/DRC.hpp"
 #include "AppConfig.hpp"

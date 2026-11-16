@@ -10,6 +10,8 @@
 #include "../Semver.hpp"
 #include "../Time.hpp"
 
+#include <boost/format.hpp>
+
 #include "../I18N.hpp"
 
 #include "3mf.hpp"

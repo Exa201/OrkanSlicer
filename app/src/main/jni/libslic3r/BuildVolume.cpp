@@ -6,6 +6,8 @@
 #include "GCode/GCodeProcessor.hpp"
 #include "Point.hpp"
 
+#include <boost/format.hpp>
+
 #include <boost/log/trivial.hpp>
 
 namespace Slic3r {

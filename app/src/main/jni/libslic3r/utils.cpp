@@ -7,6 +7,7 @@
 #include <cstdarg>
 #include <stdio.h>
 #include <filesystem>
+#include <boost/format.hpp>
 
 #include "format.hpp"
 #include "Platform.hpp"

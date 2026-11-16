@@ -32,6 +32,7 @@
 #include <iterator>
 #include <mutex>
 #include <string>
+#include <boost/format.hpp>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/concurrent_vector.h>
 #include <oneapi/tbb/parallel_for.h>
