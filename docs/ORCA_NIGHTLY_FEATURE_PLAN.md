@@ -1,4 +1,11 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Batch 19: 10/10 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Batch 20: 1/10 geprüft — 2026-11-16
+
+### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
+
+- Orca-Upstream `f949d40cac` zeigt einen zweiten Teil derselben Arachne-Absturzursache: Bei fast parallelen Kanten kann deren Schnittpunkt mehrere Meter entfernt liegen. Das Quadrieren in `int64` lief über und akzeptierte den Punkt als gültig; die beschädigte Kontur konnte anschließend eine nicht reparierbare Voronoi-Struktur erzeugen.
+- Nightly berechnet die beiden Abstandsquadrate nun in `double`. Die Android-Regression verwendet Orcas vollständige 112-Punkte-Geometrie und prüft alle vom produktiven `WallToolPaths` erzeugten Extrusionspunkte gegen die Quellkontur.
+- API-36-AVD: `NativeSliceDeviceTest#arachneOutlineSimplificationKeepsNotchedStripToolpathsInsideModelBounds` **1/1 bestanden**; ARM64-Native- und Instrumentierungs-Build erfolgreich. Debug JVM **798/798**, SliceTest JVM **798/798**, keine Fehler/Errors/Skips; `verifyNightlyChangelog` und `git diff --check` erfolgreich.
+- Batch 20 steht auf **1/10**. APK/Release folgt nach zehn gezielt geprüften Änderungen.
 
 ### Batch 19, Punkt 10/10 — Arachne überspringt unreparierbare Voronoi-Diagramme — 2026-11-16
 

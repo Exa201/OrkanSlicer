@@ -32,6 +32,9 @@ class Native {
     external fun expat_entity_amplification_guard_regression(): IntArray
     @JvmStatic
     external fun arachne_unrepairable_voronoi_regression(): Int
+    /** Long, shallow-notched strip regression for outline simplification overflow in Arachne. */
+    @JvmStatic
+    external fun arachne_notched_strip_bounds_regression(): IntArray
     /** Exercises the native Auto For Match solver against four synthetic two-slot palettes. */
     @JvmStatic
     external fun filament_group_match_regression(): IntArray

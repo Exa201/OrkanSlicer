@@ -4775,6 +4775,13 @@ class NativeSliceDeviceTest {
     }
 
     @Test(timeout = 120_000)
+    fun arachneOutlineSimplificationKeepsNotchedStripToolpathsInsideModelBounds() {
+        val result = Native.arachne_notched_strip_bounds_regression()
+        assertEquals("the regression fixture must produce extrusion junctions", true, result[0] > 0)
+        assertEquals("all generated junctions must stay within the source outline", 1, result[1])
+    }
+
+    @Test(timeout = 120_000)
     fun toolchangerSkipsFinalWipeTowerUnloadWhenTheTowerStopsBelowTheModel() {
         assertArrayEquals(
             "SEMM, or a tower reaching the final layer can emit a final purge without ramming",

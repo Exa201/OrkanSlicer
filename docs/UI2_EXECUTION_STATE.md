@@ -1,5 +1,13 @@
 # Nightly 0.8.483 — Release- und Teststand — 2026-11-16
 
+## Orca Batch 20, Punkt 1/10 — Arachne-Konturvereinfachung gegen Integer-Überlauf
+
+- Orca-Upstream `f949d40cac` portiert: Arachne berechnet die Distanzquadrate fast paralleler Kanten-Schnittpunkte in `double`, sodass weit entfernte Punkte bei `int64`-Überlauf nicht irrtümlich als gültig akzeptiert werden.
+- Neue NativeSlice-Regression verwendet die 112-Punkte-Notch-Kontur aus Orcas Test und prüft die erzeugten Werkzeugwege gegen die Modellgrenzen.
+- API-36-AVD **1/1** bestanden; ARM64-Native-/Instrumentierungs-Build, vollständige Debug-Unit **798/798**, SliceTest-Unit **798/798**, `verifyNightlyChangelog` und `git diff --check` erfolgreich.
+- Version bleibt 0.8.483; keine neue APK vor dem Batch-20-10/10-Gate.
+- Nächster Schritt: weiteren Android-relevanten Orca-Kernfix aus dem frischen Upstream-Abgleich auswählen und mit einem reproduzierbaren Regressionstest absichern.
+
 ## Orca Batch 19, Punkt 10/10 — Arachne-Absturz bei ungültigem Voronoi-Diagramm
 
 - Frischer Orca-Upstream-Abgleich: `orcaslicer-upstream/main` auf `baeadeb3e1`; die letzten Windows-Paketierungs-/MSVC-Änderungen sind nicht Android-relevant. Orca `c7d2b83095` ist dagegen Android-produktiv: Arachne konnte nach fehlgeschlagener Voronoi-Reparatur Kanten ohne Twin dereferenzieren.
