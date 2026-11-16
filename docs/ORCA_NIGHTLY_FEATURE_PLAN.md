@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 7/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 8/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -37,6 +37,12 @@
 
 - Orca `6268535d2f` optimiert mehrzeiliges Rectilinear-Infill. Der Nightly-Test slicet ein Rechteck mit dreifachem Grid-Infill, prüft den exakten Extrusionspfad-Fingerabdruck (7.547 Bewegungen) und validiert, dass alle XY-Pfade innerhalb der Objektgrenzen bleiben.
 - Android 16/API-36-Emulator: `NativeSliceDeviceTest#multilineGridInfillUsesMiterJoinsAndPreservesGeometry` **1/1 bestanden**.
+- APK-Gate bleibt bei 100/100.
+
+### Schritt 8/100 — Retraktion nach Außenwänden
+
+- Orca `82135af6ff` behebt Nahtdellen, indem nach Außenwandpfaden wieder korrekt zurückgezogen wird. Der Android-Test slicet dieselbe Geometrie mit der Einstellung aus und an und vergleicht tatsächliche negative E-Bewegungen für kurze Reisen.
+- Android 16/API-36-Emulator: `NativeSliceDeviceTest#outerWallRetractionOptionChangesRealShortTravelGcode` **1/1 bestanden**; beide Slices sind vollständig, und der aktivierte Modus erzeugt zusätzliche Retraktionen.
 - APK-Gate bleibt bei 100/100.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
