@@ -11,8 +11,8 @@
 
 - Gezielte Debug-Unit-Tests: 16 bestanden, 0 fehlgeschlagen.
 - Honor PTP-N49: Objektlisten-Gerätetests 6/6 bestanden. Ein Quick-Slice-Test bestand; der Lauf wurde nach Abbruch einer doppelten Wireless-ADB-Session vor den übrigen drei Tests beendet.
-- Debug-APK erstellt: `OrkanSlicerNightly25_e02d4673a2.apk` (Nightly-App-ID, Version 0.8.481 / Code 516).
-- SHA-256: `6EF79D1E5306880AB28D15A03C6951AADF904C53525BD14572786EE0D67A1D99`.
+- Debug-APK erstellt: `OrkanSlicerNightly25_ccf3772986.apk` (Nightly-App-ID, Version 0.8.481 / Code 516; 252.127.891 Byte).
+- SHA-256: `D5A217430F0140AFA31F0105AB71FCBEC3057714D8337211C1D457EF01DC4444`.
 - APK-Installation auf dem Honor steht aus, bis Wireless-ADB wieder erreichbar ist. Kein offizielles Release und kein Merge.
 
 ## Nächster konkreter Schritt
