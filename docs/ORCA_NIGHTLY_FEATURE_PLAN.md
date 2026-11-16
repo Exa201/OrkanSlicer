@@ -1,8 +1,8 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 11/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 12/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
-- Basis: OrcaSlicer-Upstream zuletzt geprüft bei `4b161be15085f578638752dc891b2795ee6861d3`, Nightly-Code-HEAD `07cec538e8`.
+- Basis: OrcaSlicer-Upstream zuletzt geprüft bei `4b161be15085f578638752dc891b2795ee6861d3`, Nightly-Code-HEAD `e326f57dd1`.
 - Ein Schritt zählt nur bei einem konkreten Android-relevanten Orca-Fix/Feature, einer reproduzierbaren Regression oder einer überprüften Korrektur mit nachvollziehbarem Testergebnis. Reine Recherche, Dokumentation und kosmetische Änderungen zählen nicht.
 - APK und GitHub-Prerelease werden nach Schritt **100/100** gebaut/veröffentlicht. Zwischenstände bleiben im Nightly-Entwicklungsbranch; keine vorgezogenen Releases.
 - Die zuvor verwendete 10-Punkte-Batch-Zählung bleibt als historische Dokumentation erhalten und wird nicht als Fortschritt dieses neuen Zyklus angerechnet.
@@ -61,6 +61,12 @@
 
 - Orca `163b95f93d` erhält den finalen Entladevorgang für rammende Toolchanger, selbst wenn der Tower vor der letzten Modelllage endet. Das ist die gezielte Ausnahme zum vorherigen Schritt, der bei normalen Toolchangern den überflüssigen Vorgang auslässt.
 - `NativeSliceDeviceTest#rammingToolChangerRunsFinalUnloadAtTheTopWhenItsTowerStopsEarly` erzeugt einen echten Type-2-Slice mit Ramming und prüft Tower-Ausgabe und Ramming-Extrusion oberhalb des kurzen Towers. Android 16/API-36-Emulator: **1/1 bestanden**.
+- APK-Gate bleibt bei 100/100.
+
+### Schritt 12/100 — Seam-Markierungen bei überhängenden Außenwänden bleiben in der Vorschau erhalten
+
+- Orca `97bf1f4d1d` ergänzt Seam-Marker für überhängende Außenwände in generiertem G-Code. Nightly prüft dies in der Android-G-Code-Verarbeitung: die Seam-Slope-Modi `none` und `all` werden gesliced, anschließend wird die Datei erneut geöffnet und die Markierungsanzahl mit dem nativen Slice-Ergebnis sowie einer unmarkierten Vergleichsdatei abgeglichen.
+- Android 16/API-36-Emulator: `NativeSliceDeviceTest#overhangingOuterWallsKeepTheirSeamMarkersInGeneratedAndReopenedGcode` **1/1 bestanden**, 0 Fehler, 0 übersprungen; Testdauer 6,596 s.
 - APK-Gate bleibt bei 100/100.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
