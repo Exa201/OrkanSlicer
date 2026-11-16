@@ -763,7 +763,7 @@ class NativeSliceDeviceTest {
     fun flatteningKeepsMultipartVolumeLayoutAndAlignsTheSelectedFace() {
         assertArrayEquals(
             "Flattening must rotate a multipart assembly as one rigid object and align its selected face to the bed",
-            intArrayOf(1, 1, 1),
+            intArrayOf(1, 1, 1, 1, 1),
             Native.flatten_keeps_multipart_layout_regression(),
         )
     }

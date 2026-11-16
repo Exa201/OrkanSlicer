@@ -376,20 +376,28 @@ namespace {
 bool flatten_model_object(ModelObject* object, const Vec3d& surface_normal)
 {
     if (object == nullptr || object->volumes.empty() || !surface_normal.allFinite()) return false;
+    if (object->instances.empty() || object->instances.front() == nullptr) return false;
     const double normal_length = surface_normal.norm();
     if (!std::isfinite(normal_length) || normal_length <= 1e-9 ||
         std::any_of(object->volumes.begin(), object->volumes.end(),
                     [](const ModelVolume* volume) { return volume == nullptr; }))
         return false;
 
-    // A ModelObject may contain multiple volumes with different local offsets.
-    // Rotate the assembly once around its shared center; rotating after each
-    // volume's own offset would move the mesh parts independently and break the
-    // assembled geometry when laying one face on the bed.
-    const Vec3d center = object->bounding_box_exact().center();
+    // Volume matrices are in object coordinates, while bounding_box_exact() is
+    // in world/instance coordinates. Using its center as a local pivot makes a
+    // model jump by its bed placement when it is flattened. Use the assembled
+    // local mesh bounds and rotate the complete multipart object around one pivot.
+    const Vec3d center = object->raw_mesh_bounding_box().center();
     const Vec3d normal = surface_normal / normal_length;
+    const Transform3d instance = object->instances.front()->get_matrix_no_offset();
+    // The selected face normal is in object coordinates. Flatten it so that
+    // after the instance transform (which may itself be rotated/scaled) it
+    // points down toward the build plate.
+    Vec3d target_normal = instance.linear().transpose() * -Vec3d::UnitZ();
+    if (!target_normal.allFinite() || target_normal.norm() <= 1e-9) return false;
+    target_normal.normalize();
     Transform3d rotation = Transform3d::Identity();
-    rotation.linear() = Eigen::Quaterniond().setFromTwoVectors(normal, -Vec3d::UnitZ()).toRotationMatrix();
+    rotation.linear() = Eigen::Quaterniond().setFromTwoVectors(normal, target_normal).toRotationMatrix();
     const Transform3d around_center = Geometry::translation_transform(center) * rotation *
                                       Geometry::translation_transform(-center);
     for (ModelVolume* volume : object->volumes) {
@@ -7799,29 +7807,49 @@ extern "C" {
             second->set_rotation(rotation_angles);
             second->set_scaling_factor(scale);
             second->set_offset(Vec3d(23., -11., 7.));
+            ModelInstance* instance = object->instances.empty() ? object->add_instance() : object->instances.front();
+            if (instance == nullptr) throw std::runtime_error("Could not create flatten instance fixture");
+            instance->set_offset(Vec3d(121., -37., 5.));
+            instance->set_rotation(Vec3d(0.24, -0.18, 0.63));
+            instance->set_scaling_factor(Vec3d(1.1, 0.9, 1.0));
 
             // Flatten-plane normals are expressed in object coordinates after each
-            // volume's existing rotation and scale have been applied.
+            // volume's transforms, but before the instance transform.
             const Vec3d normal = first->get_transformation().get_matrix().linear()
                 .inverse().transpose() * Vec3d::UnitX();
             const Vec3d normalized_normal = normal.normalized();
+            const Transform3d instance_matrix = instance->get_matrix_no_offset();
+            Vec3d expected_local_normal = instance_matrix.linear().transpose() * -Vec3d::UnitZ();
+            expected_local_normal.normalize();
             const Eigen::Quaterniond expected_rotation =
-                Eigen::Quaterniond().setFromTwoVectors(normalized_normal, -Vec3d::UnitZ());
+                Eigen::Quaterniond().setFromTwoVectors(normalized_normal, expected_local_normal);
             const Transform3d first_before = first->get_transformation().get_matrix();
             const Vec3d before_delta = second->get_transformation().get_offset() -
                                        first->get_transformation().get_offset();
+            const Vec3d local_center = object->raw_mesh_bounding_box().center();
+            const Vec3d local_probe = Vec3d(3.2, -1.4, 4.8);
+            const Vec3d world_probe_before = instance_matrix * first_before * local_probe;
             const bool applied = flatten_model_object(object, normal);
             const Vec3d after_delta = second->get_transformation().get_offset() -
                                       first->get_transformation().get_offset();
             const Transform3d first_after = first->get_transformation().get_matrix();
             const Vec3d actual_normal = first_after.linear() * first_before.linear().inverse() * normalized_normal;
+            const Vec3d expected_local_probe = local_center + expected_rotation *
+                (first_before * local_probe - local_center);
+            const Vec3d world_probe_after = instance_matrix * first_after * local_probe;
             const bool relative_layout_preserved =
                 (after_delta - expected_rotation * before_delta).norm() < 1e-6;
-            const bool normal_is_flat =
-                actual_normal.normalized().dot(-Vec3d::UnitZ()) > 0.999999;
-            const jint values[] = {applied ? 1 : 0, relative_layout_preserved ? 1 : 0, normal_is_flat ? 1 : 0};
-            jintArray result = env->NewIntArray(3);
-            if (result != nullptr) env->SetIntArrayRegion(result, 0, 3, values);
+            const Vec3d world_normal = instance_matrix.linear().inverse().transpose() * actual_normal;
+            const bool normal_is_flat = world_normal.normalized().dot(-Vec3d::UnitZ()) > 0.999999;
+            const bool pivot_uses_local_geometry =
+                (world_probe_after - instance_matrix * expected_local_probe).norm() < 1e-6;
+            const bool bed_offset_does_not_leak_into_geometry =
+                (world_probe_after - world_probe_before).norm() < 100.;
+            const jint values[] = {applied ? 1 : 0, relative_layout_preserved ? 1 : 0,
+                normal_is_flat ? 1 : 0, pivot_uses_local_geometry ? 1 : 0,
+                bed_offset_does_not_leak_into_geometry ? 1 : 0};
+            jintArray result = env->NewIntArray(5);
+            if (result != nullptr) env->SetIntArrayRegion(result, 0, 5, values);
             return result;
         } catch (const std::exception& error) {
             jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
