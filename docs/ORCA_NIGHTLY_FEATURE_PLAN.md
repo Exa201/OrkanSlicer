@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 14/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 15/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -79,6 +79,12 @@
 
 - Orca `6d312b0441` berücksichtigt Höhenbereich-Overrides beim Ermitteln identischer Print-Objekte. Ohne diesen Vergleich konnten Kopien die Layer-Regionen des jeweils anderen übernehmen und eigene Infill-/Geschwindigkeitseinstellungen verlieren.
 - `NativeSliceDeviceTest#objectsWithDifferentHeightRangeOverridesDoNotShareSliceCache` erzeugt zwei Kopien mit geteilter Mesh-Geometrie und unterschiedlichem lokalen Höhenbereich; der Native-Regressionstest verlangt getrennte Slice-Konfigurationen. Android 16/API-36-Emulator: **1/1 bestanden**, 0 Fehler, 0 übersprungen.
+- APK-Gate bleibt bei 100/100.
+
+### Schritt 15/100 — Sequential-Clearance berücksichtigt die zusätzliche Raft-Höhe
+
+- Orca `7243d15ea2` misst die Höhe kurzer Objekte anhand der tatsächlichen Druckoberkante einschließlich Raft, Z-Versatz und Schrumpfungskompensation. Das ändert, ob die Freigabe für den nächsten Gegenstand im sequenziellen Druck ausreichend ist.
+- `NativeSliceDeviceTest#sequentialPrintShortObjectClearanceIncludesRaftHeight` prüft vier Entscheidungen für zwei 2-mm-Objekte mit/ohne Raft und reproduziert die veränderte Freigabe am Native-Core. Android 16/API-36-Emulator: **1/1 bestanden**, 0 Fehler, 0 übersprungen.
 - APK-Gate bleibt bei 100/100.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
