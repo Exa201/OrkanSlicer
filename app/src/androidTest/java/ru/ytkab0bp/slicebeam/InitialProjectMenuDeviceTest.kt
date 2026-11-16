@@ -7089,6 +7089,27 @@ class InitialProjectMenuDeviceTest {
                     @Suppress("UNCHECKED_CAST")
                     val planes = planesField.get(renderer) as List<GLModel>
                     check(planes.isNotEmpty()) { "Flatten mode did not produce any face planes" }
+                    val sourceModel = requireNotNull(renderer.model)
+                    val objectMin = Vec3d()
+                    val objectMax = Vec3d()
+                    sourceModel.getBoundingBoxExact(0, objectMin, objectMax)
+                    val planeBounds = planes.map(GLModel::getBoundingBox)
+                    val planeMin = DoubleArray(3) { axis -> planeBounds.minOf { it[axis] } }
+                    val planeMax = DoubleArray(3) { axis -> planeBounds.maxOf { it[axis + 3] } }
+                    val objectCenter = doubleArrayOf(
+                        (objectMin.x + objectMax.x) / 2.0,
+                        (objectMin.y + objectMax.y) / 2.0,
+                        (objectMin.z + objectMax.z) / 2.0,
+                    )
+                    for (axis in 0..2) {
+                        val helperCenter = (planeMin[axis] + planeMax[axis]) / 2.0
+                        // Convex-hull faces are inset slightly for rendering; allow the
+                        // resulting bounding-box center to differ by a few millimeters.
+                        check(kotlin.math.abs(helperCenter - objectCenter[axis]) < 5.0) {
+                            "Flatten helper planes drifted from the model on axis $axis: " +
+                                "helper center=$helperCenter, object center=${objectCenter[axis]}"
+                        }
+                    }
                     val hits = ArrayList<GLModel.HitResult>()
                     planes.forEach { plane ->
                         plane.raycaster.raycast(
@@ -9425,6 +9446,76 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelRedo))
                 .assertIsDisplayed().performClick()
             assertEquals("Redo should reapply Reset Rotation", 0.0, readRotationOnGl(glView, 0).x, 0.002)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun singleObjectRotationPreviewUsesVisibleBoundsCenterAsItsPivot() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-rotation-preview-pivot-test.stl")
+        try {
+            activity.assets.open("models/pyramid.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+
+            val completed = CountDownLatch(1)
+            val transformedPivot = AtomicReference<DoubleArray>()
+            val renderedRotationCosine = AtomicReference<Double>()
+            val expectedPivot = AtomicReference<DoubleArray>()
+            val failure = AtomicReference<Throwable?>()
+            glView.queueEvent {
+                try {
+                    val renderer = glView.renderer
+                    val model = requireNotNull(renderer.model)
+                    val min = Vec3d(); val max = Vec3d()
+                    model.getBoundingBoxExact(0, min, max)
+                    val center = doubleArrayOf(
+                        (min.x + max.x) / 2.0,
+                        (min.y + max.y) / 2.0,
+                        (min.z + max.z) / 2.0,
+                    )
+                    expectedPivot.set(center)
+                    renderer.prepareSelectionTransformPreview()
+                    renderer.setSelectionRotation(0.0, 37.0, 0.0)
+                    renderer.afterNextFrame {
+                        try {
+                            val matrix = GLRenderer::class.java.getDeclaredField("modelMatrix")
+                                .apply { isAccessible = true }.get(renderer) as DoubleArray
+                            renderedRotationCosine.set(matrix[0])
+                            transformedPivot.set(doubleArrayOf(
+                                matrix[0] * center[0] + matrix[4] * center[1] + matrix[8] * center[2] + matrix[12],
+                                matrix[1] * center[0] + matrix[5] * center[1] + matrix[9] * center[2] + matrix[13],
+                                matrix[2] * center[0] + matrix[6] * center[1] + matrix[10] * center[2] + matrix[14],
+                            ))
+                        } catch (error: Throwable) {
+                            failure.set(error)
+                        } finally {
+                            completed.countDown()
+                        }
+                    }
+                    glView.requestRender()
+                } catch (error: Throwable) {
+                    failure.set(error)
+                    completed.countDown()
+                }
+            }
+            assertTrue("rotation preview frame did not complete", completed.await(15, TimeUnit.SECONDS))
+            failure.get()?.let { throw AssertionError("could not inspect rotation preview pivot", it) }
+            val pivot = requireNotNull(expectedPivot.get())
+            val previewPivot = requireNotNull(transformedPivot.get())
+            assertEquals("rotation editor values are degrees in the GL preview",
+                kotlin.math.cos(Math.toRadians(37.0)), requireNotNull(renderedRotationCosine.get()), 1e-5)
+            for (axis in 0..2) assertEquals(
+                "rotation preview must keep the visible bounds center fixed on axis $axis",
+                pivot[axis], previewPivot[axis], 1e-5,
+            )
         } finally {
             modelFile.delete()
         }

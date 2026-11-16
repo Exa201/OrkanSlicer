@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer Nightly 2.5 · 0.8.481\n\n• Kalibrierungen erkennen Modelle während des Renderer-Wechsels zuverlässig.\n• Die Objektliste zeigt eine große Vorschau; Quick Slice hat eine einstellbare Brim-Breite.\n• Modellimporte werden geordnet abgearbeitet, damit STEP-Folgeimporte nicht verworfen werden.",
-  "en": "OrkanSlicer Nightly 2.5 · 0.8.481\n\n• Calibration reliably detects models while the renderer is switching.\n• Object rows show a larger preview; Quick Slice has an editable brim width.\n• Model imports are serialized so follow-up STEP imports are not rejected.",
-  "ru": "OrkanSlicer Nightly 2.5 · 0.8.481\n\n• Калибровка надежно распознает модели во время переключения рендерера.\n• В списке объектов увеличен предпросмотр; в Quick Slice задается ширина каймы.\n• Импорт моделей выполняется последовательно, последующие STEP-файлы не отклоняются."
+  "de": "OrkanSlicer Nightly 2.5 · 0.8.482\n\n• Die Drehvorschau nutzt denselben Mittelpunkt wie das Übernehmen – auch bei mehreren Objekten.\n• Flachlegen zeigt nur Flächen an, die tatsächlich auf dem Modell liegen.\n• Anycubic-Uploads erhalten Farb- und ACE-Slot-Zuordnungen im G-Code.",
+  "en": "OrkanSlicer Nightly 2.5 · 0.8.482\n\n• Rotation preview now uses the same pivot as Apply, including multi-selection.\n• Lay flat only offers surfaces that are actually supported by the model.\n• Anycubic uploads preserve color and ACE slot assignments in G-code.",
+  "ru": "OrkanSlicer Nightly 2.5 · 0.8.482\n\n• Предпросмотр поворота использует ту же точку, что и применение, в том числе для группы.\n• Выравнивание показывает только поверхности, поддерживаемые моделью.\n• Загрузка Anycubic сохраняет цвета и назначения слотов ACE в G-code."
 }

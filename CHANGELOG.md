@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.482 — Drehvorschau, Flachlegen und Anycubic-ACE — 2026-11-16
+
+- Die Rotationsvorschau dreht einzelne Modelle und Mehrfachauswahlen um denselben sichtbaren Begrenzungsrahmen-Pivot wie die bestätigte Drehung.
+- Flachlegen blendet Kandidaten aus, die wegen konkaver Modellbereiche sichtbar neben der Oberfläche schweben würden.
+- Anycubic-Upload ordnet die Farbzuordnung im AMS-Metadatenblock ein und erhält die gewählten ACE-Slots für G-Code-Werkzeuge.
+
 ## 0.8.481 — Kalibrierung, Objektvorschau, Quick Slice und Modellimport — 2026-11-16
 
 - Kalibrierung erkennt Modelle auch während des Renderer-Handoffs über den Zustand der aktiven Platte.

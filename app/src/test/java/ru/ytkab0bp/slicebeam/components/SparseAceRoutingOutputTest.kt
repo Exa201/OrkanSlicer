@@ -7,6 +7,54 @@ import ru.ytkab0bp.slicebeam.utils.AnycubicGCodeProcessor
 
 /** Empty ACE slots keep their index; later tools are never shifted onto a different gate. */
 class SparseAceRoutingOutputTest {
+    @Test fun kobraThreeToolRoutesToItsAssignedAceGateWhenPaletteContainsAnEmptySlot() {
+        val source = File.createTempFile("kobra3-route-source", ".gcode")
+        val output = File.createTempFile("kobra3-route-output", ".gcode")
+        try {
+            source.writeText(
+                "; HEADER_BLOCK_START\n; filament: 3\n" +
+                    "; filament_colour = #111111;#222222;#00FF00\n" +
+                    "; filament_type = PLA;PLA;PETG\n; HEADER_BLOCK_END\n" +
+                    "T2\nG1 X10 Y10 E1\nM400\n",
+            )
+            val scan = AnycubicGCodeProcessor.scan(source)
+            assertArrayEquals(intArrayOf(2), scan.usedTools)
+            // Match the reported assignment: T0→ACE1, T1→empty ACE4,
+            // T2→ACE3. The empty logical T1 slot must not shift T2 to ACE4.
+            val routing = ru.ytkab0bp.slicebeam.utils.AnycubicAceRoutingPolicy.resolve(
+                toolCount = 3,
+                usedTools = scan.usedTools,
+                loadedGates = intArrayOf(0, 2, 3),
+                toolToGate = intArrayOf(0, 1, 2, 3),
+                selectedGates = intArrayOf(0, 3, 2),
+            )
+            assertNull(routing.unavailableTool)
+            assertEquals(2, routing.toolCommands[2])
+            assertEquals(2, routing.gates[2])
+            assertTrue(AnycubicGCodeProcessor.rewrite(source, output, scan,
+                AnycubicGCodeProcessor.Options().apply {
+                    remappedTools = routing.toolCommands
+                    gates = routing.gates
+                    paintInfo = "[{\"material_type\":\"PETG\",\"paint_color\":[0,255,0],\"paint_index\":2}]"
+                    colors = "#111111;#19C8A0;#00FF00;#19C8A0"
+                    materials = "PLA;PLA;PETG;PLA"
+                }))
+            val lines = output.readLines()
+            assertEquals(listOf("T2"), lines.filter { it.matches(Regex("T[0-9]+")) })
+            val amsStart = lines.indexOf("; ams_info = begin")
+            val paintInfo = lines.indexOfFirst { it.startsWith("; paint_info = ") }
+            val amsEnd = lines.indexOf("; ams_info = end")
+            assertTrue("AMS metadata block start missing", amsStart >= 0)
+            assertTrue("paint_info must be inside the AMS metadata block", amsStart < paintInfo && paintInfo < amsEnd)
+            assertTrue(lines[paintInfo].contains("\"paint_index\":2"))
+            assertTrue(lines.contains("; filament: 1,4,3"))
+            assertTrue(lines.contains("; filament_colour = #111111;#19C8A0;#00FF00;#19C8A0"))
+        } finally {
+            source.delete()
+            output.delete()
+        }
+    }
+
     @Test fun externalSingleTpuSpoolRewritesToDirectToolWithoutAceGateMetadata() {
         val source = File.createTempFile("external-tpu-source", ".gcode")
         val output = File.createTempFile("external-tpu-output", ".gcode")

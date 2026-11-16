@@ -1,4 +1,25 @@
-# Nightly 0.8.481 — Release- und Teststand — 2026-11-16
+# Nightly 0.8.482 — Release- und Teststand — 2026-11-16
+## Rotationsvorschau — 2026-11-16
+
+- Das Video zeigte, dass das ausgewählte Modell während der Rotation sichtbar um einen falschen Punkt schwenkt. Ursache: Die Vorschau drehte ein einzelnes Objekt um seinen Instanzursprung, während die Übernahme – wie bei Gruppen – den Mittelpunkt der sichtbaren Auswahlgrenzen fixiert.
+- Die GL-Vorschau verwendet jetzt den gemeinsamen Begrenzungsrahmen-Pivot für alle ausgewählten Objekte. Dadurch folgt die Einzeldrehung demselben Pivot wie die bestätigte Drehung; Gruppen bleiben gemeinsam drehbar.
+- Neue Regression `InitialProjectMenuDeviceTest#singleObjectRotationPreviewUsesVisibleBoundsCenterAsItsPivot`: **1/1 bestanden** auf API-36-Emulator. Bestehende Gruppen-Drehung samt Undo/Redo `rotationEditorRotatesSelectedGroupAsOneAssemblyAndSupportsUndoRedo`: **1/1 bestanden**. Beide Instrumentierungsläufe und der Kotlin-/Native-Build erfolgreich; `git diff --check` sauber.
+- Version 0.8.482 / Code 517 wurde für diesen Fix erhöht; APK-Erstellung und GitHub-Pre-Release stehen noch aus.
+
+## Lay-flat-Flächen und Anycubic-ACE-Zuordnung — 2026-11-16
+
+- Flatten-Kandidaten werden jetzt gegen die tatsächliche Quellmesh-Oberfläche geprüft. Konvexe Hüllflächen, die über konkave/hohle Modellbereiche spannen und dadurch sichtbar neben dem Modell liegen, werden verworfen. Die vorhandene native Undo/Redo-Abnahme `InitialProjectMenuDeviceTest#flatteningAnAngledFaceIsUndoableAndRedoable` besteht auf API 36 **1/1**; `externalNativeBuildDebug` erfolgreich.
+- Anycubic-Upload schreibt `paint_info` innerhalb des erwarteten `ams_info`-Blocks. Regression zum gelieferten Header `; filament: 3` / `T2` und zur gezeigten Zuordnung T2→ACE3 prüft unverändertes T2, physische Gate-Liste `1,4,3` und Farbmetadaten. Gezielte Debug-Unit-Suite **7/7**, keine Fehler; `git diff --check` sauber.
+- Die angehängte G-Code-Datei ist der Slicer-Ausgang vor Upload-Umschreibung. Der auf dem Drucker empfangene Payload und Honor-Hardwaredruck sind daher nicht verifiziert. Nächster Schritt für Hardwarebestätigung: Upload mit Honor und ACE-Sync ausführen und den vorbereiteten G-Code vor dem Senden sichern/prüfen.
+
+## Orca-Upstream-Abgleich und gezielte Regressionen — 2026-11-16
+
+- Nightly-Checkout: `codex/ui-2.1-redesign`, HEAD `22e39b1e4a`. Orca `main` wurde frisch auf `d6ec712c2e` aktualisiert; dessen neuer Windows-Plugin-Fix ist für Android nicht anwendbar. Build 0.8.415 ist weiterhin weder lokales APK/Tag noch GitHub-Release.
+- Orcas Mehrfarben-Dovetail-Fix `97ee8d9197` ist bereits im Android-`CutUtils.cpp` enthalten; der gezielte API-36-Test `NativeSliceDeviceTest#dovetailCutPreservesPerPartFilamentAndMaterialIdentity` bestand **1/1**. Orcas Multi-Objekt-Schichthöhen-Verhalten ist ebenfalls bereits in Kotlin/Native vorhanden; `AdaptiveLayerMultiSelectionDeviceTest#selectedObjectsReceiveSharedAdaptiveLayersAndSliceOnTheirAssignedTools` bestand **1/1** auf demselben Emulator.
+- `:app:testDebugUnitTest :app:testSliceTestUnitTest :app:verifyNightlyChangelog --no-daemon`: BUILD SUCCESSFUL; XML-Berichte Debug **797/797**, SliceTest **797/797**, jeweils 0 Fehler, Errors oder Skips. Die Unit-Tasks waren up-to-date. `git diff --check` sauber.
+- Orcas `feat/generic-extruders-and-ams` (`f225335603`) ist ein separater, nicht in `main` enthaltener Feature-Branch mit umfangreichen Device-/Desktop-Abhängigkeiten. Er wurde nicht als stabiler Android-Port gezählt. Die vorhandene Android-Sync-Logik behandelt bereits leere Gate-Einträge als nicht zuweisbar und erhält das bekannte externe Spulenmaterial.
+- Kein neuer Produktcode, APK oder Release in diesem Abgleich. Orca Batch 19 bleibt **9/10**; nächster Schritt ist ein neuer, in Orca-`main` gelandeter und im Android-Aufrufpfad tatsächlich fehlender Kernpunkt.
+
 ## Orca 3MF-Rundlauf — klassischer Painted-Modifier-Fix — 2026-11-16
 
 - Fortsetzung ausschließlich auf `codex/ui-2.1-redesign`, Ausgangs-HEAD `254af6c95e`; Build 0.8.415 wurde geprüft und ist bereits weder Release, APK noch lokales Tag. Die vorhandenen fünf Nightly-Releases blieben unberührt.

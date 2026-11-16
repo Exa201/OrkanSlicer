@@ -268,7 +268,11 @@ class AnycubicGCodeProcessor private constructor() {
                                 if (options.externalSpool && !scan.hasFilamentColors) {
                                     writer.write("; filament_colour = ${options.colors}\n")
                                 }
-                                if (!options.externalSpool) writer.write("; paint_info = ${options.paintInfo}\n")
+                                if (!options.externalSpool) {
+                                    writer.write("; ams_info = begin\n")
+                                    writer.write("; paint_info = ${options.paintInfo}\n")
+                                    writer.write("; ams_info = end\n")
+                                }
                                 if (!options.externalSpool && !scan.hasFilamentMap) {
                                     writer.write("; filament: ${GCodeToolMapper.formatGateList(gates)}\n")
                                 }

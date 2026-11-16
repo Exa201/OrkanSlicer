@@ -2440,10 +2440,15 @@ extern "C" {
         const ModelObject* mo = ref->model.objects[i];
         if (mo == nullptr || mo->instances.empty() || mo->instances.front() == nullptr) return empty_result();
         TriangleMesh ch;
+        TriangleMesh source_surface;
         Transform3d real_transform = Geometry::translation_transform(mo->bounding_box_exact().center());
         for (const ModelVolume* vol : mo->volumes) {
             if (vol == nullptr || vol->type() != ModelVolumeType::MODEL_PART || vol->mesh().empty())
                 continue;
+            TriangleMesh source_part = vol->mesh();
+            source_part.transform(vol->get_matrix_no_offset());
+            source_part.transform(real_transform);
+            source_surface.merge(source_part);
             TriangleMesh vol_ch = vol->get_convex_hull();
             if (vol_ch.empty()) continue;
             vol_ch.transform(vol->get_matrix_no_offset());
@@ -2453,6 +2458,8 @@ extern "C" {
         if (ch.empty()) return empty_result();
         ch = ch.convex_hull_3d();
         if (ch.empty()) return empty_result();
+        if (source_surface.empty()) return empty_result();
+        const AABBMesh source_surface_index(source_surface);
 
         std::vector<PlaneData> m_planes;
 
@@ -2514,6 +2521,32 @@ extern "C" {
 
         // Let's prepare transformation of the normal vector from mesh to instance coordinates.
         const Matrix3d normal_matrix = inst_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
+        const Transform3d flat_to_source = inst_matrix.inverse();
+
+        // A convex hull can bridge concave gaps and produce large, visible planes
+        // floating beside the real model. Keep a candidate only if the points it
+        // proposes still lie close to triangles in the source mesh.
+        const auto has_source_surface_support = [&](const Pointf3s& polygon, const Transform3d& flatten) {
+            if (polygon.size() < 3) return false;
+            Vec3d center = Vec3d::Zero();
+            for (const Vec3d& point : polygon) center += point;
+            center /= static_cast<double>(polygon.size());
+            size_t sample_count = 0;
+            size_t supported_count = 0;
+            constexpr double max_surface_distance_squared = 0.75 * 0.75;
+            for (const Vec3d& vertex : polygon) {
+                // These samples stay inside the convex candidate polygon while
+                // checking its center and each region between center and boundary.
+                for (const double fraction : {0.25, 0.5, 0.75}) {
+                    const Vec3d flat_point = center * (1.0 - fraction) + vertex * fraction;
+                    const Vec3d source_point = flat_to_source * flatten.inverse() * flat_point;
+                    ++sample_count;
+                    if (source_surface_index.squared_distance(source_point) <= max_surface_distance_squared)
+                        ++supported_count;
+                }
+            }
+            return sample_count > 0 && supported_count * 4 >= sample_count * 3;
+        };
 
         // Now we'll go through all the polygons, transform the points into xy plane to process them:
         for (unsigned int polygon_id=0; polygon_id < m_planes.size(); ++polygon_id) {
@@ -2566,6 +2599,12 @@ extern "C" {
             }
 
             if (discard) {
+                m_planes[polygon_id--] = std::move(m_planes.back());
+                m_planes.pop_back();
+                continue;
+            }
+
+            if (!has_source_surface_support(polygon, m)) {
                 m_planes[polygon_id--] = std::move(m_planes.back());
                 m_planes.pop_back();
                 continue;

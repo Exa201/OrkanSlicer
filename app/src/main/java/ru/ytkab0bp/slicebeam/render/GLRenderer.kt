@@ -125,7 +125,6 @@ private var selScaleX = 1.0
 private var selScaleY = 1.0
 private var selScaleZ = 1.0
 private var selectionTransformPivot = Vec3d()
-private var selectionTransformIsGroup = false
 private var lastDraw:Long = 0
 private lateinit var glView: GLView
 private var translate = Vec3d()
@@ -254,9 +253,8 @@ internal fun isSelectionBindingCurrent(snapshot: ModelSelectionSnapshot): Boolea
 
 /** Cache the common preview pivot while on the GL thread so group transforms preview as a unit. */
 fun prepareSelectionTransformPreview() {
-    val activeModel = model ?: run { selectionTransformIsGroup = false; return }
+    val activeModel = model ?: return
     val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
-    selectionTransformIsGroup = indices.size > 1
     if (indices.isEmpty()) return
     var minX = Double.POSITIVE_INFINITY
     var minY = Double.POSITIVE_INFINITY
@@ -1501,27 +1499,17 @@ if (selected)
 {
 // Live move delta applies to the whole selection (group move).
  DoubleMatrix.translateM(modelMatrix, 0, selX, selY, selZ)
-// A multi-selection previews rotation/scale around its shared bounds center.
- if (selectionTransformIsGroup)
+// Preview rotation/scale around the same bounds pivot used when committing the
+// transform. This also applies to a single object whose mesh origin is offset
+// from its visible center.
+ if (selected)
 {
 DoubleMatrix.translateM(modelMatrix, 0, selectionTransformPivot.x, selectionTransformPivot.y, selectionTransformPivot.z)
-DoubleMatrix.rotateM(modelMatrix, 0, selRotX, (1).toDouble(), (0).toDouble(), (0).toDouble())
-DoubleMatrix.rotateM(modelMatrix, 0, selRotY, (0).toDouble(), (1).toDouble(), (0).toDouble())
-DoubleMatrix.rotateM(modelMatrix, 0, selRotZ, (0).toDouble(), (0).toDouble(), (1).toDouble())
+DoubleMatrix.rotateM(modelMatrix, 0, selRotX, 1.0, 0.0, 0.0)
+DoubleMatrix.rotateM(modelMatrix, 0, selRotY, 0.0, 1.0, 0.0)
+DoubleMatrix.rotateM(modelMatrix, 0, selRotZ, 0.0, 0.0, 1.0)
 DoubleMatrix.scaleM(modelMatrix, 0, selScaleX, selScaleY, selScaleZ)
 DoubleMatrix.translateM(modelMatrix, 0, -selectionTransformPivot.x, -selectionTransformPivot.y, -selectionTransformPivot.z)
-}
-// Single-object preview remains around the object's existing origin.
-else if (primary)
-{
-this.model!!.getTranslation(i, translate)
-this.model!!.getRotation(i, rotate)
-DoubleMatrix.translateM(modelMatrix, 0, translate.x, translate.y, translate.z)
-DoubleMatrix.rotateM(modelMatrix, 0, selRotX, (1).toDouble(), (0).toDouble(), (0).toDouble())
-DoubleMatrix.rotateM(modelMatrix, 0, selRotY, (0).toDouble(), (1).toDouble(), (0).toDouble())
-DoubleMatrix.rotateM(modelMatrix, 0, selRotZ, (0).toDouble(), (0).toDouble(), (1).toDouble())
-DoubleMatrix.scaleM(modelMatrix, 0, selScaleX, selScaleY, selScaleZ)
-DoubleMatrix.translateM(modelMatrix, 0, -translate.x, -translate.y, -translate.z)
 }
 }
 DoubleMatrix.multiplyMM(outModelMatrix, 0, viewMatrix, 0, modelMatrix, 0)
