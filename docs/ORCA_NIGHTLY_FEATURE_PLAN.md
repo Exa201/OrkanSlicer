@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 16/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 17/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -91,6 +91,12 @@
 
 - Orca `f55615d748` ergänzt einen eigenen nicht kreuzenden Quarter-Cubic-Pfadgenerator für mehrzeilige Füllungen. Nightly hat den Core-Port bereits; die Abnahme vergleicht echten G-Code mit einer und zwei Linien pro Füllpfad und kontrolliert die Geometriegrenzen.
 - `NativeSliceDeviceTest#quarterCubicMultilineUsesNonCrossingNativeToolpaths`: Android 16/API-36-Emulator **1/1 bestanden**, 0 Fehler, 0 übersprungen; doppelte Linien erzeugen den gesonderten Pfad und bleiben innerhalb der 20-mm-Fixture.
+- APK-Gate bleibt bei 100/100.
+
+### Schritt 17/100 — Modelle mit abweichendem Mittelpunkt drucken nicht aus gemeinsamem Slice-Cache
+
+- Orca `0f15db8b83` ergänzt den Objektmittelpunkt-Versatz beim Vergleich, ob zwei Print-Objekte ihre Slice-Layer teilen dürfen. Gleiche Transformationen reichen nicht aus, wenn der jeweilige erste Instance-Offset die relative Slice-Lage ändert.
+- `NativeSliceDeviceTest#objectsWithDifferentCenterOffsetsDoNotShareSliceCache` prüft mit einem echten Native-Print, dass Objekte mit abweichenden Mittelpunkt-Offsets getrennt bleiben. Android 16/API-36-Emulator: **1/1 bestanden**, 0 Fehler, 0 übersprungen.
 - APK-Gate bleibt bei 100/100.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
