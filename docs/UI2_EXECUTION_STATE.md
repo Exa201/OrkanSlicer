@@ -1,5 +1,11 @@
 # Nightly 0.8.481 — Release- und Teststand — 2026-11-16
 
+## Veröffentlichungsziel bestätigt — 2026-11-16
+
+- Es gilt ausschließlich das Nightly-Repository. Die Stable-Version `0.8.415` (Code 450) war ein veralteter Build und wurde nicht veröffentlicht; ihre lokale APK-Kopie wurde auf Nutzerwunsch entfernt.
+- Das aktuelle Nightly-Artefakt ist bereits als Pre-Release `v0.8.481-nightly.1` hochgeladen. GitHub bestätigt die APK `OrkanSlicerNightly25_ccf3772986.apk` mit 252.127.891 Byte und SHA-256 `D5A217430F0140AFA31F0105AB71FCBEC3057714D8337211C1D457EF01DC4444`.
+- Veröffentlichung: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.481-nightly.1. Es wurde kein zusätzlicher Build unter Stable erstellt.
+
 ## Umfang
 
 - Kalibrierungen prüfen den Modellzustand der aktiven Platte auch während der Übergabe an den GL-Renderer; PA-Line kann weiterhin das eingebaute Testmodell verwenden.
