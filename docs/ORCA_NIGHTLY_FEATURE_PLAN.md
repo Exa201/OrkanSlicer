@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 9/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 10/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -50,6 +50,12 @@
 - Orca `36815b4f03` setzt den relativen E-Akkumulator vor der Analyse jeder G-Code-Zeile zurück. Damit wird ein reiner Feedrate-Befehl nicht als zusätzliche Extrusionszeit interpretiert.
 - `NativeSliceDeviceTest#layerCoolingKeepsExtrusionSpeedsEquivalentForRelativeAndAbsoluteE` slicet dieselbe Geometrie mit relativem und absolutem E und vergleicht die Anzahl und Feedrates der XY-Extrusionsbewegungen. Android 16/API-36-Emulator: **1/1 bestanden**; Bewegungsanzahl stimmt und maximale Feedrate-Abweichung bleibt unter 1 mm/min.
 - APK-Gate bleibt bei 100/100.
+
+### Schritt 10/100 — Kein finaler Entladebefehl über einem kurzen Purge-Turm
+
+- Orca `2c50d15451` überspringt den finalen Tower-Unload, wenn ein Toolchanger-Purge-Turm vor der letzten Modelllage endet. Der Nightly-JNI-Test ruft dafür den produktiven Purge-Gate-Helper auf und prüft fünf Fälle, darunter SEMM, kurze Toolchanger-Türme und Tower bis zur letzten Lage.
+- Android 16/API-36-Emulator: `NativeSliceDeviceTest#toolchangerSkipsFinalWipeTowerUnloadWhenTheTowerStopsBelowTheModel` **1/1 bestanden**, erwartete fünf Gate-Entscheidungen stimmen exakt.
+- Die ersten zehn Schritte des neuen Upgrade-Zyklus sind vollständig verifiziert; APK/Prerelase bleibt bis **100/100** gesperrt.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
 
