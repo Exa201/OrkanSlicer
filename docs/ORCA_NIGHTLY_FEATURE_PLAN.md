@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 33/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.484; Upgrade-Zyklus: 35/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -6,6 +6,19 @@
 - Ein Schritt zählt nur bei einem konkreten Android-relevanten Orca-Fix/Feature, einer reproduzierbaren Regression oder einer überprüften Korrektur mit nachvollziehbarem Testergebnis. Reine Recherche, Dokumentation und kosmetische Änderungen zählen nicht.
 - APK und GitHub-Prerelease werden nach Schritt **100/100** gebaut/veröffentlicht. Zwischenstände bleiben im Nightly-Entwicklungsbranch; keine vorgezogenen Releases.
 - Die zuvor verwendete 10-Punkte-Batch-Zählung bleibt als historische Dokumentation erhalten und wird nicht als Fortschritt dieses neuen Zyklus angerechnet.
+
+### Schritt 35/100 — Painted Modifier hält bemalte Flächen im Slice
+
+- Portiert den Orca-Painted-Modifier-Segmentierungspfad: vor dem LayerRegion-Aufbau nutzt die Segmentierung die Host-Slice-Konturen als Bounds und gibt Modifikatorsegmente ungemerged an die Tiefen-/Flächenverarbeitung zurück.
+- API-36 `paintedModifierSlicesOnlyThePaintedHostSide` und `paintedModifierBbs3mfRoundtripPreservesTypePaintAndSettings`: beide bestanden. Die gemalte +X-Dreiecksfläche wird als 100 mm² geprüft, Restfläche 300 mm².
+- Der vollständige NativeSlice-Lauf hatte 207/214 bestanden, 6 Fehler und 1 Fixture-Skip. Die sechs bekannten Fehler sind separat gelistet in `UI2_EXECUTION_STATE.md`; die Painted-Modifier-Tests bestanden.
+- Kein APK/Release in diesem Zwischenschritt; nächster Schwerpunkt ist der Filamentindex beim Paint-Slice mit verkürzter Farbliste.
+
+### Schritt 34/100 — Multipart-Flachlegen und ACE-Werkzeugzuordnung
+
+- Im Nightly 0.8.484 wurde das Flachlegen für gedrehte/verschobene Mehrfachteilmodelle auf einen gemeinsamen lokalen Pivot korrigiert. Der Instrumentierungstest prüft Ausrichtung, Pivot und relative Teilanordnung.
+- ACE-Routing für T0–T15 wird im G-Code-/Uploadpfad geprüft. Die physische Gatewahl eines Druckers ist weiterhin nicht nachgewiesen.
+- Der getestete Code wurde mit Nightly 0.8.484 als `v0.8.484-nightly.1` veröffentlicht; Test-/Releasebelege stehen in `UI2_EXECUTION_STATE.md`.
 
 ### Schritt 30/100 — Boost-Polygon-Header aus häufig inkludierter Geometrie entkoppelt
 
