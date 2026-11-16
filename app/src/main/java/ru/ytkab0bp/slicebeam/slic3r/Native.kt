@@ -33,6 +33,8 @@ class Native {
     /** Exercises the native Auto For Match solver against four synthetic two-slot palettes. */
     @JvmStatic
     external fun filament_group_match_regression(): IntArray
+    @JvmStatic
+    external fun machine_filament_payload_bounds_regression(): IntArray
     /** Unknown printer-reported material must not bind to an unrelated or missing preset. */
     @JvmStatic
     external fun unknown_filament_type_preset_regression(): IntArray

@@ -5800,6 +5800,40 @@ extern "C" {
         return result;
     }
 
+    // Orca regression 6839c9d344: incomplete tray presets and payloads with additional extruder
+    // buckets must not index empty option vectors or write past the fixed two-nozzle result.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_machine_1filament_1payload_1bounds_1regression(JNIEnv* env, jclass) {
+        using namespace Slic3r;
+        using namespace Slic3r::FilamentGroupUtils;
+        std::vector<std::vector<DynamicPrintConfig>> configs(3);
+
+        DynamicPrintConfig incomplete;
+        incomplete.set_key_value("filament_colour", new ConfigOptionStrings(std::vector<std::string>{}));
+        incomplete.set_key_value("filament_type", new ConfigOptionStrings({"PLA"}));
+        incomplete.set_key_value("tray_name", new ConfigOptionStrings({"T0"}));
+        configs[0].push_back(std::move(incomplete));
+
+        for (int extruder : {1, 2}) {
+            DynamicPrintConfig slot;
+            slot.set_key_value("filament_colour", new ConfigOptionStrings({extruder == 1 ? "#00FF00" : "#0000FF"}));
+            slot.set_key_value("filament_type", new ConfigOptionStrings({"PLA"}));
+            slot.set_key_value("tray_name", new ConfigOptionStrings({"T0"}));
+            configs[extruder].push_back(std::move(slot));
+        }
+
+        const std::vector<std::vector<MachineFilamentInfo>> result =
+            build_machine_filaments(configs, std::vector<std::map<int, int>>(2), false);
+        const std::array<jint, 3> values{{
+            static_cast<jint>(result.size()),
+            result.empty() ? -1 : static_cast<jint>(result[0].size()),
+            result.size() < 2 ? -1 : static_cast<jint>(result[1].size())
+        }};
+        jintArray output = env->NewIntArray(static_cast<jsize>(values.size()));
+        if (output != nullptr)
+            env->SetIntArrayRegion(output, 0, static_cast<jsize>(values.size()), values.data());
+        return output;
+    }
+
     // Orca regression: an unrecognized printer-reported filament type must not select an
     // unrelated visible profile or index an empty preset collection.
     JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_unknown_1filament_1type_1preset_1regression(JNIEnv* env, jclass) {

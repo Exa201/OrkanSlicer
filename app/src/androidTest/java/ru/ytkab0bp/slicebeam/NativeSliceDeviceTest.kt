@@ -2238,6 +2238,15 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun incompleteMachineFilamentPayloadDoesNotIndexPastSlotVectors() {
+        assertArrayEquals(
+            "empty optional slot values are skipped and extra extruder payloads do not overrun the two-nozzle result",
+            intArrayOf(2, 0, 1),
+            Native.machine_filament_payload_bounds_regression(),
+        )
+    }
+
+    @Test
     fun flushGroupingCanTradeOneFilamentChangeToMatchLoadedSlots() {
         // The minimum-flush split separates two filaments whose combined transition costs 100 mm³.
         // A one-change candidate should let AMS matching keep both on the extruder where they are loaded.

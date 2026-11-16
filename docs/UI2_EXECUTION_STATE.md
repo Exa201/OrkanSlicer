@@ -1,5 +1,20 @@
 # Nightly 0.8.481 — Release- und Teststand — 2026-11-16
 
+## Nightly-Fortsetzung: Kobra-Sync und Upstream-Portierbarkeit — 2026-11-16
+
+- `MmuFilamentSync.synchronizeInternal()` leitet Aufrufe ohne Main-Looper vor dem Erzeugen eines LoopJ-Handlers bereits auf den Main-Thread um. Der gezielte Lauf `:app:connectedSliceTestAndroidTest` für `MmuFilamentSyncDeviceTest` bestand auf dem API-36-AVD **23/23**, darunter `synchronizationCanBeStartedFromAWorkerWithoutLooper`. An diesem Fix war in diesem Durchgang keine Codeänderung erforderlich.
+- Orca `7243d15ea2` wurde auf Portierbarkeit geprüft. Der Belt-Drucker-Zweig benötigt `PrintConfig::belt_printer`, das im Android-Fork nicht existiert; der ARM64-Native-Build wies dies nach. Der nicht kompatible Versuch wurde vollständig zurückgenommen und zählt nicht als Umsetzung.
+- Weiterhin Nightly-only. Build 0.8.415 bleibt entfernt; die fünf neuesten GitHub-Pre-Releases bleiben unverändert. Kein APK- oder Release-Schritt wurde ausgelöst.
+
+## Orca 2.5 Upstream-Port — Tray-Payload-Grenzen — 2026-11-16
+
+- Arbeitsbasis: Nightly-Branch `codex/ui-2.1-redesign`, Ausgangs-HEAD `ca4ac4738543cbaafbcfaaa5dd9a1facff20b895`.
+- Frischer GitHub-Abgleich: Orca `main` ist `ff93256eff8e6fb3fc274c6c483f69db9367a0c9`. Der Kandidat `6839c9d344` enthält eine Android-relevante Härtung: unvollständige oder leere Tray-Optionen dürfen keinen Indexzugriff auf einen leeren Vektor auslösen; überzählige Extruder-Payloads dürfen den temporären Arrayaufbau nicht überlaufen.
+- `FilamentGroupUtils::build_full_machine_filaments()` überspringt jetzt leere Farb-/Typ-/Tray-/Support-Werte und dimensioniert den Tray-Puffer nach tatsächlicher Payload-Größe, mindestens zwei. Assertions erwarten für den Zwei-Düsen-Output mindestens zwei vorbereitete Bucket-Listen.
+- Regression `NativeSliceDeviceTest#incompleteMachineFilamentPayloadDoesNotIndexPastSlotVectors`: API-36-AVD **1/1 bestanden**; ARM64 SliceTest-Native-Build und Instrumentierung erfolgreich. `git diff --check` erfolgreich.
+- Batch 19: **7/10**. Der separate Upstream-Teil, der bei geändertem AMS-Inventar `psWipeTower`/`psSkirtBrim` invalidiert, bleibt offen: der Nightly-Android-Aufrufpfad übergibt die Live-Tray-Payload noch nicht an `Print::set_extruder_filament_info`. CLI-Fix `7c76be2ebc` ist nicht portiert, weil Android keinen Orca-CLI-Einstieg hat.
+- APK/Release-Gate nicht erreicht; fünf aktuelle Nightly-Pre-Releases bleiben erhalten, 0.8.415 bleibt entfernt.
+
 ## Orca Batch 19 — Fortschritt 6/10 — 2026-11-16
 
 - Nightly-only gilt weiter. GitHub führt fünf aufbewahrte Nightly-Pre-Releases; der alte Build 0.8.415 ist weder in der Release-Liste noch als lokale APK vorhanden. Stable wird für diese Arbeit nicht verwendet.
