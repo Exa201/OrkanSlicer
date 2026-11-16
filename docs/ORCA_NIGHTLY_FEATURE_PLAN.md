@@ -8,6 +8,7 @@
 - Die relevanten Kernänderungen `0e8e95d516`, `8b8d573a85`, `8a1cef365e`, `3bfabc9831`, `6268535d2f`, `82135af6ff`, `36815b4f03`, `d7534d7fb9`, `ea80024735` und `3538f239c2` sind im Android-Kern bereits vorhanden. Dazu gehören unter anderem Layer-Cooling, Prime-Tower-Schutz, mehrfarbige Brücken, geteilte Extruder-Bettflächen und T-Befehle vor Filament-Start-G-Code.
 - Revalidierung auf Nightly-HEAD `87da519da16765968f95b2534ad3d07a3b3683e2`: `:app:testDebugUnitTest :app:testSliceTestUnitTest --no-daemon` erfolgreich. Aus den XML-Berichten: Debug **796/796**, SliceTest **796/796**, jeweils 0 Fehler, 0 Errors und 0 Skips. Gradle verwendete dabei vorhandene up-to-date Testergebnisse; keine Hardware- oder Instrumentierungsabnahme ist damit belegt.
 - Build **0.8.415** bleibt entfernt/nicht vorhanden; auf GitHub sind fünf Nightly-Pre-Releases erhalten, aktuellstes **0.8.481**. Batch 19 steht bei **7/10**; kein APK- oder Release-Gate wurde vorzeitig ausgelöst.
+- Zusatzprüfung am 2026-11-16: `WipeTower2::prime` enthält bereits Orcas Schutz gegen den Zugriff auf `tools[idx_tool - 1]`, wenn nur ein Werkzeug primt. `NativeSliceDeviceTest#type2PrimeTowerSlicesWithOnlyOneUsedFilament` (echter Type-2-Slice) und `#toolchangerSkipsFinalWipeTowerUnloadWhenTheTowerStopsBelowTheModel` bestanden frisch auf API 36 jeweils **1/1**. Diese vorhandene Funktion wird nicht erneut als Batch-Port gezählt.
 
 ### Batch-19-Filamentaliasse — vollständige Orca-Tabelle abgesichert
 

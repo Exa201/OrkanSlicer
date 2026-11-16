@@ -1,5 +1,11 @@
 # Nightly 0.8.481 — Release- und Teststand — 2026-11-16
 
+## Orca-Upstream-Nachprüfung — Type-2-Prime-Tower — 2026-11-16
+
+- Orca `0e8e95d516` ist bereits im Nightly-Engine-Fork enthalten: beim abschließenden Wipe wird für `idx_tool == 0` kein vorheriges Werkzeug indiziert.
+- Frisch auf API-36-AVD geprüft: `type2PrimeTowerSlicesWithOnlyOneUsedFilament` **1/1** und `toolchangerSkipsFinalWipeTowerUnloadWhenTheTowerStopsBelowTheModel` **1/1**; beide Gradle-Läufe erfolgreich.
+- Upstream-Head unverändert `ff93256eff8e6fb3fc274c6c483f69db9367a0c9`. Batch 19 bleibt **7/10**; die Prüfung zählt nicht als neue Produktänderung. Nächster konkreter Schritt: fehlenden Android-Transport des Live-AMS-Inventars bis `Print::set_extruder_filament_info` untersuchen und mit Mehrfarben-Slice-Invalidierung absichern.
+
 ## Nightly-Fortsetzung: Kobra-Sync und Upstream-Portierbarkeit — 2026-11-16
 
 - `MmuFilamentSync.synchronizeInternal()` leitet Aufrufe ohne Main-Looper vor dem Erzeugen eines LoopJ-Handlers bereits auf den Main-Thread um. Der gezielte Lauf `:app:connectedSliceTestAndroidTest` für `MmuFilamentSyncDeviceTest` bestand auf dem API-36-AVD **23/23**, darunter `synchronizationCanBeStartedFromAWorkerWithoutLooper`. An diesem Fix war in diesem Durchgang keine Codeänderung erforderlich.
