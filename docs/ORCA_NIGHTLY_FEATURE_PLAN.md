@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 25/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 26/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -149,6 +149,13 @@
 - `ThreeMfMulticolorDeviceTest#individuallyAssignedObjectsSliceWithTheirSelectedSlotsAndPalette`: Android 16/API-36-Emulator **1/1 bestanden**. G-Code verwendet die drei gewählten Tools, lässt das nicht zugewiesene T2 aus und die Vorschaufarben stimmen mit den konfigurierten RGBA-Werten überein.
 - Der erste Testlauf schlug nur wegen einer veralteten Testerwartung fehl: RGB wurde mit dem RGBA-Vorschauwert verglichen. Der Farbwert selbst war gleich; nach Anpassung der Erwartung an das tatsächliche Vorschauformat bestand der gleiche Instrumentierungstest.
 - APK-Gate bleibt bei 100/100. Nächster Schritt: die individuellen Mehrfarbenzuordnungen durch den Anycubic-Druckvorbereitungs- und Upload-Umschreibungspfad verfolgen.
+
+### Schritt 26/100 — Individuelle 3MF-Werkzeuge behalten ihre ACE-Fächer im Anycubic-Upload
+
+- Für eine nicht fortlaufende Mehrfarbenbelegung wurden die Slice-Werkzeuge T0, T1 und T3 den physischen ACE-Fächern 3, 1 und 4 zugewiesen; das unbenutzte T2 bleibt unbenutzt.
+- `SinglePhysicalSlotOutputTest#individuallyAssignedThreeMfToolsKeepTheirSelectedAceGatesInUpload` führt den fertigen Anycubic-G-Code durch den produktiven Umschreiber und prüft die tatsächlichen Befehle `T2`, `T0`, `T3`, ihre Reihenfolge vor den jeweiligen Extrusionen sowie die ACE-Gate-Metadaten `3,1,2,4`.
+- Gezielte Debug-Unit **1/1** und SliceTest-Unit **1/1** bestanden. `verifyNightlyChangelog` und `git diff --check` erfolgreich.
+- APK-Gate bleibt bei 100/100. Nächster Schritt: denselben Uploadpfad mit gemeinsamer physischer ACE-Zuordnung für mehrere logische Filamente prüfen.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
 

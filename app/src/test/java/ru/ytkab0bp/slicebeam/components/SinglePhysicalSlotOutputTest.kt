@@ -6,6 +6,40 @@ import org.junit.Test
 import ru.ytkab0bp.slicebeam.utils.AnycubicGCodeProcessor
 
 class SinglePhysicalSlotOutputTest {
+    @Test fun individuallyAssignedThreeMfToolsKeepTheirSelectedAceGatesInUpload() {
+        val source = File.createTempFile("individual-tools-source", ".gcode")
+        val output = File.createTempFile("individual-tools-output", ".gcode")
+        try {
+            source.writeText(
+                "; HEADER_BLOCK_START\n" +
+                    "; filament: 1,2,3,4\n" +
+                    "; HEADER_BLOCK_END\n" +
+                    "T0\nG1 X10 E1\nT1\nG1 X20 E2\nT3\nG1 X30 E3\n",
+            )
+            val scan = AnycubicGCodeProcessor.scan(source)
+            assertTrue(AnycubicGCodeProcessor.rewrite(source, output, scan,
+                AnycubicGCodeProcessor.Options().apply {
+                    // The 3MF's T0/T1/T3 objects were individually mapped to ACE 3/ACE 1/ACE 4.
+                    remappedTools = intArrayOf(2, 0, 1, 3)
+                    gates = intArrayOf(2, 0, 1, 3)
+                    versionName = "test"
+                }))
+
+            val result = output.readLines()
+            assertTrue("ACE gates must match the saved per-color assignment",
+                result.contains("; filament: 3,1,2,4"))
+            val emittedTools = result.mapNotNull { line ->
+                Regex("^T([0-9]{1,2})$").matchEntire(line)?.groupValues?.get(1)?.toInt()
+            }
+            assertEquals("only the three assigned source colors should be emitted", listOf(2, 0, 3), emittedTools)
+            assertTrue("each mapped tool must precede its own object's extrusion",
+                result.indexOf("T2") < result.indexOf("G1 X10 E1") &&
+                    result.indexOf("T0") < result.indexOf("G1 X20 E2") &&
+                    result.indexOf("T3") < result.indexOf("G1 X30 E3"))
+            assertFalse("unused logical T2 must not become an ACE command", result.contains("T1"))
+        } finally { source.delete(); output.delete() }
+    }
+
     @Test fun sixteenToolUploadPreservesEveryPhysicalSelectionAndGateMapping() {
         val source = File.createTempFile("sixteen-tool-source", ".gcode")
         val output = File.createTempFile("sixteen-tool-output", ".gcode")
