@@ -1,13 +1,24 @@
 # Nightly 0.8.484 — Release- und Teststand — 2026-11-16
 
-## Aktuelle Fortsetzung — Orca-Upgrade-Zyklus 36/100
+## Aktuelle Fortsetzung — Orca-Upgrade-Zyklus 37/100
+
+### Schritt 37 — Boolean-Bemalung bleibt im G-Code erhalten
+
+- `TriangleSelector::remap_painting` verwarf passende Boolean-Ausgabeflächen allein wegen umgedrehter Dreiecks-Winding. Jetzt entscheidet die geometrische Überlappung, damit Boolean-Neutriangulierung Farbzuweisungen nicht aus dem Slice entfernt.
+- API-36-Emulator: `booleanOperationsPreservePaintedTargetFilamentsThroughThreeMfAndSlice` **1/1 bestanden** (UNION, DIFFERENCE, INTERSECTION; gedrehtes/verschobenes Ausgangsmodell; echter Slice vor/nach Boolean; 3MF-Roundtrip). T1 wird in jeder Stufe nachgewiesen.
+- API-36-Emulator: `paintedSegmentationUsesFilamentCountWhenColorPaletteIsShorter` **1/1 bestanden**.
+- Der frühere Vollteststand 207/214 aus Schritt 35 wurde nicht als aktueller Vollteststand übernommen; nur die beiden gezielten Tests liefen jetzt. Keine APK/kein Release; das 100/100-Gate bleibt bestehen.
+- Geänderte relevante Dateien: `TriangleSelector.cpp`, `NativeSliceDeviceTest.kt`. Die vorherigen lokalen UI-Teständerungen und UI-Bildartefakte blieben unangetastet.
+- Nächster konkreter Schritt: nächsten noch offenen Android-relevanten Orca-/Mehrfarbenfehler reproduzieren und mit gezieltem API-36-Test beheben.
+
+## Historischer Stand nach Nightly 0.8.484 — Orca-Upgrade-Zyklus 36/100
 
 ### Schritt 36 — Spiral Inset Füllrichtung
 
 - Ursache: `FillParams.fill_order` wurde für „Spiral Inset“ nicht ausgewertet. Deshalb erzeugten die Profileinstellungen „Inward“ und „Outward“ denselben G-Code.
 - `FillSpiralInset.cpp` übernimmt Orcas Richtungswahl für die klassischen und die Arachne-basierten Bahnen und ordnet die offenen Arachne-Wände relativ zum Spiralkern passend ein.
 - `NativeSliceDeviceTest#spiralInsetSparsePatternProducesADistinctNativeToolpath`: **1/1 bestanden** auf dem API-36-Emulator. Der Test vergleicht die tatsächlichen Extrusionsbewegungen für „Inward“ und „Outward“ und prüft weiterhin sparse Spiralbahnen.
-- Im selben Emulatorlauf wurde der Boolean-Paint-Fehler weiter isoliert: Das Ausgangsmodell slicet mit T1; direkt nach dem Boolean enthält der Slice nur T0. Das bleibt offen und ist der nächste konkrete Fix.
+- Im selben Emulatorlauf wurde der Boolean-Paint-Fehler weiter isoliert: Das Ausgangsmodell slicet mit T1; direkt nach dem Boolean enthielt der Slice nur T0. Er ist in Schritt 37 behoben.
 - Kein APK/Release in diesem Zwischenschritt; das 100/100-Gate bleibt bestehen.
 
 ## Historischer Stand nach Nightly 0.8.484 — Orca-Upgrade-Zyklus 35/100

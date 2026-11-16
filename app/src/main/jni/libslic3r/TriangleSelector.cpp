@@ -2528,15 +2528,16 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
             if (face_idx >= target_mesh.its.indices.size())
                 return true;
 
-            const Vec3f& norm_a = source_selector.m_face_normals[tri.source_triangle];
-            const Vec3f& norm_b = target_selector.m_face_normals[face_idx];
-
             const Vec3i32& face = target_mesh.its.indices[face_idx];
             const Vec3f& ta     = target_mesh.its.vertices[face(0)];
             const Vec3f& tb     = target_mesh.its.vertices[face(1)];
             const Vec3f& tc     = target_mesh.its.vertices[face(2)];
 
-            if (TriangleCursor::check_normal(norm_b, -norm_a) && check_overlap(pv0, pv1, pv2, ta, tb, tc)) {
+            // Boolean engines may flip a surviving face's winding while rebuilding a
+            // watertight result (notably for subtraction/intersection). Painting is
+            // attached to the geometric surface, so requiring matching normals here
+            // drops valid paint even when the triangles overlap exactly.
+            if (check_overlap(pv0, pv1, pv2, ta, tb, tc)) {
                 // Paint this face
                 target_selector.select_patch(face_idx, TriangleCursor::build_cursor(source_selector, tri), tri.get_state(),
                                              Transform3d::Identity(), true, 0.f, true);

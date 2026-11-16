@@ -7386,6 +7386,10 @@ class NativeSliceDeviceTest {
                 assertTrue(model.getUsedFilaments(0).contains(2))
                 val oneInstancePaintTriangles = model.buildPaintOverlay(0, paintOverlay, 2)
                 assertTrue("the target instance should render its painted facets", oneInstancePaintTriangles > 0)
+                val preBooleanGcode = sliceToGcode(context, model, "boolean-painted-${operation.name.lowercase()}-source.gcode")
+                val preBooleanTools = Regex("(?m)^T\\d+").findAll(preBooleanGcode).map { it.value }.distinct().toList()
+                assertTrue("paint must select T1 before ${operation.name}; tools=$preBooleanTools",
+                    Regex("(?m)^T1(?:\\s|$)").containsMatchIn(preBooleanGcode))
 
                 val targetWidth = max.x - min.x
                 assertTrue("the painted target should accept a second linked instance",
@@ -7398,6 +7402,11 @@ class NativeSliceDeviceTest {
                 assertTrue("${operation.name} must retain target painted filament 2", model.getUsedFilaments(0).contains(2))
                 assertTrue("${operation.name} should remap painted facets from both linked instances",
                     model.buildPaintOverlay(0, paintOverlay, 2) > oneInstancePaintTriangles)
+
+                val directGcode = sliceToGcode(context, model, "boolean-painted-${operation.name.lowercase()}-direct.gcode")
+                val directTools = Regex("(?m)^T\\d+").findAll(directGcode).map { it.value }.distinct().toList()
+                assertTrue("${operation.name} must use painted target tool T1 before 3MF export; tools=$directTools",
+                    Regex("(?m)^T1(?:\\s|$)").containsMatchIn(directGcode))
 
                 SliceBeam.genCurrentConfig(model)
                 generatedConfig = SliceBeam.getCurrentConfigFile()
@@ -7421,7 +7430,7 @@ class NativeSliceDeviceTest {
     }
 
     @Test
-    fun paintedSegmentationUsesFilamentCountWhenColorPaletteIsShorter() = withToolChangerProfile {
+    fun paintedSegmentationUsesFilamentCountWhenColorPaletteIsShorter() = withKobraProfile {
         assertArrayEquals("Facet state count follows filaments; layer access is bounded by its one-color row",
             intArrayOf(2, 1, 3, 1), Native.painted_segmentation_state_count_probe(2, 1))
         assertArrayEquals("Extra palette entries must not exceed configured filament channels",
@@ -7466,8 +7475,9 @@ class NativeSliceDeviceTest {
                 result = model.slice(generatedConfig!!.absolutePath, output.absolutePath, null)
                 val gcode = output.readText()
                 assertHasExtrusion(gcode)
+                val emittedTools = Regex("(?m)^T\\d+").findAll(gcode).map { it.value }.distinct().toList()
                 assertTrue(
-                    "The painted second filament must survive slicing when the color palette is shorter than the filament list",
+                    "The painted second filament must survive slicing when the color palette is shorter than the filament list; emitted tools=$emittedTools",
                     Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode),
                 )
                 var activeTool = 0
