@@ -55,6 +55,12 @@ import java.util.zip.CRC32
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun unknownPrinterFilamentTypeDoesNotSelectAnUnrelatedPreset() {
+        val result = Native.unknown_filament_type_preset_regression()
+        assertArrayEquals("Unknown material lookup should return no index and an empty filament id", intArrayOf(-1, 1), result)
+    }
+
+    @Test
     fun bundledExpatRejectsEntityAmplificationBeforeExpandingUntrustedXml() {
         val result = Native.expat_entity_amplification_guard_regression()
         assertEquals("Expat must be built with DTD support so its entity guard is enabled", 1, result[0])

@@ -3241,13 +3241,15 @@ size_t PresetCollection::first_visible_idx_by_type(const std::string& filament_t
             return idx;
     }
 
-    // 3. Any visible preset
-    return first_visible_idx();
+    // A printer may report a filament type that has no visible compatible profile. Do not
+    // silently bind that physical slot to an unrelated material.
+    return size_t(-1);
 }
 
 std::string PresetCollection::filament_id_by_type(const std::string& filament_type) const
 {
-    return preset(first_visible_idx_by_type(filament_type)).filament_id;
+    const size_t idx = first_visible_idx_by_type(filament_type);
+    return idx == size_t(-1) ? std::string() : preset(idx).filament_id;
 }
 
 std::vector<std::string> PresetCollection::diameters_of_selected_printer()

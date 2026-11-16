@@ -5800,6 +5800,23 @@ extern "C" {
         return result;
     }
 
+    // Orca regression: an unrecognized printer-reported filament type must not select an
+    // unrelated visible profile or index an empty preset collection.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_unknown_1filament_1type_1preset_1regression(JNIEnv* env, jclass) {
+        struct EmptyPresetCollection final : Slic3r::PresetCollection {
+            EmptyPresetCollection() : Slic3r::PresetCollection() {}
+        } presets;
+        const size_t index = presets.first_visible_idx_by_type("NIGHTLY_UNKNOWN_MATERIAL");
+        const std::array<jint, 2> result{{
+            index == size_t(-1) ? -1 : static_cast<jint>(index),
+            presets.filament_id_by_type("NIGHTLY_UNKNOWN_MATERIAL").empty() ? 1 : 0,
+        }};
+        jintArray output = env->NewIntArray(static_cast<jsize>(result.size()));
+        if (output != nullptr)
+            env->SetIntArrayRegion(output, 0, static_cast<jsize>(result.size()), result.data());
+        return output;
+    }
+
     // Orca regression: an unloaded extruder group must be penalized once per model filament,
     // otherwise a 3:1 and 1:3 candidate split tie even when the latter matches loaded slots.
     JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_filament_1group_1empty_1loaded_1slot_1penalty_1regression(JNIEnv* env, jclass) {
