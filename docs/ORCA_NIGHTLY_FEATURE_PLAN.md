@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 23/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 24/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -136,6 +136,12 @@
 - Die Compose-Zuordnung wurde mit vier getrennten Farben und vier geladenen ACE-Fächern geöffnet. T1 kann ausdrücklich auf ACE 4 gesetzt werden, obwohl T3 bereits ACE 4 nutzt; die restlichen Farben bleiben auf ihren bisherigen ACE-Fächern.
 - `SlicePrintPreparationComposeDeviceTest#selectingAnOccupiedAceGateAllowsTwoColorsToShareOnePhysicalFilament`: Android 16/API-36-Emulator **1/1 bestanden**. Das Testassertion bestätigt die Zuordnung `[ACE 1, ACE 4, ACE 3, ACE 4]`.
 - APK-Gate bleibt bei 100/100. Nächster Schritt: Mehrfarben-Dialog und erzeugten Anycubic-G-Code gemeinsam auf eine weitere reale Zuordnungsvariante prüfen.
+
+### Schritt 24/100 — Mehrere 3MF-Objekte auf gemeinsamem weißen Filament slicen nur den gewählten Slot
+
+- Das gebündelte Drei-Objekt-3MF wurde so zugeordnet, dass jedes Teil denselben weißen Slicer-Slot verwendet. Der produktive native Slice prüft, dass der G-Code den gemeinsamen Slot als T1 ausgibt und weder T0, T2 noch T3 auswählt.
+- `ThreeMfMulticolorDeviceTest#separateObjectsAssignedToOneSharedWhiteSlotSliceOnlyThatTool`: Android 16/API-36-Emulator **1/1 bestanden**; nicht leerer G-Code und vollständige Testkonfiguration bestätigt.
+- APK-Gate bleibt bei 100/100. Nächster Schritt: eine Mehrfarben-3MF-Variante mit unterschiedlichen Zielslots bis zur Druckvorbereitung/Upload-Umschreibung verfolgen.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
 
