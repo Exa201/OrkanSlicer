@@ -1,6 +1,6 @@
 # Nightly 0.8.481 — Release- und Teststand — 2026-11-16
 
-## Orca Batch 19 — Fortschritt 5/10 — 2026-11-16
+## Orca Batch 19 — Fortschritt 6/10 — 2026-11-16
 
 - Nightly-only gilt weiter. GitHub führt fünf aufbewahrte Nightly-Pre-Releases; der alte Build 0.8.415 ist weder in der Release-Liste noch als lokale APK vorhanden. Stable wird für diese Arbeit nicht verwendet.
 - Portiert Orca `0e8e95d516` in `WipeTower2::prime`: Wenn beim Type-2-Wipe-Tower nur ein Werkzeug primt, wird das Wipe-Volumen sicher auf null gesetzt, statt `tools[idx_tool - 1]` zu dereferenzieren.
@@ -12,7 +12,8 @@
 - ARM64-`assembleSliceTest` erfolgreich. Debug-Unit **794/794** und SliceTest-Unit **794/794**, jeweils keine Fehler oder Skips; `git diff --check` sauber. Gerät: x86_64-API-36-AVD mit ARM64-Übersetzungsbrücke, kein physisches Telefon.
 - Punkt 5/10 behebt eine Orca-Abweichung in `PresetCollection::first_visible_idx_by_type`: Wenn kein sichtbares Profil zum vom Drucker gemeldeten Filamenttyp passt, wird kein beliebiges Material mehr zurückgegeben. `filament_id_by_type` liefert in diesem Fall eine leere ID. `NativeSliceDeviceTest#unknownPrinterFilamentTypeDoesNotSelectAnUnrelatedPreset` bestand 1/1 auf Android 16/API 36. Der erste Testlauf fand einen fehlenden `@JvmStatic`-JNI-Einstieg, der korrigiert und danach erfolgreich erneut getestet wurde. `assembleSliceTest` und `assembleSliceTestAndroidTest` sind erfolgreich; vollständige Unit-Suiten nach dieser Änderung stehen noch aus.
 - Der alte Build-Tag `v0.8.415-nightly.1` war nur lokal und verwaist; GitHub hatte weder ein Release noch den Tag, und keine 415-APK lag im APK-Ausgabeverzeichnis. Das lokale Tag wurde entfernt. Die fünf neuesten Nightly-Releases wurden nicht verändert.
-- Der alte Build 0.8.415 ist nicht als Nightly-Release vorhanden; fünf neueste Nightly-Releases bleiben erhalten. Kein APK erstellt und kein Release veröffentlicht: Batch 19 steht bei 5/10. Nächster Schritt: vollständige Debug-/SliceTest-Unit-Suiten ausführen und danach den nächsten unabhängigen Orca-Upstream-Port auswählen.
+- Der alte Build 0.8.415 ist nicht als Nightly-Release vorhanden; fünf neueste Nightly-Releases bleiben erhalten. Kein APK erstellt und kein Release veröffentlicht: Batch 19 steht bei 6/10. Nächster Schritt: den nächsten unabhängigen Orca-Upstream-Port auswählen.
+- Batch-Punkt 6 portiert Orcas `fabad6114a`-Aliasfamilien in die produktive Android-Materialkompatibilität. Bekannte Namen wie `PLA+`, `PETG+`, `PET`, `PLA Matte`-Varianten, `PETG-HF` und `Nylon` erhalten kompatible Slotvorschläge; Spezialmaterialien wie `PLA Matte`, `PETG HF` sowie CF/GF bleiben von PLA/PETG-Familien getrennt. Regressionen in `MmuColorAssignmentPolicyTest` bestehen mit `:app:testDebugUnitTest --tests ru.ytkab0bp.slicebeam.components.MmuColorAssignmentPolicyTest` (BUILD SUCCESSFUL). Vollständige Suites stehen für den Batchabschluss noch aus.
 
 ## Veröffentlichungsziel bestätigt — 2026-11-16
 

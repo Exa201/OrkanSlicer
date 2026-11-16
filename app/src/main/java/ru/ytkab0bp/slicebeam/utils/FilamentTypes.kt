@@ -17,4 +17,28 @@ object FilamentTypes {
         "PEEK", "PEEK-CF", "PEEK-GF", "PEKK", "PEKK-CF", "PES",
         "PVDF", "SBS", "TPI", "BVOH", "CoPE", "EVA", "FLEX"
     )
+
+    /**
+     * Maps common printer-side aliases to the material family Orca uses for compatibility.
+     * Keep specialty variants (for example CF/GF) distinct so an alias never makes an
+     * incompatible spool look safe to assign.
+     */
+    @JvmStatic
+    fun compatibilityFamily(type: String?): String? {
+        val normalized = type?.trim()?.replace(Regex("\\s+"), " ")?.uppercase(java.util.Locale.ROOT)
+            ?.takeIf { it.isNotEmpty() } ?: return null
+        return when (normalized) {
+            "PLA+", "PLA PRO" -> "PLA"
+            "PLA MATTE", "PLA-MATTE" -> "PLA MATTE"
+            "PLA SILK", "PLA-SILK" -> "PLA SILK"
+            "PLA HIGH SPEED", "PLA-HS", "PLA HS" -> "PLA HIGH SPEED"
+            "ABS+" -> "ABS"
+            "PETG+", "PET" -> "PETG"
+            "PETG HF", "PETG-HF" -> "PETG HF"
+            "NYLON" -> "PA"
+            "PPA" -> "PPA-CF"
+            "COPE" -> "COPE"
+            else -> normalized
+        }
+    }
 }

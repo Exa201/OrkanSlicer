@@ -10,6 +10,15 @@ class MmuColorAssignmentPolicyTest {
         assertEquals(false, MmuColorAssignmentPolicy.materialMismatch(" PLA ", "pla"))
         assertEquals(false, MmuColorAssignmentPolicy.materialMismatch("PLA", null))
     }
+    @Test fun printerMaterialAliasesMatchOrcaCompatibilityFamilies() {
+        assertEquals(false, MmuColorAssignmentPolicy.materialMismatch("PLA", "PLA+"))
+        assertEquals(false, MmuColorAssignmentPolicy.materialMismatch("PETG", "PETG+"))
+        assertEquals(false, MmuColorAssignmentPolicy.materialMismatch("PA", "Nylon"))
+        assertEquals(true, MmuColorAssignmentPolicy.materialMismatch("PLA", "PLA-CF"))
+        assertEquals(true, MmuColorAssignmentPolicy.materialMismatch("PETG", "PETG-CF"))
+        assertEquals(true, MmuColorAssignmentPolicy.materialMismatch("PLA", "PLA Matte"))
+        assertEquals(true, MmuColorAssignmentPolicy.materialMismatch("PETG", "PETG HF"))
+    }
     @Test fun colorsRouteToPhysicalSlotsInADifferentOrderWithoutRenumberingSourceColors() {
         val targets = listOf(MmuColorAssignmentPolicy.Slot(0, 0x8671CB, "PLA"),
             MmuColorAssignmentPolicy.Slot(1, 0xD02727, "PLA"), MmuColorAssignmentPolicy.Slot(2, 0xC8C8C8, "PLA"))
@@ -25,6 +34,13 @@ class MmuColorAssignmentPolicyTest {
         val targets = listOf(MmuColorAssignmentPolicy.Slot(0, 0xFFFFFF, "PETG"),
             MmuColorAssignmentPolicy.Slot(2, 0xCCCCCC, "PLA"))
         assertEquals(2, MmuColorAssignmentPolicy.suggest(0xFFFFFF, "PLA", 0, targets))
+    }
+    @Test fun knownPrinterAliasesPreferTheCompatibleGateBeforeColorDistance() {
+        val targets = listOf(
+            MmuColorAssignmentPolicy.Slot(0, 0xFFFFFF, "PETG-CF"),
+            MmuColorAssignmentPolicy.Slot(2, 0xCCCCCC, "PETG+"),
+        )
+        assertEquals(2, MmuColorAssignmentPolicy.suggest(0xFFFFFF, "PETG", 0, targets))
     }
     @Test fun unverifiedSlotsUseTheExistingToolOrderAndOnlyAvailableTargets() {
         val targets = listOf(MmuColorAssignmentPolicy.Slot(0, null, null), MmuColorAssignmentPolicy.Slot(3, null, null))

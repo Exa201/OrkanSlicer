@@ -1,14 +1,21 @@
 package ru.ytkab0bp.slicebeam.components
 
+import ru.ytkab0bp.slicebeam.utils.FilamentTypes
+
 /** Suggestions never replace an explicit user choice or change model geometry. */
 internal object MmuColorAssignmentPolicy {
     data class Slot(val gate: Int, val color: Int?, val material: String?)
     fun materialMismatch(source: String?, target: String?): Boolean =
-        !source.isNullOrBlank() && !target.isNullOrBlank() && !source.trim().equals(target.trim(), true)
+        FilamentTypes.compatibilityFamily(source) != null &&
+            FilamentTypes.compatibilityFamily(target) != null &&
+            FilamentTypes.compatibilityFamily(source) != FilamentTypes.compatibilityFamily(target)
 
     fun suggest(color: Int?, material: String?, preferredGate: Int, slots: List<Slot>): Int {
         require(slots.isNotEmpty())
-        val compatible = slots.filter { !material.isNullOrBlank() && it.material.equals(material, true) }
+        val sourceFamily = FilamentTypes.compatibilityFamily(material)
+        val compatible = slots.filter {
+            sourceFamily != null && FilamentTypes.compatibilityFamily(it.material) == sourceFamily
+        }
         val candidates = compatible.ifEmpty { slots }
         val colored = candidates.filter { color != null && it.color != null }
         if (colored.isNotEmpty()) return colored.minWith(compareBy<Slot> {
