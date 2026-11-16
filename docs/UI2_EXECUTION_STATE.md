@@ -1,6 +1,6 @@
 # Nightly 0.8.483 — Release- und Teststand — 2026-11-16
 
-## Orca Nightly Upgrade-Zyklus — Schritt 26/100 — 2026-11-16
+## Orca Nightly Upgrade-Zyklus — Schritt 28/100 — 2026-11-16
 
 - Basisstand: Nightly **0.8.483**, Branch `codex/ui-2.1-redesign`, Codebasis HEAD `7464f271b1`, aktueller Doku-HEAD `e326f57dd1`; zuletzt geprüfter Upstream `4b161be15085f578638752dc891b2795ee6861d3`.
 - Schritt 2 prüft die Anker-Maschinenprofile: neuer Unit-Test validiert alle 12 Profile auf den Gesamtzeit-Platzhalter `print_time_total_sec`. Gezielte Debug-Unit **1/1**, SliceTest-Unit **1/1**; vollständige Debug-Unit **799/799**, SliceTest-Unit **799/799**, jeweils ohne Fehler/Skips.
@@ -28,8 +28,10 @@
 - Schritt 24 sliced ein Drei-Objekt-3MF, dessen Objekte gemeinsam auf den weißen Slicer-Slot T1 gelegt wurden. Echter G-Code nutzt nur T1, ohne unerwünschte T0/T2/T3-Befehle. API-36-Emulator **1/1** bestanden.
 - Schritt 25 sliced dasselbe Mehrfarben-3MF mit unterschiedlichen individuellen Objektzuordnungen zu T3, T0 und T1. individuallyAssignedObjectsSliceWithTheirSelectedSlotsAndPalette bestätigt auf API 36 alle erwarteten Toolwechsel, kein T2 und die korrekten RGBA-Vorschaufarben: **1/1 bestanden**. Ein anfänglicher RGB/RGBA-Testvergleich wurde korrigiert; Produktfarbe und Slice waren korrekt.
 - Schritt 26 verfolgt dieselbe nicht fortlaufende Werkzeugbelegung durch den produktiven Anycubic-Uploadumschreiber: T0/T1/T3 werden zu ACE 3/1/4, T2 bleibt unbenutzt, und die Gate-Metadaten stimmen mit `3,1,2,4` überein. Gezielte Debug-Unit **1/1** und SliceTest-Unit **1/1** bestanden.
+- Schritt 27 bildet zwei logische Filamente mit gemeinsamem ACE-Fach beim Upload konsistent auf denselben physischen Befehl T1 ab. Beide Extrusionen bleiben erhalten, die Gate-Metadaten lauten `2,2`; gezielte Debug-Unit **1/1** und SliceTest-Unit **1/1** bestanden.
+- Schritt 28 prüft Änderungen des ACE-Inventars zwischen Druckvorbereitung und Versand: ein geleertes Fach wird abgelehnt und eine geänderte Farbe/ein geändertes Material ändert die Zuordnungssignatur. `MmuFilamentSyncDeviceTest` auf Android 16/API 36 **23/23 bestanden**, 0 Fehler/Skips. Xiaomi-Installationsversuch wurde von Android mit `INSTALL_FAILED_USER_RESTRICTED` abgebrochen; keine Hardwaretests wurden dort gestartet.
 - Ein neuer APK/Release wird nach **100/100** einzeln nachgewiesenen Upgrade-Schritten erstellt. Historische 10-Punkte-Batches unten bleiben nur als alte Release-Historie erhalten.
-- Frischer Upstream-Stand enthält zuletzt `59acdedd06`; dies ist eine Boost-/Header-Buildoptimierung, ohne Android-Runtime-Auswirkung. Die gezielten API-36-Regressionen für Orca-Kernpfade, Mehrmodell-Anordnung und knappe Bettbelegung sowie Routing-/Upload-, ACE-Zuordnungs- und Mehrfarben-Slice-Tests bestanden; vollständige JVM-Suiten wurden in diesen Schritten nicht erneut ausgeführt. `verifyNightlyChangelog` und `git diff --check` bestanden. Nächste Aktion: gemeinsamen ACE-Slot für mehrere logische Filamente bis durch den Anycubic-Upload prüfen. Noch kein APK/Release für diesen Zyklus.
+- Frischer Upstream-Stand enthält zuletzt `59acdedd06`; dies ist eine Boost-/Header-Buildoptimierung, ohne Android-Runtime-Auswirkung. Die gezielten API-36-Regressionen für Orca-Kernpfade, Mehrmodell-Anordnung und knappe Bettbelegung sowie Routing-/Upload-, ACE-Zuordnungs- und Mehrfarben-Slice-Tests bestanden; vollständige JVM-Suiten wurden in diesen Schritten nicht erneut ausgeführt. `verifyNightlyChangelog` und `git diff --check` bestanden. Nächste Aktion: vollständigen Anycubic-Routingpfad gegen inkonsistente/ungültige T-zu-Gate-Zuordnungen weiter prüfen. Xiaomi-Hardwaretest bleibt durch Installationsrestriktion blockiert; noch kein APK/Release für diesen Zyklus.
 
 ## Orca Batch 20, Punkt 1/10 — Arachne-Konturvereinfachung gegen Integer-Überlauf
 

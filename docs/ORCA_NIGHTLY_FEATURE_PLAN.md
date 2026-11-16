@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 26/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 28/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -156,6 +156,20 @@
 - `SinglePhysicalSlotOutputTest#individuallyAssignedThreeMfToolsKeepTheirSelectedAceGatesInUpload` führt den fertigen Anycubic-G-Code durch den produktiven Umschreiber und prüft die tatsächlichen Befehle `T2`, `T0`, `T3`, ihre Reihenfolge vor den jeweiligen Extrusionen sowie die ACE-Gate-Metadaten `3,1,2,4`.
 - Gezielte Debug-Unit **1/1** und SliceTest-Unit **1/1** bestanden. `verifyNightlyChangelog` und `git diff --check` erfolgreich.
 - APK-Gate bleibt bei 100/100. Nächster Schritt: denselben Uploadpfad mit gemeinsamer physischer ACE-Zuordnung für mehrere logische Filamente prüfen.
+
+### Schritt 27/100 — Mehrere logische Filamente auf einem ACE-Fach bleiben beim Upload zusammen
+
+- Zwei logische Werkzeuge T0 und T1 wurden demselben physischen ACE-Fach 2 zugewiesen. Der Anycubic-Umschreiber muss beide Toolwechsel auf das physische T1 abbilden und beide Extrusionen erhalten.
+- `SinglePhysicalSlotOutputTest#logicalColorsSharingOneAceGateBothRouteToThatPhysicalTool` prüft die Gate-Metadaten `2,2`, beide umgeschriebenen T1-Befehle und deren Position vor den jeweiligen Extrusionen.
+- Gezielte Debug-Unit **1/1** und SliceTest-Unit **1/1** bestanden.
+- APK-Gate bleibt bei 100/100. Nächster Schritt: ACE-Inventaränderung während der Druckvorbereitung prüfen, damit eine zwischenzeitlich geänderte Zuordnung nicht mit veralteten Slots hochgeladen wird.
+
+### Schritt 28/100 — Frische ACE-Prüfung erkennt während der Druckvorbereitung geänderte Fächer
+
+- `MmuFilamentSyncDeviceTest#freshUploadCheckRejectsASlotEmptiedAfterTheSendDialogOpened` prüft, dass ein nach dem Öffnen des Sendedialogs geleertes Fach aus der aktuellen Zuordnung fällt. `freshUploadCheckDetectsAChangedColorOrMaterialOnALoadedGate` prüft, dass eine zwischenzeitliche Farb-/Materialänderung die Zuordnungssignatur ändert.
+- Gesamter `MmuFilamentSyncDeviceTest` auf Android 16/API-36-Emulator **23/23 bestanden**, 0 Fehler, 0 Skips; beide gezielten Zustandswechseltests sind enthalten.
+- Der Versuch auf Xiaomi 2211133G startete keinen Test: Android verweigerte die Instrumentierungsinstallation (`INSTALL_FAILED_USER_RESTRICTED`). Das Ergebnis zählt deshalb nur als Emulatorprüfung, nicht als Hardwareabnahme.
+- APK-Gate bleibt bei 100/100. Nächster Schritt: den vollständigen Anycubic-Routingpfad gegen inkonsistente/ungültige T-zu-Gate-Zuordnungen weiter prüfen.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
 

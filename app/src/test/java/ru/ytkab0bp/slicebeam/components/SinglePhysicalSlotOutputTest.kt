@@ -6,6 +6,38 @@ import org.junit.Test
 import ru.ytkab0bp.slicebeam.utils.AnycubicGCodeProcessor
 
 class SinglePhysicalSlotOutputTest {
+    @Test fun logicalColorsSharingOneAceGateBothRouteToThatPhysicalTool() {
+        val source = File.createTempFile("shared-ace-source", ".gcode")
+        val output = File.createTempFile("shared-ace-output", ".gcode")
+        try {
+            source.writeText(
+                "; HEADER_BLOCK_START\n" +
+                    "; filament: 1,2\n" +
+                    "; HEADER_BLOCK_END\n" +
+                    "T0\nG1 X10 E1\nT1\nG1 X20 E2\n",
+            )
+            val scan = AnycubicGCodeProcessor.scan(source)
+            assertTrue(AnycubicGCodeProcessor.rewrite(source, output, scan,
+                AnycubicGCodeProcessor.Options().apply {
+                    // Two compatible logical colors share the second loaded ACE spool.
+                    remappedTools = intArrayOf(1, 1)
+                    gates = intArrayOf(1, 1)
+                    versionName = "test"
+                }))
+
+            val result = output.readLines()
+            assertTrue("both logical colors must reference the shared second ACE gate",
+                result.contains("; filament: 2,2"))
+            assertEquals("both source tools must be rewritten to the same physical ACE tool",
+                listOf(1, 1), result.mapNotNull { line ->
+                    Regex("^T([0-9]{1,2})$").matchEntire(line)?.groupValues?.get(1)?.toInt()
+                })
+            assertTrue("the shared physical tool must be selected before each color's extrusion",
+                result.indexOf("T1") < result.indexOf("G1 X10 E1") &&
+                    result.lastIndexOf("T1") < result.indexOf("G1 X20 E2"))
+        } finally { source.delete(); output.delete() }
+    }
+
     @Test fun individuallyAssignedThreeMfToolsKeepTheirSelectedAceGatesInUpload() {
         val source = File.createTempFile("individual-tools-source", ".gcode")
         val output = File.createTempFile("individual-tools-output", ".gcode")
