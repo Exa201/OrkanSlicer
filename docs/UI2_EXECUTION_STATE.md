@@ -5359,6 +5359,13 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Vollständige Debug- und SliceTest-Unit-Berichte auf diesem HEAD: **796/796** je Suite, 0 Fehler, 0 Errors, 0 Skips. Gradle bestätigte Aufgaben als up-to-date; die Berichte stammen aus der aktuellen Testbasis. Kein Instrumentierungs- oder Hardwaretest in diesem Schritt.
 - Build 0.8.415 ist weder lokales Nightly-Artefakt noch GitHub-Release; das alte lokale Tag wurde entfernt. Fünf jüngste Nightly-Pre-Releases bleiben erhalten; neuestes Release ist 0.8.481.
 - Nächster Schritt: nächsten noch nicht portierten Android-Aufrufpfad aus dem Orca-Backlog auswählen; Batch 19 steht auf 6/10. APK/Release erst nach Erreichen des vereinbarten 10-Punkte-Gates.
+
+## Nightly – Orca-Filament-Aliasse vollständig regressionsgeprüft — 2026-11-16
+
+- `MmuColorAssignmentPolicyTest` ergänzt eine vollständige Liste der Orca-Material-Aliasse aus `fabad6114a` und schützt Specialty-Materialien gegen versehentliche Zusammenfassung mit Grundtypen.
+- Gezielte Suite: Debug **8/8**, SliceTest **8/8**. Vollständige Unit-Suiten: Debug **797/797**, SliceTest **797/797**, keine Fehler, Errors oder Skips. `verifyNightlyChangelog` und `git diff --check` erfolgreich.
+- Dies ist zusätzliche Regression für Batch-19-Punkt 6, kein zusätzlicher Produktport. Batch 19 bleibt **6/10**.
+- Nächste konkrete Untersuchung: den Android-Datenpfad für Orcas geladene Druckerfilament-IDs prüfen, bevor die Filament-Spar-/Subtype-Gruppierungsänderungen portiert werden. Dabei muss die tatsächliche ACE/Qidi-Zuordnung bis zum erzeugten G-Code nachweisbar bleiben.
 # OrkanSlicer Nightly UI 2.1 – aktueller Durchgang (2026-11-15)
 
 - Version 0.8.475 / versionCode 510: Porträt-Menühost misst sich am Inhalt statt an einer festen Overlayhöhe. Ein bis vier Aktionen belegen eine Zeile; fünf bis acht zwei Zeilen. Zusätzliche Aktionen bleiben in der Rasterliste scrollbar.

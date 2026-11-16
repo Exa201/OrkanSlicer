@@ -3,6 +3,7 @@ package ru.ytkab0bp.slicebeam.components
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import ru.ytkab0bp.slicebeam.utils.GCodeToolMapper
+import ru.ytkab0bp.slicebeam.utils.FilamentTypes
 
 class MmuColorAssignmentPolicyTest {
     @Test fun knownMaterialMismatchIsBlockedButAnUnknownSlotRemainsUnverified() {
@@ -18,6 +19,21 @@ class MmuColorAssignmentPolicyTest {
         assertEquals(true, MmuColorAssignmentPolicy.materialMismatch("PETG", "PETG-CF"))
         assertEquals(true, MmuColorAssignmentPolicy.materialMismatch("PLA", "PLA Matte"))
         assertEquals(true, MmuColorAssignmentPolicy.materialMismatch("PETG", "PETG HF"))
+    }
+    @Test fun filamentAliasesMatchOrcaGenericMaterialFamilies() {
+        val aliases = listOf(
+            "PLA+" to "PLA", "PLA PRO" to "PLA", "PLA MATTE" to "PLA MATTE", "PLA-MATTE" to "PLA MATTE",
+            "PLA SILK" to "PLA SILK", "PLA-SILK" to "PLA SILK", "PLA HIGH SPEED" to "PLA HIGH SPEED",
+            "PLA-HS" to "PLA HIGH SPEED", "PLA HS" to "PLA HIGH SPEED", "ABS+" to "ABS",
+            "PETG+" to "PETG", "PET" to "PETG", "PETG HF" to "PETG HF", "PETG-HF" to "PETG HF",
+            "PETG-CF" to "PETG-CF", "PCTG" to "PCTG", "NYLON" to "PA", "PPA" to "PPA-CF",
+            "PPA-CF" to "PPA-CF", "PPA-GF" to "PPA-GF", "PE-CF" to "PE-CF", "PP-CF" to "PP-CF",
+            "PP-GF" to "PP-GF", "COPE" to "COPE",
+        )
+        aliases.forEach { (reported, expectedFamily) ->
+            assertEquals("Orca alias $reported", expectedFamily, FilamentTypes.compatibilityFamily(reported))
+        }
+        assertEquals(null, FilamentTypes.compatibilityFamily("  "))
     }
     @Test fun colorsRouteToPhysicalSlotsInADifferentOrderWithoutRenumberingSourceColors() {
         val targets = listOf(MmuColorAssignmentPolicy.Slot(0, 0x8671CB, "PLA"),
