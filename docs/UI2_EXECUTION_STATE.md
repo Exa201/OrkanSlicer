@@ -83,6 +83,14 @@
 - Anycubic-Upload schreibt `paint_info` innerhalb des erwarteten `ams_info`-Blocks. Regression zum gelieferten Header `; filament: 3` / `T2` und zur gezeigten Zuordnung T2→ACE3 prüft unverändertes T2, physische Gate-Liste `1,4,3` und Farbmetadaten. Gezielte Debug-Unit-Suite **7/7**, keine Fehler; `git diff --check` sauber.
 - Die angehängte G-Code-Datei ist der Slicer-Ausgang vor Upload-Umschreibung. Der auf dem Drucker empfangene Payload und Honor-Hardwaredruck sind daher nicht verifiziert. Nächster Schritt für Hardwarebestätigung: Upload mit Honor und ACE-Sync ausführen und den vorbereiteten G-Code vor dem Senden sichern/prüfen.
 
+### Fortsetzung — Verifikationsstand
+
+- Orca `main` wurde erneut abgerufen; HEAD blieb bei `59acdedd065e5213445163a581947353d3208ccd`. Die relevanten jüngsten Android-Kernänderungen sind bereits im Nightly enthalten; GUI-/Wayland-only-Commits wurden nicht als portierbare Android-Arbeit gezählt.
+- Aktuelle JVM-Verifikation auf HEAD `0eb2835375cf7a718611d59205bbf507301f1353`: Debug **806/806**, SliceTest **806/806**, jeweils 0 Fehler/Errors/Skips; `verifyNightlyChangelog` erfolgreich.
+- `InitialProjectMenuDeviceTest#flatteningAnAngledFaceIsUndoableAndRedoable`: API-36-Emulator **1/1 bestanden**. Der parallele Xiaomi-Lauf wurde vor Testbeginn mit `INSTALL_FAILED_USER_RESTRICTED` abgewiesen; kein Xiaomi-Hardwarepass.
+- Die angehängte `bolt_PLA_0.16_1h42m.gcode` enthält `T2` und `; filament: 3` und ist laut Header der Slicer-Ausgang. Sie belegt nicht, welchen G-Code die App nach ACE-Umschreibung an den Kobra gesendet hat. Der gemeldete physische ACE4-Druck bei gewähltem ACE3 bleibt daher offen; nächster konkreter Schritt ist, den vorbereiteten Upload-Payload und die live gelesenen `gate_status`/`ttg_map`/Firmwaredaten auf dem Gerät zu sichern. Kein Druckstart.
+- Der 100-Schritte-Zähler bleibt **33/100**; diese Fortsetzungsprüfung zählt nicht als neue Änderung. APK-/Release-Gate bleibt **100/100**.
+
 ## Orca-Upstream-Abgleich und gezielte Regressionen — 2026-11-16
 
 - Nightly-Checkout: `codex/ui-2.1-redesign`, HEAD `22e39b1e4a`. Orca `main` wurde frisch auf `d6ec712c2e` aktualisiert; dessen neuer Windows-Plugin-Fix ist für Android nicht anwendbar. Build 0.8.415 ist weiterhin weder lokales APK/Tag noch GitHub-Release.
@@ -5529,3 +5537,26 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Offen: Gerätetest auf Honor/Xiaomi und voller Integrationstest durch Senden; in dieser Fortsetzung kein APK-Build/Upload.
 - Nightly-Arbeitsbranch `codex/ui-2.1-redesign`; tatsächlicher HEAD zu Beginn `ea715a2fa36dc5f945ff374dc3d973b89da1bb62`.
 - Nächste konkrete Aktion: Orca-Upstream erneut abgleichen und den nächsten überprüfbaren Nightly-Aufrufpfad auswählen.
+
+## Nightly-Fortsetzung — ACE-Materialalias beim Synchronisieren — 2026-11-16
+
+- Im aktiven nativen `PresetBundle::sync_ams_list` wurde die Orca-Materialaliasauflösung ergänzt. Insbesondere `PLA-MATTE` wählte zuvor bei fehlendem passendem Profil nicht zuverlässig `Generic PLA Matte`; der Sync konnte das alte Material behalten. Die Zuordnung deckt die aufgelisteten PLA/ABS/PETG/CF/GF-Namen ab.
+- Nativer Produktpfadtest `NativeSliceDeviceTest#printerFilamentAliasesSelectTheMatchingGenericPresetDuringSync`: **1/1 auf API-36-Emulator bestanden**; erhält außerdem die synchronisierte ACE-Slotfarbe. ARM64-NDK-Build erfolgreich. Debug und SliceTest jeweils **806/806**, keine Fehler/Errors/Skips; Changelogprüfung bestanden.
+- Gradle-Mehrgeräte-Lauf endete nach dem Emulatorpass mit `INSTALL_FAILED_USER_RESTRICTED` beim Xiaomi 2211133G; es ist kein Xiaomi-Testresultat. Honor blieb unberührt. Kein APK-Build oder Release.
+- Orca-Upstream-Fortschritt laut aktuellem 100-Schritte-Zyklus: **34/100**. Nächste Aktion: die ACE-Zuordnung vom synchronisierten Profil bis zum Anycubic-Upload-G-Code nachweisen und getrennte Face-Placement-Rotation für Multipart-Modelle testen.
+
+## Nightly-Fortsetzung — Flachlegen dreht Multipart-Objekte gemeinsam — 2026-11-16
+
+- Fehlerursache: `model_flatten_rotate` wendete die ausgewählte Flächenrotation nach jedem einzelnen Volumenoffset an. Bei zusammengesetzten Objekten konnten dadurch die Teilkörper relativ zueinander verschoben werden.
+- Korrektur: die native Funktion wendet eine gemeinsame Rotation um den Mittelpunkt des gesamten `ModelObject` an und erhält die relative Platzierung aller Volumen.
+- `NativeSliceDeviceTest#flatteningKeepsMultipartVolumeLayoutAndAlignsTheSelectedFace`: **1/1 API-36-Emulator bestanden**. Der Test prüft die tatsächlich angewandte Transformationsmatrix, Ausrichtung der Flächennormalen und den erhaltenen Abstand zwischen zwei Modellteilen. ARM64-NDK-Build, Debug-Unit **806/806**, SliceTest-Unit **806/806** und `verifyNightlyChangelog` erfolgreich.
+- Die installierte Testausführung war auf den Emulator beschränkt. Der verbundene Xiaomi-Gradle-Lauf kann wegen `INSTALL_FAILED_USER_RESTRICTED` nicht erfolgreich abgeschlossen werden. Honor wurde nicht angerührt. Keine distributable APK/Prerelease gebaut.
+- Nächste konkrete Aktion: face-placement mit echten Multipart-3MFs und anschließendem Slice/3MF-Roundtrip ergänzen; danach den Anycubic-Upload von Filamentzuordnung bis G-Code-T-Werkzeug weiter nachweisen.
+
+### Weiterprüfung — Flachlegen bei bestehender Rotation/Skalierung — 2026-11-16
+
+- Multipart-Regression erweitert: beide Volumen starten mit derselben 3D-Rotation und nichtuniformer Skalierung; die ausgewählte Flächennormale wird korrekt in Objektkoordinaten abgebildet. Der native Test bestätigt weiterhin die gemeinsame Ausrichtung nach unten und den Erhalt des Teilabstands.
+- ARM64-NDK-Build und SliceTest/Test-APK-Build erfolgreich; `NativeSliceDeviceTest#flatteningKeepsMultipartVolumeLayoutAndAlignsTheSelectedFace` auf `emulator-5554`: **1/1 bestanden**.
+- Die hochgeladene `bolt_PLA_0.16_1h42m.gcode` enthält `T2` und `; filament: 3`. Die Nightly-Regressionsprüfung deckt diesen Quellfall mit ACE3-Zuordnung und ACE-Lücke ab. Ein tatsächlicher Slot-4-Druck ist damit noch nicht erklärt, weil diese Datei der Eingangs-G-Code vor der Anycubic-Umschreibung ist; Upload-Payload und Live-`ttg_map` bleiben die konkrete offene Diagnose.
+- Keine APK für Nutzer und kein Release erstellt. Honor bleibt gemäß 100/100-Gerätefreigabe unangetastet.
+- Nächste konkrete Aktion: den realen Anycubic-Uploadpfad so instrumentieren/prüfen, dass die vor dem Senden gesicherte umgeschriebene Datei, `Tn`-Kommandos, `; filament:`-Zuordnung und aktuelle ACE-`ttg_map` gemeinsam regressionsgeprüft werden.

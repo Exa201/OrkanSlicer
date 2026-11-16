@@ -7792,11 +7792,21 @@ extern "C" {
             ModelVolume* second = object->add_volume(make_cube(6.f, 8.f, 4.f));
             if (first == nullptr || second == nullptr)
                 throw std::runtime_error("Could not create multipart flatten fixture");
+            const Vec3d rotation_angles(0.31, -0.47, 0.22);
+            const Vec3d scale(1.35, 0.72, 1.18);
+            first->set_rotation(rotation_angles);
+            first->set_scaling_factor(scale);
+            second->set_rotation(rotation_angles);
+            second->set_scaling_factor(scale);
             second->set_offset(Vec3d(23., -11., 7.));
 
-            const Vec3d normal = Vec3d(1., 2., 3.).normalized();
+            // Flatten-plane normals are expressed in object coordinates after each
+            // volume's existing rotation and scale have been applied.
+            const Vec3d normal = first->get_transformation().get_matrix().linear()
+                .inverse().transpose() * Vec3d::UnitX();
+            const Vec3d normalized_normal = normal.normalized();
             const Eigen::Quaterniond expected_rotation =
-                Eigen::Quaterniond().setFromTwoVectors(normal, -Vec3d::UnitZ());
+                Eigen::Quaterniond().setFromTwoVectors(normalized_normal, -Vec3d::UnitZ());
             const Transform3d first_before = first->get_transformation().get_matrix();
             const Vec3d before_delta = second->get_transformation().get_offset() -
                                        first->get_transformation().get_offset();
@@ -7804,7 +7814,7 @@ extern "C" {
             const Vec3d after_delta = second->get_transformation().get_offset() -
                                       first->get_transformation().get_offset();
             const Transform3d first_after = first->get_transformation().get_matrix();
-            const Vec3d actual_normal = first_after.linear() * first_before.linear().inverse() * normal;
+            const Vec3d actual_normal = first_after.linear() * first_before.linear().inverse() * normalized_normal;
             const bool relative_layout_preserved =
                 (after_delta - expected_rotation * before_delta).norm() < 1e-6;
             const bool normal_is_flat =
