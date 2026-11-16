@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 17/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 18/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -98,6 +98,13 @@
 - Orca `0f15db8b83` ergänzt den Objektmittelpunkt-Versatz beim Vergleich, ob zwei Print-Objekte ihre Slice-Layer teilen dürfen. Gleiche Transformationen reichen nicht aus, wenn der jeweilige erste Instance-Offset die relative Slice-Lage ändert.
 - `NativeSliceDeviceTest#objectsWithDifferentCenterOffsetsDoNotShareSliceCache` prüft mit einem echten Native-Print, dass Objekte mit abweichenden Mittelpunkt-Offsets getrennt bleiben. Android 16/API-36-Emulator: **1/1 bestanden**, 0 Fehler, 0 übersprungen.
 - APK-Gate bleibt bei 100/100.
+
+### Schritt 18/100 — Automatische By-Object-Anordnung hält kurze und gedrehte Modelle auf dem Bett
+
+- Orca `8386727e1d` korrigiert die By-Object-Anordnung für kurze Modelle, damit deren physische Grenzen auch bei gedrehter Lage innerhalb des Betts bleiben. Der Nightly-Core enthält den Arrange-Port; dieser Testlauf ergänzt die konkrete API-Laufzeitabnahme.
+- `NativeSliceDeviceTest#byObjectArrangementKeepsShortObjectsInsideBedAndSeparated` prüft echte native Arrange-Geometrie: kurze Modelle, ein gedrehtes Modell, Packen mehrerer Modelle auf einer vollen Platte, keine Modelle außerhalb der Bettgrenzen und Einhaltung des nötigen Objektabstands.
+- Android 16/API-36-Emulator: **1/1 bestanden**, 0 Fehler, 0 Errors, 0 Skips. ARM64-Native- und Instrumentierungsbuild erfolgreich.
+- APK-Gate bleibt bei 100/100. Nächster Schritt: Orca-Upstream erneut nach einem Android-erreichbaren Regressionstest durchsuchen.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
 
