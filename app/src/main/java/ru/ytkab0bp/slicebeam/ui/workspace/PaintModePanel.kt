@@ -38,12 +38,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
+import java.util.Locale
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.view.GLView
 
@@ -271,6 +273,8 @@ private fun FilamentSwatch(
 ) {
     val type = slot.type?.takeIf(String::isNotBlank) ?: stringResource(R.string.FilamentType)
     val description = stringResource(R.string.FilamentPaletteSlotDescription, index, type)
+    val colorHex = String.format(Locale.ROOT, "#%06X", slot.color and 0x00FFFFFF)
+    val colorDescription = stringResource(R.string.FilamentPaletteColorDescription, colorHex)
     val swatchColor = Color(slot.color or 0xFF000000.toInt())
     val textColor = if (ColorUtils.calculateLuminance(slot.color) > 0.5) AndroidColor.BLACK else AndroidColor.WHITE
     Box(
@@ -281,6 +285,7 @@ private fun FilamentSwatch(
             .clickable(onClick = onClick)
             .semantics {
                 contentDescription = description
+                stateDescription = colorDescription
                 this.selected = selected
             }
             .then(if (testTag == null) Modifier else Modifier.testTag(testTag)),

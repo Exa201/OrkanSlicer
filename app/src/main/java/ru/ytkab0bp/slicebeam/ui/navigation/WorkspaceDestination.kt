@@ -10,12 +10,12 @@ internal enum class WorkspaceDestination(
     @DrawableRes val iconRes: Int,
     @StringRes val navigationTitleRes: Int = titleRes,
 ) {
-    PROJECT(R.string.MenuProject, R.drawable.vk_folder_simple_outline_24),
-    MODEL(R.string.MenuModel, R.drawable.vk_cube_box_outline_24),
-    CAMERA(R.string.MenuCamera, R.drawable.vk_camera_outline_24),
-    EDIT(R.string.MenuToolbar, R.drawable.vk_sliders_outline_20, R.string.MenuToolbarNavigation),
-    TOOLS(R.string.MenuOptions, R.drawable.vk_gear_outline_24),
-    SLICE(R.string.MenuSlice, R.drawable.vk_magic_wand_outline_24),
+    PROJECT(R.string.MenuProject, R.drawable.menu3d_file_import),
+    MODEL(R.string.MenuModel, R.drawable.menu3d_objects),
+    CAMERA(R.string.MenuCamera, R.drawable.menu3d_layers),
+    EDIT(R.string.MenuToolbar, R.drawable.menu3d_tune, R.string.MenuToolbarNavigation),
+    TOOLS(R.string.MenuOptions, R.drawable.menu3d_tools),
+    SLICE(R.string.MenuSlice, R.drawable.menu3d_quick_slice),
 
     ;
 

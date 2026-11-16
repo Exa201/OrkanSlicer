@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.window.Dialog
@@ -75,7 +76,13 @@ class WorkspaceProfileSheet(private val context: Context, private val onProfiles
                     selectedProcess = selectedProcess.intValue,
                     onPrinterSelected = ::selectPrinter,
                     onFilamentSelected = { selectedFilament.intValue = it; filamentChosen = true },
-                    onProcessSelected = { selectedProcess.intValue = it; processChosen = true },
+                    onProcessSelected = {
+                        selectedProcess.intValue = it
+                        processChosen = true
+                        // Preview the selected process on top of the active printer and
+                        // filament values without committing the preset selection.
+                        settingsSummary = createSettingsSummary(context, processNames.getOrNull(it))
+                    },
                     onApply = { applySelection(onDismiss) },
                 )
             }
@@ -127,8 +134,9 @@ class WorkspaceProfileSheet(private val context: Context, private val onProfiles
         onProfilesChanged?.run()
     }
 
-    private fun createSettingsSummary(context: Context): String {
+    private fun createSettingsSummary(context: Context, processName: String? = null): String {
         val active = SliceBeam.buildCurrentConfigObject()
+        processName?.let(config::findPrint)?.values?.let(active.values::putAll)
         val layer = value(active.get("layer_height"), "–").replace('.', ',')
         val walls = value(active.get("wall_loops"), "–")
         var infill = value(active.get("sparse_infill_density"), "–")
@@ -208,6 +216,7 @@ private fun WorkspaceProfileSheetContent(
                     )
                     Text(
                         text = summary,
+                        modifier = Modifier.testTag("workspace-profile-settings-summary"),
                         color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 13.sp,
                         lineHeight = 18.sp,

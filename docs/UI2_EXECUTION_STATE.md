@@ -1,4 +1,39 @@
+# Nightly 0.8.481 — Release- und Teststand — 2026-11-16
+
+## Umfang
+
+- Kalibrierungen prüfen den Modellzustand der aktiven Platte auch während der Übergabe an den GL-Renderer; PA-Line kann weiterhin das eingebaute Testmodell verwenden.
+- Die Objektliste zeigt eine große isometrische Vorschau mit Objektmaßen und Plattenzuordnung. Such-, Sortier- und Gruppenstatus bleiben bei neu erzeugten UI-Snapshots erhalten.
+- Quick Slice übernimmt eine editierbare Brim-Breite in die temporären Slicer-Einstellungen.
+- Einzel- und Sammelimporte werden serialisiert. Ein weiterer Modell-/STEP-Import wird eingereiht statt mit „Ein anderes Modell wird gerade geladen“ abgewiesen.
+
+## Verifikation und Artefakt
+
+- Gezielte Debug-Unit-Tests: 16 bestanden, 0 fehlgeschlagen.
+- Honor PTP-N49: Objektlisten-Gerätetests 6/6 bestanden. Ein Quick-Slice-Test bestand; der Lauf wurde nach Abbruch einer doppelten Wireless-ADB-Session vor den übrigen drei Tests beendet.
+- Debug-APK erstellt: `OrkanSlicerNightly25_e02d4673a2.apk` (Nightly-App-ID, Version 0.8.481 / Code 516).
+- SHA-256: `6EF79D1E5306880AB28D15A03C6951AADF904C53525BD14572786EE0D67A1D99`.
+- APK-Installation auf dem Honor steht aus, bis Wireless-ADB wieder erreichbar ist. Kein offizielles Release und kein Merge.
+
+## Nächster konkreter Schritt
+
+Nightly-Pre-Release `v0.8.481-nightly.1` mit diesem APK und der Versionsdoku veröffentlichen. Anschließend nach erneuter Honor-ADB-Verbindung installieren und die noch offenen Quick-Slice-/Kalibrierungs-Gerätetests ausführen.
+
 # UI 2.1 ColorFlow — aktueller Nightly-Fortsetzungsstand — 2026-11-15
+
+## 100-Punkte-Menüabnahme: Projekt, Modell, Ändern und Tools abgeschlossen — 2026-11-15
+
+- Verbindliche Reihenfolge: ein Menü nach dem anderen. Das Honor PTP-N49 bleibt bis Punkt 100 unangetastet; alle Geräteprüfungen bis dahin laufen nur auf `emulator-5554`.
+- Menü 1 „Projekt“, Punkte 1–20 abgeschlossen. Menü 2 „Modell“, Punkte 21–30 abgeschlossen. Menü 3 „Ändern“, Punkte 31–40 abgeschlossen. Menü 4 „Tools“, Punkte 41–50 abgeschlossen. Aktionsmatrix und Status: `docs/UI21_100_POINT_BACKLOG.md`.
+- API-36-Emulator Nightly 0.8.472 / Code 507: 12 Projektregressionen bestanden (Erstöffnung, Picker, Abbruch, STL, mehrfarbiges SVG, 2-Platten-3MF und T0/T1-Erhalt, STEP-Meshing, Stapelimport, 3MF-Export/Roundtrip, Mehrplattenwarnung/Abbruch, Fehlerteilimport und Nesting). Der beschädigte-SVG-Pickerpfad bestand nach Korrektur zusätzlich 1/1; Projektaktion verbergen/wiederherstellen über Menüwechsel 1/1. Responsive-Matrix 320/360/400/480 dp mit 100/130/150 % Schrift: 12/12 aus vorherigem Emulatorlauf.
+- Fehler behoben: ungültige SVGs zeigten einen fest verdrahteten deutschsprachigen Validatortext auch in englischer UI. `MainActivity` verwendet jetzt eine lokalisierte Importmeldung (englischer Standard + Deutsch). Der erste neue Testlauf bestätigte den Dialog, aber die Testannahme zum Rohtext war falsch; nach Umstellung auf die lokalisierte Ressource bestand der tatsächliche Pickerpfad.
+- Modellmenü auf demselben Emulator: Objektliste/Teile/Unicode/Suche/Auswahl 4/4; Filamentzuordnung zweier 3MF-Objekte T6/T3 1/1; Duplizieren 1/1; Einzel- und Gruppen-Plattenwechsel samt Material-/Positionsprüfung je 1/1; Löschen mit Abbrechen/Zurück/Undo/Redo 1/1; Arrange aus außerhalb der Platte 1/1; Arrange ohne Kopieren 1/1; Multipart-Teile trennen 1/1. Testannahmen für Lazy-Grid-Scrollen und Plattenzählerbeschreibung wurden an die implementierte Semantik angepasst.
+- Ändern-Menü: 23 gezielte Instrumentierungstests bestanden: Position X/Y/Z (Einzel- und Gruppe), Rotation X/Y/Z/Undo, proportionale und unabhängige Achsenskalierung, Flächenplatzierung (Einzel/Gruppe), Stapeln ohne Verbinden, Mesh-Trennen, Cut-Vorschau/-Anwendung, Boolean Union/Difference/Intersection und Cancel/Back, Paint/GL Back/Canvas/Undo-Redo sowie 3MF-Roundtrip mit anschließendem G-Code. Der tatsächliche View-Cube wurde während aktivem Farb-Paint angetippt und gezogen; Kamerapose wechselte, Paint blieb aktiv und Abbruch ließ Geometrie unverändert.
+- Fehler behoben: Das Variable-Layerhöhe-Panel hatte eine lange Inhaltsspalte ohne vertikales Scrollen; dadurch lag „Fertig“ außerhalb des erreichbaren Panelbereichs. Das Panel scrollt nun innerhalb seiner begrenzten Compose-Sheet-Höhe. Der Test prüft das Erreichen und Schließen über „Fertig“.
+- Testannahmen korrigiert, ohne Verhaltensänderung: Z-Achsenwerte mussten im scrollbaren Editor erst eingeblendet werden; der Paint-Palettenregler startet erwartungsgemäß auf „Paint with“ und wechselt nach Antippen auf „Base filament“; Boolean-Aktionen werden innerhalb des scrollbaren Dialogs sichtbar gemacht.
+- Der API-36-Emulator lief mit Systemschrift 150 %, 360 dp Breite und 1080×2400 physischer Auflösung. Die erste Wischgeste durch Modell/Ändern bestand erneut. `:app:assembleSliceTest` und `:app:assembleSliceTestAndroidTest` erfolgreich; App-APK und Instrumentierungs-APK wurden auf `emulator-5554` installiert.
+- Tools-Menü: Profilimport/-export über echte Launcher-/Resultatpfade, SAF-Dateien und Abbruch geprüft; Kalibrierungen, Ergebnisentwurf, 10 Maker-Generator-Fixtures, Kromacut-Validierung/Fehler/Speichern, Accessibility, Panelwechsel und Zurück getestet. `WorkspaceControllerTest` **14/14**; Kalibrierungs-/Maker-/Profil-/Overlay-Instrumentierung bestanden.
+- Kein Honor-Zugriff, keine Veröffentlichung, kein Merge. Menü 5 „Slicen“, Punkte 51–60 beginnt jetzt; nächste konkrete Aktion: Slice-Menü-Abbruch, tatsächlicher Offline-Slice und sichere Ergebnisaktionen prüfen (kein Druckstart, Upload nur an Loopback-Testserver).
 
 - Arbeitskopie und Branch: OrkanSlicer Nightly 2.5, `codex/ui-2.1-redesign`; Stable wird nicht verwendet. Aktuelle installierte Nightly-App **0.8.472 / Code 507**.
 - Neu: Profilkategorien umbrechen vollständig; Drucker-Verbindungshinweis stapelt sich bei 480 dp/großer Schrift oberhalb der Web-Aktion. Der sichtbare Honor-Fehler „Bitte zuerst einen Druckerhost eintragen.“ war abgeschnitten und ist behoben.
@@ -5139,6 +5174,15 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Nächster konkreter Schritt: Debug-/Slice-Unit-Suiten auf dem aktuellen Quellstand ausführen, danach Orca-Kandidaten 8–10 anhand eines erreichbaren Android-Aufrufpfads mit echten Regressionstests prüfen. Batch-APK/Release bleibt bis 10/10 geschlossen.
 # Nightly execution state — 2026-11-15
 
+## UI 2.1: 100-Punkte-Menüabnahme — Menü 5 „Slicen“
+
+- Es wird ausschließlich im Nightly-Checkout `OrkanSlicer-Nightly-2.5-current`, Branch `codex/ui-2.1-redesign`, gearbeitet. Das HONOR PTP-N49 bleibt bis zum Abschluss von Punkt 100 gesperrt und wurde in diesem Durchgang nicht angesprochen. Für Tests wurde ausschließlich `emulator-5554` (Android 16, 360 dp, 150 % Schrift) verwendet; kein echter Druckstart.
+- Menüs 1–4 (Projekt, Modell, Ändern, Tools; Punkte 1–50) sind im Backlog als abgeschlossen nachgewiesen. Menü 5 läuft; Menü 6 darf erst nach Abschluss der Punkte 51–60 beginnen.
+- Für Menü 5 auf Emulator bestätigt: manueller Slice-Einstieg öffnet Filamentzuordnung und Abbruch/Zurück ändern das Modell nicht; Slice-Ergebnis und sichere Ergebnisaktionen; alter nativer Slice-Resultat-Handle wird beim Viewerwechsel freigegeben; SAF-G-Code-Export schreibt die erzeugte Datei; Fortschritt wird im Workspace-Dialog angezeigt; Loopback-Upload lädt G-Code ohne Druckstart; Kobra-Start-G-Code erzwingt kein Pressure Advance (ein Instrumentierungslauf der reinen Profilasset-Prüfung lieferte nach Teststart „Process crashed“ und wird deshalb nicht als bestanden gezählt); ACE-Gate-Warnungsresource; belegtes ACE-Gate kann von mehreren Farben genutzt werden; Upload-only und Druckstart sind getrennte injizierte Aktionen; leere ACE-Warnung lässt Upload und bestätigten Druck getrennt; Abbruch/Android-Zurück committen die Vorslice-Zuordnung nicht; zwei Objekte können dasselbe weiße Filament nutzen; ACE-/Druckeraktionen werden nur für unterstützte Hosts angezeigt.
+- Der Mehrfarben-Multipart-Test `multipartModelColorsCanBeRemappedIndividuallyToTheSameSlot` lief bis zum `TestRunner: finished`-Ereignis, der ADB-Aufruf wurde jedoch durch den laufenden Test-Runner-/Activity-Prozess beendet, bevor ein abschließendes `OK`/Fehlerresultat erfasst war. Daher ist er nicht als bestanden gewertet. Mehrfachstarts kurz hintereinander führten zu einem ActivityManager-„Crash of app … running instrumentation“; isolierte Wiederholungen für die Zuordnungs-/Abbruchfälle bestanden. Dies ist ein Testharness-/Emulatorzustand, kein bestätigter Fehler im produktiven App-Prozess.
+- Backlog: 52 und 59 abgeschlossen; 51, 53, 54, 58 und 60 teilweise belegt; 55–57 noch offen. Nächster konkreter Schritt: Emulatorzustand bereinigen und SliceMenu-Mehrfarben-Rundlauf bis zum expliziten Testabschluss ausführen; anschließend Layerpreview, Sparmodus und Druckinformationen prüfen. Erst wenn alle zehn Punkte belegt sind, Menü 6 „Druck“ beginnen.
+- Keine neuen Produktionscodeänderungen in diesem Teil der Slice-Abnahme, kein APK-/Release-/Commit erstellt. Bestehende Arbeitsbaumänderungen bleiben erhalten.
+
 ## Aktueller Nightly-Build und Menü-Wischprüfung
 
 - Der zuvor erzeugte OrkanSlicer-UI-Branch-Build 0.8.431 basiert auf dem normalen `master`-Verlauf, nicht auf Nightly. Für Nightly gilt ausschließlich der separate Paketname `OrkanSlicer Nightly 2.5` / `com.exa201.orkanslicer.nightly25`.
@@ -5157,6 +5201,24 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - APK: `app/build/outputs/apk/debug/OrkanSlicerNightly25_0fb34f181a.apk`, SHA-256 `b6bd08a2e1575a3109944a6c17ae1eedef647107ff3ea24e6d0c4b8a4f80bd52`.
 - Remaining: broader UI 2.1 interaction and visual/responsive audit, global menus and dialogs. Physical HONOR/Xiaomi validation remains open. No release/merge.
 - Next concrete step: run the full Debug and SliceTest unit suites, then continue the UI 2.1 screen audit on Nightly only.
+## UI 2.1 100-Punkte-Abnahme — Menü 7 abgeschlossen — 2026-11-15
+
+- Checkout/Branch: Nightly `OrkanSlicer-Nightly-2.5-current`, `codex/ui-2.1-redesign`; Ausgangs-HEAD `e02d4673a2`. Menü 7 „Filament“ / Punkte 71–80 ist im Backlog als vollständig geprüft markiert.
+- Filament-/ACE-/Palette- und Draftfälle liefen auf `emulator-5554` API 36. Verifiziert wurden 1/4/8/16/24 Slotlisten, ACE-Reihen nach vier Spalten, 150-%-Labels, Auswahl des letzten Slots, Farbänderung mit Übernehmen/Abbrechen/Zurück, explizites Speichern neuer Slots, Material-/Profil-/Temperatur-/Sync- und externe-Spulenpfade.
+- Mehrfarben: einzelne Modellfarben können auf denselben Slot gelegt werden; nativer Slice-/3MF-Roundtrip prüft den passenden T1-Befehl. Zwei separate Objekte können denselben weißen Filamentslot nutzen. ACE getrennt/offline und externe Spule behalten Material und korrekte Slotidentität. TalkBack liest Werkzeugindex, Material und Hex-Farbe.
+- Zielgerichtete Nightly-Instrumentierung (App- und Test-APK gemeinsam aktualisiert): Filamentkomponenten/ACE 7/7, Profil-/Sync-/Draft 8/8, Farb-/24-Slotfälle 4/4, Mehrfarben 3/3, TalkBack 1/1, isolierter Slot-Speichertest 1/1. Filament-Katalog-Unit-Suite und AndroidTest-APK-Build bestanden. Sammellauf-Cleanup-Timeout wurde durch isolierten grünen Lauf abgegrenzt; kein reproduzierbarer Produktfehler.
+- Kein Honor-Zugriff, Release, Commit oder Merge. Nächster konkreter Schritt: Menü 8 „Drucker“, Punkte 81–90.
+
+## UI 2.1 100-Punkte-Abnahme — Menü 8 abgeschlossen — 2026-11-15
+
+- Aktiver Nightly-Checkout: `OrkanSlicer-Nightly-2.5-current`, Branch `codex/ui-2.1-redesign`, HEAD `e02d4673a2`; API-36-Emulator `emulator-5554`. Honor wurde weiterhin nicht angesprochen.
+- Punkte 81–90 sind im `docs/UI21_100_POINT_BACKLOG.md` abgeschlossen. Acht Druckerprofilaktionen bestanden: Profil klonen/löschen; Hostwert abbrechen/Zurück/speichern; Hosttyp speichern; API-Key Maskierung/Entwurf/Speichern; Wechsel auf 0,6-mm-Drucker mit korrekter Düse, Bettpolygon, Start-G-Code und zugeordnetem Prozess; Bettoberflächen-Abbruch/Zurück/Reset; bestätigtes Speichern; Profilpicker-Zurück.
+- Web/Verbindung: fehlender Host → verständliche Setup-Route, Abbrechen und Android-Zurück; konfigurierter Host → lokaler WebView lädt vom Loopback-Testserver, Zurück räumt WebView und Panel auf; externer Browser wird nur durch den vorhandenen konfigurierten Host gestartet. Webaktion/Hosthinweis responsive 12/12 bei 320/360/400/480 dp und 100/130/150 % Schrift, Mindesttouchziel 48 dp.
+- Druckeroptionen/-profile: Extruder-/Maschinenkatalog (4 Tests), Importvalidator (7), Profilrouting (3), Druckerprofilbindung (1), Host-/Upload-URL und Reservierung (5) zusammen **20/20** Unit-Tests bestanden. G-Code-Vorschaubild, ACE-Zuordnung und Upload-only ohne Druckstart beruhen zusätzlich auf den bereits in Menü 5/7 abgenommenen E2E-Tests.
+- Ergebnis: Druckerprofil-Instrumentierung **8/8**, Web-/Verbindungsfälle **4/4**, Browserstart nach Harness-Korrektur **1/1**, responsives Kartenraster **12/12**. SliceTest-App und Instrumentierungs-APK wurden gemeinsam installiert; `verifyNightlyChangelog` und beide AndroidTest-Builds bestanden.
+- Während der Abnahme wurden zwei reine Testharness-Probleme korrigiert: Profilmenütest scrollt nun zum 0,6-mm-Profil; Browsertest prüft den tatsächlichen Fokuswechsel beim Öffnen und hängt nicht an der Chrome-Ersteinrichtung beim Zurück. Kein Produktfehler reproduziert.
+- Kein Honor-Zugriff, Release, Commit oder Merge. Nächster konkreter Schritt: Menü 9 „App“, Punkte 91–100. Nach dessen Abschluss erfolgt die vereinbarte Installation und gemeinsame Sichtprüfung am Honor.
+
 ## Nightly 0.8.472 am HONOR Magic7 Pro bei 480 dp
 
 - App wurde aktualisiert/installiert: Version 0.8.472 / Code 507, Paket `com.exa201.orkanslicer.nightly25`; Honor PTP-N49 / Android 16, Display 1280×2800 px, Dichte-Override 426 dpi = 480 dp, Schriftfaktor 1,5.
@@ -5169,3 +5231,108 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Ergänzender Honor-Lauf: `SettingsAccessibilityDeviceTest#interfaceSectionAnnouncesExpansionAndKeepsSettingsActionsReachable` bestanden (XML-Report: 1 Test, 0 Fehler, 0 übersprungen). Gradle bekam nach dem erfolgreichen Test einen Timeout beim ADB-Cleanup; der XML-Testreport bestätigt den erfolgreichen Testkörper.
 - Auf dem HONOR PTP-N49 (Nightly-SliceTest-Variante) wurde zusätzlich der Profilwechsel `PrintProfileDropdownIntegrationDeviceTest#selectingCompatibleProcessPresetThroughMenuChangesActiveSelection` erfolgreich ausgeführt; XML-Report: 1 Test, 0 Fehler, 0 Skips. Der Test prüft, dass ein anderes kompatibles Druckprofil über das Menü aktiv wird und als druckerspezifische Kopie erscheint.
 - Ebenfalls auf Honor bestanden: `PrintProfileDropdownIntegrationDeviceTest#savingFilamentNumericDraftPersistsOnlyAfterSaveConfirmation`; Filament-Änderung blieb bis zur expliziten Bestätigung ein Entwurf und wurde danach gespeichert. Der Test stellt den ursprünglichen Filamentdurchmesser im `finally`-Pfad wieder her.
+
+## UI 2.1 100-Punkte-Abnahme — Menü 5 abgeschlossen — 2026-11-15
+
+- Checkout/Branch: `OrkanSlicer-Nightly-2.5-current`, `codex/ui-2.1-redesign`; Git-HEAD `e02d4673a2`. HONOR PTP-N49 blieb entsprechend der Nutzeranweisung unangetastet; die Abnahme lief ausschließlich auf `emulator-5554` (API 36, 360 dp, 150 % Schrift). Kein echter Druckstart.
+- Menü 5 „Slicen“, Punkte 51–60, ist jetzt im `docs/UI21_100_POINT_BACKLOG.md` vollständig belegt. Der Slice-Menütest besteht nach echtem nativen Slice; er vergleicht im Ergebnisdialog Profilwerte für Schichthöhe und Außenwand-/Füllgeschwindigkeit mit dem aktiven Preset. Der Wechsel bei offenem Layerpanel zu Projekt räumt Panel und Slice-Viewer/Resultat auf.
+- E2E-Nachweise: Slice-Fortschritt und Ergebnisaktionen; Layerpanelgeometrie und Pausemarker/GLES-Render; reduzierte Vorschau/Schichtblockgröße; SAF-Export; Preview-Capture vor/nach Slice nach GL-Renderer-Synchronisierung; Loopback-Upload-only ohne Druckstart plus separater expliziter Mock-Druckstart; Mehrfarben-Part-Remapping → 3MF → nativer Slice → T1 statt T0/T2; ACE-Gate-Mehrfachbelegung und externe Spule ohne bereitgestellte ACE-Synchronisierung. Qidi-Package-Unit-Tests verifizieren G-Code-Thumbnailbytes und PNG-Metadaten.
+- Ein anfänglicher Bildvergleich schlug wegen einer Test-Race fehl: Das Testbild wurde vor dem GL-Upload des geladenen STL aufgenommen und zeigte noch die frühere Kameraperspektive/Platte. Der Test wartet nun auf das Modell im GL-Renderer; der vollständige Upload-Loopback besteht danach **1/1**. Das war ein Test-Synchronisationsfehler, kein nachgewiesener Produktfehler.
+- Zielgerichtete Resultatabnahme `sliceMenuProducesResultAndExposesSafeResultActions`: **1/1** bestanden; `multipartModelColorsCanBeRemappedIndividuallyToTheSameSlot`: **1/1** bestanden; `disconnectedAceUsesReadyExternalSpoolAndPreservesConfiguredMaterial`: **1/1** bestanden; `workspaceUploadOnlyUploadsSlicedGcodeToLoopbackWithoutPrintStartRequest`: **1/1** bestanden; Qidi-G-Code-3MF-Packager Unit Tests: **7/7** bestanden. Android-Test-APK-Kompilierung erfolgreich. Vollständige Debug-/SliceTest-Unit-Suiten sind nach diesen Änderungen noch nicht erneut gelaufen.
+- Als Nächstes: Menü 6 „Druck“, Punkte 61–70, von Profilwahl bis Spülvolumenmatrix funktional prüfen; erst nach dessen Abschluss Menü 7 beginnen. Honor bleibt bis Punkt 100 gesperrt. Kein Release, Commit oder Merge erstellt.
+
+## UI 2.1 100-Punkte-Abnahme — Menü 6 abgeschlossen — 2026-11-15
+
+- Aktiver Arbeitsstand: Nightly-Checkout `OrkanSlicer-Nightly-2.5-current`, Branch `codex/ui-2.1-redesign`, relevanter Ausgangs-HEAD `e02d4673a2`. Ausschließlich `emulator-5554`/API 36 verwendet; Honor blieb bis Punkt 100 unangetastet.
+- Menü 6 „Druck“ / Punkte 61–70 vollständig geprüft. Druckprofilwahl ändert aktives kompatibles Preset. Profilfilter-Suche, Favoriten und Stufenwahl funktionieren auf der echten Druckprofilseite.
+- Ein neuer Geräteregressionstest führt den Zahlenwert-Entwurf durch: ändern → Werte-Dialog bestätigen → zweiten Wert bearbeiten und abbrechen → nur den aktiven Profilentwurf nach bestätigtem Reset verwerfen → explizit speichern. Der Test verifiziert unveränderte Speicherung vor dem Speichern, dass Reset ein zweites Druckprofil unverändert lässt und dass der bestätigte Wert danach im aktiven Profil landet: **1/1 bestanden**. Keine reproduzierbare Produktregression gefunden.
+- Enum, Bool, Zahl und Vektor/Matrix: Enum-Auswahl/-Abbruch **1/1**, Bool-Schalter-Callback **1/1**, echte Turmkoordinaten samt Mehrplattenwerten und freier Positionierung **3/3**, Spülmatrix **1/1**; Prozesskatalog-Unit-Tests erfolgreich. Das 4×4-Spülvolumenraster ist ohne horizontales Scrollen vollständig sichtbar.
+- Echte Profilseite mit sichtbarer IME auf Emulator bei **320, 360, 400 und 480 dp**, jeweils **100/130/150 % Schrift**, bestand **12/12**. Emulator danach auf vorigen Zustand zurückgestellt: 360 dp, 150 % Schrift. Weitere Menü-6-Profil-/Werkzeug-/Filtertests **6/6** sowie zusätzliche Bool-/Enum-/Turmplatzierungstests **3/3** bestanden.
+- Validierung: `:app:assembleSliceTestAndroidTest` erfolgreich; `:app:testSliceTestUnitTest --tests ru.ytkab0bp.slicebeam.ui.settings.OrcaProcessSettingsCatalogTest` erfolgreich. Es wurde kein vollständiger Unit-Suite-Lauf für diese Arbeitsgruppe ausgeführt. Kein Release, Commit oder Merge.
+- Geänderte Regressionen: `PrintProfileDropdownIntegrationDeviceTest` erweitert, `ProfileBooleanOptionDeviceTest` ergänzt; vor Menü 6 bestehende Änderungen (Slice-Ergebnis, Mehrfarben-/ACE-Pfade und UI-Tests) beibehalten.
+- Nächster konkreter Schritt: Menü 7 „Filament“, Punkte 71–80, Slot-/Material-/Temperaturanzeigen, Profilwechsel, Bestätigung/Abbruch, Listenlängen 1–24, ACE/externe Spule, Mehrfarben-Slice und TalkBack. Honor bleibt bis 100/100 gesperrt.
+
+## UI 2.1 — 100-Punkte-Menüabnahme abgeschlossen — 2026-11-15
+
+- Aktiver Nightly-Checkout: `OrkanSlicer-Nightly-2.5-current`, Branch `codex/ui-2.1-redesign`, HEAD `e02d4673a2`; App-Version 0.8.472 / Code 507. Menüs 1–9 und alle 100 Backlogpunkte sind anhand der vorangehenden Laufzeit-/Testnachweise als erledigt markiert.
+- Menü 9: gezielte Settings-/Setup-Instrumentierung 11/11; Ansichtsaktionen 2/2; Orca-Sprachressourcen 1/1; Updater-Zustandswiederherstellung 1/1; Changelog 1/1; responsive Settings/Accessibility 1/1. Insgesamt 17 eindeutige gezielte Menü-9-Geräteprüfungen. Abgedeckt sind Theme/Akzent, 150-%-Textmaßstab bei unveränderter Workspacegeometrie, Renderer/FPS, Kamera/Perspektive, Sprachwahl, About/Changelog, Downloaderzustände und Reset-Abbruch.
+- Vollständige Verifikation: Debug-Unit 786/786, Slice-Unit 786/786; Debug-Build, SliceTest-Build und `verifyNightlyChangelog` erfolgreich. Debug-APK auf API-36-Emulator installiert/gestartet; Paket `com.exa201.orkanslicer.nightly25` bestätigt 0.8.472 / Code 507. Letzter Logcat-Check ohne FATAL EXCEPTION, ANR, Fatal signal oder OOM.
+- Debug-APK: `app/build/outputs/apk/debug/OrkanSlicerNightly25_e02d4673a2.apk`, 252,043,306 bytes, SHA-256 `F474963F1466AD83191768792E09F5D90CF1DEDC603A4A2819B49DFC4103D312`.
+- SliceTest-APK: `app/build/outputs/apk/sliceTest/OrkanSlicerNightly25_e02d4673a2.apk`, 289,803,605 bytes, SHA-256 `C2F8ED860D7AE515979B623E076A2059D4DA47EC4A28E3541455E6AC6C8ED371`.
+- Honor-Sperre wurde bis zum Ende der Checkliste eingehalten. Danach zeigte `adb devices -l` nur `emulator-5554` und Xiaomi 2211133G (Produkt `fuxi_eea`); Honor war nicht verfügbar. Daher wurde keine Honor-Installation vorgetäuscht und keine Honor-APK auf das Xiaomi installiert. Nächster konkreter Schritt: Honor mit aktivem ADB erneut verbinden; dann die gebaute Nightly-Version 0.8.472 auf dem Honor installieren und die gemeinsame visuelle Abnahme abwarten.
+- Kein Commit, Release, Upload oder Merge in diesem Durchgang.
+
+## Honor-Installationsversuch und sauberer Nightly-Build — 2026-11-15
+
+- Der temporäre `OrkanStartup`-Messcode in `MainActivity` und `BedFragment` wurde nach der Diagnose entfernt. Die Messung zeigte `BedFragment.onCreateView` unter 300 ms und `MainActivity` bis `setContentView` etwa 1 s; ein langsamer erster Frame trat zusammen mit Emulator-`SurfaceSyncGroup`-Timeouts und einem Pixel-Launcher-Fokus-ANR auf. Daraus lässt sich kein Orkan-Absturz und keine eindeutige App-Ursache ableiten.
+- Die Profilmigration wurde geprüft: `ProfileConfigSchemaMigrator` liest das Schema-Merkmal und beendet sich für Schema 1 oder höher ohne Dateiänderung/Backup. Ein Backup-Suffix wie `.11` ist daher allein kein Beleg für Migration bei jedem Start. `PrintConfigWarmupTask` bleibt auf Worker-Thread nicht-kritisch; `AppBoot` fiel im protokollierten Lauf von 10,3 s auf 6,46 s, während die sichtbare Emulator-Startzeit wegen der Render-/Systemschwankung nicht belastbar besser war. Keine Hardware-Performancebehauptung.
+- Frische Unit-Läufe nach Entfernung der Diagnoseinstrumentierung: Debug **787/787**, Slice **787/787**, Fehler 0, Übersprungen 0. `verifyNightlyChangelog`, `assembleDebug` und `assembleSliceTest` erfolgreich.
+- Frische Debug-APK: `app/build/outputs/apk/debug/OrkanSlicerNightly25_e02d4673a2.apk`, 252,736,639 bytes, SHA-256 `1064BCC7E57D60FEF9E150D7DB493BBAB3EB7EAC5113B83A7A1E91D19F51BD62`. SliceTest-APK: `app/build/outputs/apk/sliceTest/OrkanSlicerNightly25_e02d4673a2.apk`, SHA-256 `53999D93BA087AF008B3C5A4EF28146F9612DAAEFAD47DB31F9EBFE4BD08C83A`.
+- Debug-APK wurde auf `emulator-5554` installiert; Package Manager bestätigt Nightly **0.8.472 / 507**. `MainActivity` startete erfolgreich; letzter gefilterter Logcat-Lauf enthielt keinen FATAL EXCEPTION, Orkan-ANR, Fatal signal oder OOM.
+- Honor erneut gesucht: `adb devices -l` listet nur Xiaomi 2211133G und `emulator-5554`. Verbindung zur zuletzt bekannten Honor-Adresse `192.168.68.66:41319` wurde vom Ziel abgelehnt. Keine APK auf Xiaomi installiert. **Offen: aktuelle Honor-Wireless-ADB-Verbindung herstellen und gemeinsame Sichtprüfung auf dem Honor durchführen.** Bis dahin ist die 100-Punkte-Emulatorabnahme fertig; die Hardwareabnahme bleibt ausstehend.
+
+## UI 2.1 — Honor-Hardwareabnahme — 2026-11-15
+
+- Der Nutzer bestätigte Wireless Debugging. Verwendet wurde ausschließlich `192.168.68.66:45073` (HONOR PTP-N49, Android 16); Xiaomi und Emulator wurden nicht für diese Hardwareabnahme verwendet. Gerät blieb mit `svc power stayon true` wach. Anzeigedichte wurde für die gewünschte 480-dp-Ansicht auf 426 dpi gesetzt, Schriftmaßstab 150 %.
+- Nightly `0.8.472 / versionCode 507`, Paket `com.exa201.orkanslicer.nightly25`, wurde per `adb install -r` aktualisiert und kalt gestartet (1,898 ms); vorhandene App-Daten wurden beibehalten. Die App ist am Ende im Workspace geöffnet.
+- Auf dem Gerät geprüft und als Screenshots gespeichert: Workspace, Druck, Filament, Drucker und App. Im Workspace sind Modell-/Düsen-/Filamentstatus und Bett sichtbar; Profilseiten und App-Einstellungen zeigen ihre Karten/Kategorien. Druckprozessname, Druckermodell, Düse und Stock-Variante sind im Prozesspicker lesbar; lange Profilnamen können jetzt bei kompakter Breite über bis zu fünf Zeilen umbrechen. Vertikale Profil-/Einstellungskategorien bleiben scrollbar.
+- Honor-Compose-Test `ProfileDropdownLargeTextDeviceTest`: **1/1 bestanden** bei 480 dp/150 %. `WorkspaceProfileStatusDeviceTest` war zuvor auf dem Honor **1/1 bestanden**. Der erste Gradle-Aufruf ohne Geräteauswahl versuchte alle verbundenen ADB-Geräte und brach wegen `INSTALL_FAILED_USER_RESTRICTED` beim Testinstall ab; erneuter Lauf mit `ANDROID_SERIAL=192.168.68.66:45073` lief nur auf dem Honor und bestand. Keine Produktfehler daraus abgeleitet.
+- Vollständige Unit-Suiten nach der Profilpicker-Korrektur: Debug **787/787**, Slice **787/787**; `assembleDebug` und `verifyNightlyChangelog` erfolgreich. `git diff --check` meldete keine Whitespace-Fehler nach Bereinigung; Git zeigt nur Zeilenendungswarnungen in bereits geänderten Dateien.
+- Logcat nach dem App-Start und der Seitenprüfung: kein `FATAL EXCEPTION`, ANR oder App-Prozessabsturz gefunden. Kein Slicing, Upload, Druckstart oder Profil-/Dateiänderung ausgeführt.
+- Debug-APK: `app/build/outputs/apk/debug/OrkanSlicerNightly25_e02d4673a2.apk`, SHA-256 `95016C8290AE6940C69F0C02759C363AB76202C2F54A5920A1F86EFFF9D51931`.
+- Screenshots (echte Honor-Aufnahmen): `docs/images/ui21/honor-nightly-0.8.472-{workspace,print,filament,printer,app}-480dp-150-live.png`.
+- Restarbeit: Nutzer-Sichtprüfung des aktualisierten Honor-Builds und Feedback; anschließend verbleibende UI-2.1-Unteransichten/Dialoge gemäß den noch offenen Backlog-Einträgen abnehmen. Kein Release, Upload, Commit oder Merge erstellt.
+
+- Ergänzende Honor-Prüfung: Druckprofilpicker auf dem echten Gerät geöffnet, längere Profilnamen in der Liste geprüft und ohne Auswahl per Android-Zurück geschlossen; aktives Profil blieb `0.20mm High Quality · Anycubic Kobra 3 v2 0.4 nozzle - Stock`. Screenshot `docs/images/ui21/honor-nightly-0.8.472-profile-picker-480dp-150-live.png`.
+- `ModelObjectsAdaptiveDialogDeviceTest` auf Honor/Android 16 bei der großen Schriftkonfiguration: **4/4 bestanden** (lange Namen und 48-dp-Aktion, Suche/Leerzustand, Gruppenauswahl, Multipart-Overflow-Aktionen). Eine ergänzende Screenshot-Automation erfasste während des Systemtests nicht zuverlässig den Compose-Dialog und wurde entfernt; es wird deshalb kein Objektlisten-Screenshot als Beleg behauptet.
+- Das detaillierte Alt→Neu-Mapping liegt in `docs/UI21_COMPONENT_MAPPING.md`. Noch offen für vollständige Designpaket-Abnahme: 200-%-Schrift, Querformat-Unterdialoge, physische TalkBack-Bedienung, Mehrplatten-/komplexe Projektfixtures und Offline-Kaltstart bis zum Slicing. Die fünf Hauptseiten und der Druckprofilpicker sind am Honor in 480 dp/150 % geprüft.
+- 200-%-Schriftstress für die Objektliste ergänzt und auf dem Honor bestanden: langer Catan-Objektname bleibt lesbar; Filamentaktion und Schließen sind nach Scrollen erreichbar. Objektlisten-Geräteabnahme damit **5/5** (einschließlich des neuen 200-%-Falls). Das belegt nur die Objektliste, noch nicht alle App-Seiten bei 200 %.
+
+## Honor wieder verbunden — Responsive-Nachprüfung — 2026-11-15
+
+- Honor Wireless ADB ist erneut online: `192.168.68.66:45073` (PTP-N49 / Android 16). Bestätigt: 1280×2800 px, Dichte-Override 426 dpi ≈ 480 dp, Systemschrift 150 %. Gerät wach gehalten.
+- `SettingsAccessibilityDeviceTest` lief auf dem Honor erfolgreich: **1/1**, 0 Fehler/Skips. Der Test stellt 14 Konfigurationen (320/360/400 dp Hochformat, 640×320 dp Querformat, Schrift 100/130/150/200 %) her und prüft Sichtbarkeit, Mindesthöhe 48 dp sowie Expand-State der Einstellungssektion. Die Klick-/Scrollaktionen wurden zusätzlich im initialen 320 dp/150-%-Zustand geprüft; das ist Komponentenabdeckung und keine vollständige manuelle Prüfung jeder Einstellung in jeder Konfiguration.
+- `ModelObjectsAdaptiveDialogDeviceTest`: **5/5** auf Honor, einschließlich 200-%-Textfall mit langem Objektnamen, scrollbarer Filamentaktion und erreichbarem Schließen.
+- Nach dem Instrumentierungslauf Nightly kalt gestartet und im Workspace belassen. Package Manager bestätigt **0.8.472 / code 507**. Aktueller Workspace-Screenshot wurde direkt vom Honor neu aufgenommen: `docs/images/ui21/honor-nightly-0.8.472-workspace-480dp-150-live.png`. Gefiltertes Logcat ohne `FATAL EXCEPTION`, App-ANR, Fatal signal oder OOM.
+- Zusätzliche Honor-Navigationstests: `MobileNavigationDeviceTest` **1/1** und `AdaptiveWorkspaceNavigationDeviceTest` **4/4** bestanden. Sie prüfen zugängliche globale Routen, Navigation bei kompakter Breite/großer Schrift, einreihige Darstellung und Erreichbarkeit des letzten Ziels.
+- Nach diesen Tests zeigte die Gerätehierarchie eine andere Vordergrund-App; es wurden danach keine manuellen Touch-Eingaben oder weiteren App-Starts ausgeführt, um die laufende Honor-Nutzung nicht zu unterbrechen. Die oben genannte Workspace-Aufnahme stammt aus dem vorherigen verifizierten Start.
+- Landscape-Menüanpassung nach Testharness-Korrektur auf Honor **1/1 bestanden** (18 Kombinationen: 320/360/400 dp, 100/130/150 % Text, Hoch-/Querformat). Der erste Lauf scheiterte am sofortigen Abfragen der separaten Compose-Dialoghierarchie; `waitForIdle()` nach Dialogöffnung/-schließung beseitigt das Timingproblem. Der Emulatorlauf bestand ebenfalls, benötigte dort 5:37 min; der korrigierte Honorlauf dauerte laut XML 12,1 s. Kein Fehler in der produktiven UI reproduziert.
+- Filamentslot-TalkBack-Semantiktest auf Honor zusätzlich **1/1 bestanden**; er prüft angesagte Slotnummer, Material und Farbe. Eine physische TalkBack-Bedienung wurde nicht simuliert.
+- Weiter offen: physische TalkBack-Bedienung, manuelle Querformatprüfung der Unterdialoge, komplexe Mehrplatten-/3MF-End-to-End-Slicingprüfung und komplette manuelle Sichtprüfung der fünf Seiten bei 200 %. Kein Release, Upload, Commit oder Merge.
+# Nightly – Headerkorrektur: Ansichts-Würfel und Druckerstatus — 2026-11-15
+
+- Den nutzlosen Ansichts-Würfel aus der Workspace-Kopfzeile entfernt. Kameraansichten bleiben über die vorhandenen Kameraeinstellungen erreichbar.
+- Das Drucker-Websymbol behält bei fehlender oder unerreichbarer Verbindung das bisherige Globus-mit-Kreuz-Symbol. Bei erreichbarem Drucker-Webhost erscheint ein grünes Häkchen. Die Erreichbarkeit wird per kurz begrenztem HTTP-HEAD im Hintergrund und nur solange der Workspace sichtbar ist geprüft; Abbruch-/Lifecycle- und Hostwechsel-Ergebnisse werden verworfen. TalkBack erhält den Verbindungszustand.
+- Tests: Probe 3/3 (Loopback-HTTP inkl. HTTP 405 als erreichbarer Host, geschlossener Port, ungültige Adresse); Emulator Android 16: Druckerstatus-Compose 2/2 und Workspace-Header ohne Würfel 1/1. `compileSliceTestAndroidTestKotlin`, `assembleDebug` und `git diff --check` erfolgreich. Die Honor-Hardware wurde nicht berührt.
+- APK lokal gebaut: `app/build/outputs/apk/debug/OrkanSlicerNightly25_e02d4673a2.apk`, SHA-256 `DE611E79E1433EC2BC9F40F4BE5446D72253D7FD9C4C90DACD906ED6843F7210`. Kein Upload, Release oder Commit in diesem Schritt.
+- Dieser angeforderte Teil ist abgeschlossen. Nächster Schritt nach Fortsetzung: mit der nächsten UI-2.1-Menügruppe weitermachen.
+
+## Nightly – Mehrplattenansicht auf aktive Platte begrenzt — 2026-11-15
+
+- GLRenderer rendert nur noch die aktive Druckplatte samt zugehörigem Inhalt. Inaktive Betten und deren abgedunkelte Modellvorschauen wurden entfernt; der Plattenwechsel bleibt über den vorhandenen aktiven Index erhalten.
+- BedFragment sendet beim Plattenwechsel nur den aktiven Index an den Renderer. Gezielter Emulator-Regressionstest `onlyActiveBuildPlateIsRenderedInMultiPlateProject`: **1/1 bestanden**; `:app:assembleDebug`: **BUILD SUCCESSFUL**; `git diff --check`: bestanden (nur bestehende LF/CRLF-Hinweise).
+- Debug-APK lokal: `app/build/outputs/apk/debug/OrkanSlicerNightly25_e02d4673a2.apk`. Kein Upload, Release, Commit oder Merge. Honor nicht benutzt.
+- Angeforderter Schritt abgeschlossen; pausiert bis zur nächsten Anweisung.
+
+## Nightly – Menü-Kacheln, Einzeilentexte und Wischbedienung — 2026-11-15
+
+- Portrait-Menükacheln in Breite und Höhe auf rund 80 % verkleinert (Touchfläche bleibt mindestens 48 dp). Beschriftungen werden einzeilig mit Auto-Größenanpassung dargestellt; lange Aktionen nutzen kurze lokalisierte Labels, der vollständige Aktionsname bleibt im Accessibility-Semantiktext.
+- Bestehende VK-Vektoricons für Profil- und Werkzeugaktionen gezielter eingesetzt. Menü-Host schirmt freie Flächen erst im Final-Pointer-Pass ab, damit LazyVerticalGrid die Geste zur Scroll-Erkennung zuerst erhält.
+- Honor Magic7 Pro / PTP-N49, Android 16, 1280×2800, 426-dpi-Override (480 dp), Schriftgröße 150 %: `portraitMenuGridUsesRowsAndFirstVerticalSwipeWorksInModelAndEdit` **1/1 bestanden**, einschließlich Wischen nach oben und unten in Modell und Ändern. Modell-/Ändern-/Tools-Screenshots: `docs/images/ui21/honor-nightly-menu-{model,edit,tools}-480dp.png`. Kein FATAL, ANR, Fatal signal oder OOM im geprüften Logcat.
+- `:app:testDebugUnitTest`, `:app:compileSliceTestAndroidTestKotlin`, `:app:assembleDebug` erfolgreich; `git diff --check` ohne Inhaltsfehler (nur Zeilenenden-Hinweise). Changelog `0.8.473` und `update.json` DE/EN/RU synchronisiert; Versionsprüfung im Build erfolgreich.
+- APK **0.8.473 / code 508**, installiert und gestartet auf Honor: `app/build/outputs/apk/debug/OrkanSlicerNightly25_e02d4673a2.apk`, SHA-256 `97A22B6E0ADD651AC479139B3EBC7108E7D5C69762987D91DC9E6321D778DB37`. Kein GitHub-Upload oder Release angefordert.
+
+## Nightly – Honor-Wischgesten: Pointer-Interception entfernt — 2026-11-15
+
+- Vergleich mit dem normalen OrkanSlicer zeigte, dass nur Nightly `WorkspaceMenuHost` zusätzliche Pointerereignisse konsumierte. Diese Ursache wurde entfernt: Das Overlay bleibt als Hit-Test-Ziel über dem GL-Renderer, beobachtet aber Events ohne `consume()`; Scroll-, Klick- und Long-Press-Handler der Kinder behalten die normale Compose-Gestenvermittlung.
+- Honor Magic7 Pro / PTP-N49, Android 16, 480 dp, 150 %: `portraitMenuGridUsesRowsAndFirstVerticalSwipeWorksInModelAndEdit` führt je drei Auf-/Abwärts-Wischzyklen in Modell und Ändern aus; `menuScrollRemainsResponsiveAndUnclaimedTouchesStayAboveRenderer` prüft Scrollen plus Renderer-Isolation. **2/2 bestanden.** Finaler 0.8.474-Build installiert und gestartet; kein FATAL, ANR, Fatal signal oder OOM im Logcat.
+- `:app:testDebugUnitTest`, `:app:compileSliceTestAndroidTestKotlin`, `:app:assembleDebug` erfolgreich; Changelog/DE-EN-RU-Update-Notizen synchronisiert; `git diff --check` erfolgreich (Zeilenenden-Hinweise).
+- APK **0.8.474 / code 509**: `app/build/outputs/apk/debug/OrkanSlicerNightly25_e02d4673a2.apk`, SHA-256 `43E504C41F7AEC69C3D756C97A2855F16A189918D1FE2E6D89110A020326E81E`. Kein Upload oder Release.
+# OrkanSlicer Nightly UI 2.1 – aktueller Durchgang (2026-11-15)
+
+- Version 0.8.475 / versionCode 510: Porträt-Menühost misst sich am Inhalt statt an einer festen Overlayhöhe. Ein bis vier Aktionen belegen eine Zeile; fünf bis acht zwei Zeilen. Zusätzliche Aktionen bleiben in der Rasterliste scrollbar.
+- Aktionsicons auf 30 dp vergrößert und auf kontrastierende Theme-Vordergrundfarben umgestellt; Kachelgrößen und Aktionsabstände bleiben unverändert.
+- Honor-Gerätetest `portraitMenuGridUsesRowsAndFirstVerticalSwipeWorksInModelAndEdit`: **1/1 bestanden** (Android 16, 1280×2800, 426-dpi-Override ≈480 dp, Systemschrift 150 %). Er prüft die Panelhöhe, höchstens 8 dp Leerraum unter der letzten Reihe in Tools/Modell/Ändern und drei Auf-/Abwärts-Wischzyklen in Modell und Ändern.
+- Verifikation: `:app:testDebugUnitTest` **791/791**, `:app:compileSliceTestAndroidTestKotlin` und `:app:assembleDebug` erfolgreich. Neueste Honor-Prüfung ohne FATAL, ANR oder OutOfMemoryError in den letzten 2.500 Logcat-Zeilen.
+- Debug-APK **0.8.475 / versionCode 510**, 253,105,119 Byte, SHA-256 `40330732EFA0A0118342D1D56251816E6A016876B8B6813F9FCF65CCF9A2B01A`; auf Honor installiert und gestartet. Screenshot-Belege: `docs/images/ui21/honor-nightly-0.8.475-tools.png`, `docs/images/ui21/honor-nightly-0.8.475-model.png` und `docs/images/ui21/honor-nightly-0.8.475-final.png`.
+- Kein GitHub-Upload oder Release in diesem Schritt angefordert; Änderungen bleiben uncommitted auf `codex/ui-2.1-redesign` zusammen mit der bestehenden Arbeitskopie.

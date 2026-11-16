@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer Nightly 2.5 · 0.8.472\n\n• Druckerstatus und Web-Aktion ordnen sich bei großer Schrift übersichtlich untereinander an.\n• Der vollständige Hinweis bleibt auf schmalen Displays lesbar.",
-  "en": "OrkanSlicer Nightly 2.5 · 0.8.472\n\n• Printer status and web action stack clearly at large text sizes.\n• The full connection hint remains readable on narrow displays.",
-  "ru": "OrkanSlicer Nightly 2.5 · 0.8.472\n\n• Статус принтера и действие веб-интерфейса размещаются друг под другом при крупном шрифте.\n• Полное сообщение о подключении остаётся читаемым на узких экранах."
+  "de": "OrkanSlicer Nightly 2.5 · 0.8.481\n\n• Kalibrierungen erkennen Modelle während des Renderer-Wechsels zuverlässig.\n• Die Objektliste zeigt eine große Vorschau; Quick Slice hat eine einstellbare Brim-Breite.\n• Modellimporte werden geordnet abgearbeitet, damit STEP-Folgeimporte nicht verworfen werden.",
+  "en": "OrkanSlicer Nightly 2.5 · 0.8.481\n\n• Calibration reliably detects models while the renderer is switching.\n• Object rows show a larger preview; Quick Slice has an editable brim width.\n• Model imports are serialized so follow-up STEP imports are not rejected.",
+  "ru": "OrkanSlicer Nightly 2.5 · 0.8.481\n\n• Калибровка надежно распознает модели во время переключения рендерера.\n• В списке объектов увеличен предпросмотр; в Quick Slice задается ширина каймы.\n• Импорт моделей выполняется последовательно, последующие STEP-файлы не отклоняются."
 }

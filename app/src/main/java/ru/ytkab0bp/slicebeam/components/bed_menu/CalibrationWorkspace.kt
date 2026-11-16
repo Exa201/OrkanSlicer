@@ -195,8 +195,12 @@ private fun startCalibration(
     SliceBeam.PENDING_CALIB_START = start
     SliceBeam.PENDING_CALIB_END = if (preset.inputMode != CalibrationInputMode.START_AND_STEP) endOrStep else 0.0
     SliceBeam.PENDING_CALIB_STEP = step ?: preset.step ?: endOrStep
-    val model = bed.glView?.renderer?.model
-    if (model == null || model.objectsCount == 0) {
+    // The plate model is committed to BedFragment before the renderer has finished its GL
+    // handoff. Prefer that authoritative plate state and use the renderer as a fallback for
+    // edits which have not yet been committed back to the plate list.
+    val modelAvailable = bed.currentModel?.objectsCount?.let { it > 0 } == true ||
+        bed.glView?.renderer?.model?.objectsCount?.let { it > 0 } == true
+    if (!modelAvailable) {
         if (preset.mode != CalibrationPresets.PA_LINE) {
             clearPendingCalibration()
             Toast.makeText(context, R.string.CalibrationNeedsModel, Toast.LENGTH_LONG).show()

@@ -161,6 +161,15 @@ class SliceUploadOnlyLoopbackDeviceTest {
             assertTrue("Disposable pyramid should load", loaded.await(60, TimeUnit.SECONDS))
             assertEquals("Model load failure: ${loadFailure.get()}", 1, requireNotNull(loadedModel.get()).objectsCount)
 
+            val rendererReady = AtomicReference<Boolean>()
+            val rendererReadyLatch = CountDownLatch(1)
+            requireNotNull(bed.glView).queueEvent {
+                rendererReady.set(bed.glView?.renderer?.model != null)
+                rendererReadyLatch.countDown()
+            }
+            assertTrue("Renderer should finish publishing the loaded model", rendererReadyLatch.await(5, TimeUnit.SECONDS))
+            assertTrue("Thumbnail baseline must be captured with the editable model attached to GLRenderer", rendererReady.get() == true)
+
             val unslicedThumbnail = captureThumbnail(bed)
             val unslicedPixels = decodePixels(unslicedThumbnail)
 

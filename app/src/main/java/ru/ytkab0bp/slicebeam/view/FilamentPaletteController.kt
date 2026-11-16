@@ -18,6 +18,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,6 +47,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.testTag
 import androidx.core.graphics.ColorUtils
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
@@ -54,6 +60,7 @@ import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.config.SlotFilamentProfiles
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import java.util.Locale
 
 /** Slot-count rules shared by the Compose palette and its regression tests. */
 internal object FilamentPalettePolicy {
@@ -134,6 +141,7 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
         var syncUpdated by remember(printerTitle) { mutableIntStateOf(-1) }
         var syncError by remember(printerTitle) { mutableStateOf<String?>(null) }
         var syncSuccessMessage by remember(printerTitle) { mutableStateOf<String?>(null) }
+        var pendingDeleteIndex by remember { mutableIntStateOf(-1) }
         val syncMessage = syncError ?: syncSuccessMessage ?: if (syncUpdated >= 0)
             stringResource(R.string.MmuSyncSuccess, syncUpdated) else null
         val syncDescription = stringResource(R.string.MmuSyncDescription)
@@ -173,7 +181,7 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
                 TextButton(
                     onClick = onDismiss,
                     modifier = Modifier.heightIn(min = OrkanUiTokens.touchTarget),
-                ) { Text(stringResource(android.R.string.cancel)) }
+                ) { Text(stringResource(R.string.WorkspaceFilamentPaletteApply)) }
             }
             if (canSync) {
                 OutlinedButton(
@@ -235,6 +243,8 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
                     val material = slot.type?.takeIf(String::isNotBlank)
                         ?: stringResource(R.string.AcePhysicalSlotEmpty)
                     val description = stringResource(R.string.FilamentPaletteSlotDescription, index, material)
+                    val colorHex = String.format(Locale.ROOT, "#%06X", slot.color and 0x00FFFFFF)
+                    val colorDescription = stringResource(R.string.FilamentPaletteColorDescription, colorHex)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -244,6 +254,7 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
                             .semantics(mergeDescendants = true) {
                                 role = Role.Button
                                 contentDescription = description
+                                stateDescription = colorDescription
                             }
                             .clickable(role = Role.Button) { showSlotEditor(index) }
                             .padding(horizontal = 12.dp, vertical = 6.dp),
@@ -274,6 +285,27 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
                         Text(stringResource(R.string.WorkspaceFilamentPaletteEdit),
                             color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.labelMedium)
+                        if (FilamentPalettePolicy.canDeleteSlot(snapshots.size)) {
+                            IconButton(
+                                onClick = { pendingDeleteIndex = index },
+                                modifier = Modifier
+                                    .size(OrkanUiTokens.touchTarget)
+                                    .testTag("filament-slot-delete-$index")
+                                    .semantics {
+                                        contentDescription = context.getString(
+                                            R.string.FilamentPaletteDeleteDescription,
+                                            index + 1,
+                                        )
+                                    },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.delete_outline_android_28),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        }
                     }
                 }
                 if (FilamentPalettePolicy.canAddSlot(snapshots.size)) {
@@ -295,6 +327,28 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
         activeSlotEditor?.let { editor ->
             editor.Content { activeSlotEditor = null }
         }
+        if (pendingDeleteIndex >= 0 && pendingDeleteIndex in snapshots.indices) {
+            val deletingIndex = pendingDeleteIndex
+            AlertDialog(
+                onDismissRequest = { pendingDeleteIndex = -1 },
+                title = { Text(stringResource(R.string.RemoveFilament)) },
+                text = { Text(stringResource(R.string.FilamentPaletteDeleteConfirm, deletingIndex + 1)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            pendingDeleteIndex = -1
+                            deleteSlotAt(deletingIndex)
+                        },
+                        modifier = Modifier.testTag("filament-slot-delete-confirm"),
+                    ) { Text(stringResource(R.string.RemoveFilament)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingDeleteIndex = -1 }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                },
+            )
+        }
     }
 
     private fun showSlotEditor(index: Int) {
@@ -308,12 +362,7 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
                 }
 
                 override fun onDelete() {
-                    if (!FilamentPalettePolicy.canDeleteAt(index, slots.size)) return
-                    MmuFilamentSync.removeSelectedGate(index, slots.size)
-                    if (TemporaryProjectSettings.active) TemporaryProjectSettings.removeFilament(index)
-                    else SlotFilamentProfiles.removeSlot(index)
-                    slots.removeAt(index)
-                    persistAndReload()
+                    deleteSlotAt(index)
                 }
             },
         )
@@ -348,6 +397,15 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
         slots = Prefs.getFilamentSlots()
         paletteRevision++
         onPaletteChanged()
+    }
+
+    private fun deleteSlotAt(index: Int) {
+        if (!FilamentPalettePolicy.canDeleteAt(index, slots.size)) return
+        MmuFilamentSync.removeSelectedGate(index, slots.size)
+        if (TemporaryProjectSettings.active) TemporaryProjectSettings.removeFilament(index)
+        else SlotFilamentProfiles.removeSlot(index)
+        slots.removeAt(index)
+        persistAndReload()
     }
 }
 
@@ -401,11 +459,14 @@ private fun FilamentPaletteSlot(
         index,
         slot.type.orEmpty(),
     )
+    val colorHex = String.format(Locale.ROOT, "#%06X", slot.color and 0x00FFFFFF)
+    val colorDescription = stringResource(R.string.FilamentPaletteColorDescription, colorHex)
     Column(
         modifier = Modifier
             .semantics(mergeDescendants = true) {
                 role = Role.Button
                 contentDescription = accessibilityLabel
+                stateDescription = colorDescription
             }
             .clickable(onClick = onClick)
             .padding(horizontal = 2.dp),

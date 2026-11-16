@@ -107,6 +107,14 @@ class MmuFilamentSyncDeviceTest {
         }
     }
 
+    @Test fun synchronizationCanBeStartedFromAWorkerWithoutLooper() {
+        val result = sync(
+            response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 1, 1, 1)),
+            startWithoutLooper = true,
+        )
+        assertEquals(4 to null, result)
+    }
+
     @Test fun crealityCfsSyncFallsBackToMoonrakerBoxAndPreservesPhysicalGateIndices() {
         Prefs.setFilamentSlots(listOf("PLA", "PETG", "ABS", "TPU").mapIndexed { index, type ->
             FilamentSlot(0xFF102030.toInt() + index, type)
@@ -448,7 +456,8 @@ class MmuFilamentSyncDeviceTest {
 
     private fun syncExternalSpool(): Pair<Int, String?> {
         val responses = listOf(
-            "?mmu" to """{"result":{"status":{"mmu":{"enabled":false}}}}""",
+            // synchronizeAll requests both objects in the initial Moonraker query.
+            "?mmu&filament_hub" to """{"result":{"status":{"mmu":{"enabled":false}}}}""",
             "?box" to """{"result":{"status":{}}}""",
             "?filament_hub" to externalSpoolResponse(),
         )
@@ -489,7 +498,12 @@ class MmuFilamentSyncDeviceTest {
         }
     }
 
-    private fun sync(response: JSONObject, full: Boolean = true, printerTitle: String = title): Pair<Int, String?> {
+    private fun sync(
+        response: JSONObject,
+        full: Boolean = true,
+        printerTitle: String = title,
+        startWithoutLooper: Boolean = false,
+    ): Pair<Int, String?> {
         val body = response.toString().toByteArray(Charsets.UTF_8)
         val failure = AtomicReference<Throwable?>()
         ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")).use { server ->
@@ -527,13 +541,15 @@ class MmuFilamentSyncDeviceTest {
             val completed = CountDownLatch(1)
             val result = AtomicReference<Pair<Int, String?>>()
             val printer = ConfigObject(printerTitle).apply { put("print_host", "http://127.0.0.1:${server.localPort}") }
-            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            val startSync = {
                 val callback = MmuFilamentSync.Callback { updated, error ->
                     result.set(updated to error)
                     completed.countDown()
                 }
                 if (full) MmuFilamentSync.synchronizeAll(printer, callback) else MmuFilamentSync.synchronize(printer, callback)
             }
+            if (startWithoutLooper) startSync()
+            else InstrumentationRegistry.getInstrumentation().runOnMainSync { startSync() }
             assertTrue("Filament sync callback timed out", completed.await(20, TimeUnit.SECONDS))
             worker.join(2_000)
             failure.get()?.let { throw AssertionError("Test printer failed", it) }

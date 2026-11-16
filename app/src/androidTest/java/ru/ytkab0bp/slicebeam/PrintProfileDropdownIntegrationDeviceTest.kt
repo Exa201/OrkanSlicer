@@ -578,11 +578,8 @@ class PrintProfileDropdownIntegrationDeviceTest {
             compose.onNodeWithContentDescription(dashboardAction)
                 .assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) { !activity.hasWindowFocus() }
-
-            assertTrue("The configured dashboard action opens an external browser",
+            assertTrue("The configured dashboard action opens the external browser",
                 !activity.hasWindowFocus())
-            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
-            compose.waitUntil(timeoutMillis = 5_000) { activity.hasWindowFocus() }
         } finally {
             if (!activity.hasWindowFocus()) {
                 instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
@@ -683,7 +680,7 @@ class PrintProfileDropdownIntegrationDeviceTest {
         val activity = compose.activity
         val config = SliceBeam.requireConfig()
         val previousPrinter = requireNotNull(config.presets?.get("printer"))
-        val targetPrinter = "Anycubic 4Max Pro 0.4 nozzle"
+        val targetPrinter = "Anycubic Kobra 3 0.6 nozzle"
         assertNotNull("The bundled test configuration must contain the target printer", config.findPrinter(targetPrinter))
         val previousPrinterSelection = PrinterProfileSelectionStore.read(previousPrinter)
         val previousTargetSelection = PrinterProfileSelectionStore.read(targetPrinter)
@@ -700,14 +697,21 @@ class PrintProfileDropdownIntegrationDeviceTest {
             // workspace profile-status button behind this screen.
             compose.onNodeWithTag("profile-dropdown").assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 10_000) {
-                runCatching { compose.onNodeWithText(targetPrinter).assertIsDisplayed() }.isSuccess
+                compose.onAllNodesWithText(targetPrinter).fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithText(targetPrinter).assertIsDisplayed().performClick()
+            compose.onNodeWithText(targetPrinter).performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 15_000) {
                 SliceBeam.requireConfig().presets?.get("printer") == targetPrinter
             }
 
             val selectedConfig = SliceBeam.requireConfig()
+            val selectedPrinter = requireNotNull(selectedConfig.findPrinter(targetPrinter))
+            assertEquals("Printer selection must activate the selected nozzle profile", "0.6",
+                selectedPrinter.get("nozzle_diameter"))
+            assertTrue("The selected printer contributes its printable bed bounds",
+                selectedPrinter.get("printable_area").orEmpty().isNotBlank())
+            assertTrue("The selected printer contributes its own start G-code",
+                selectedPrinter.get("machine_start_gcode").orEmpty().isNotBlank())
             val selectedProcess = requireNotNull(selectedConfig.presets?.get("print"))
             val scopedProcess = requireNotNull(selectedConfig.findPrint(selectedProcess))
             assertTrue(
@@ -868,6 +872,107 @@ class PrintProfileDropdownIntegrationDeviceTest {
             ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINTER)
             storedPrinter.put("curr_bed_type", storedBedSurface)
             assertTrue("Restore the bundled printer fixture after the test", SliceBeam.saveConfig())
+        }
+    }
+
+    @Test
+    fun printNumericSettingRemainsDraftUntilSaveAndCancelKeepsTheAppliedDraft() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val profile = requireNotNull(config.findPrint(config.presets?.get("print")))
+        val originalLayerHeight = profile.get("layer_height")
+        val option = requireNotNull(PrintConfigDef.getInstance().options["layer_height"])
+        val optionTitle = Slic3rLocalization.getString(option.getLabel())
+        val appliedValue = if (originalLayerHeight == "0.18") "0.2" else "0.18"
+        val cancelledValue = if (appliedValue == "0.18") "0.22" else "0.24"
+        ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINT)
+
+        try {
+            activity.runOnUiThread { (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(2) }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is PrintConfigFragment
+            }
+            ensureProfileCategoryExpanded("Layers and perimeters")
+            compose.onNodeWithTag("profile-settings-options-list")
+                .performScrollToNode(hasTestTag("profile-option-key-${option.key}"))
+            val layerHeightRows = compose.onAllNodesWithText(optionTitle, substring = true)
+            layerHeightRows[layerHeightRows.fetchSemanticsNodes().lastIndex].performClick()
+            val numericInput = hasSetTextAction() and hasText(activity.getString(R.string.ProfileNumericInputLabel))
+            compose.onNode(numericInput).performTextClearance()
+            compose.onNode(numericInput).performTextInput(appliedValue)
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+                .sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_PRINT)
+                    .containsKey(option.key)
+            }
+            assertEquals("Changing a print numeric value must not write the stored profile before Save",
+                originalLayerHeight, profile.get(option.key))
+            assertEquals(appliedValue, ProfileSettingsRepository.valueFor(
+                ConfigObject.PROFILE_LIST_PRINT, profile, option.key, true,
+            ))
+
+            compose.onNodeWithTag("profile-settings-options-list")
+                .performScrollToNode(hasTestTag("profile-option-key-${option.key}"))
+            val updatedLayerHeightRows = compose.onAllNodesWithText(optionTitle, substring = true)
+            updatedLayerHeightRows[updatedLayerHeightRows.fetchSemanticsNodes().lastIndex].performClick()
+            compose.onNode(numericInput).performTextClearance()
+            compose.onNode(numericInput).performTextInput(cancelledValue)
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+                .sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.onNodeWithText(activity.getString(android.R.string.cancel)).performClick()
+            assertEquals("Cancel must discard only the second numeric edit", appliedValue,
+                ProfileSettingsRepository.valueFor(ConfigObject.PROFILE_LIST_PRINT, profile, option.key, true))
+            assertEquals(originalLayerHeight, profile.get(option.key))
+
+            val otherProcess = config.printConfigs.firstOrNull { it.title != profile.title }
+            val otherLayerHeight = otherProcess?.get(option.key)
+            compose.onNodeWithTag("profile-settings-options-list")
+                .performScrollToNode(hasTestTag("profile-option-key-${option.key}"))
+            val resetRows = compose.onAllNodesWithText(optionTitle, substring = true)
+            resetRows[resetRows.fetchSemanticsNodes().lastIndex].performClick()
+            compose.onNode(numericInput).performTextClearance()
+            compose.onNode(numericInput).performTextInput(cancelledValue)
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+                .sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.onNodeWithContentDescription(activity.getString(R.string.SettingsResetProfileAction))
+                .performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsResetProfileTitle)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINT) == 0
+            }
+            assertEquals("Reset must discard the active process draft only", originalLayerHeight,
+                config.findPrint(config.presets?.get("print"))?.get(option.key))
+            if (otherProcess != null) assertEquals("Reset must not modify another process preset",
+                otherLayerHeight, otherProcess.get(option.key))
+
+            compose.onNodeWithTag("profile-settings-options-list")
+                .performScrollToNode(hasTestTag("profile-option-key-${option.key}"))
+            val saveRows = compose.onAllNodesWithText(optionTitle, substring = true)
+            saveRows[saveRows.fetchSemanticsNodes().lastIndex].performClick()
+            compose.onNode(numericInput).performTextClearance()
+            compose.onNode(numericInput).performTextInput(appliedValue)
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+                .sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+
+            compose.onNodeWithText(activity.getString(R.string.SettingsSave)).performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsSaveTitle)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINT) == 0
+            }
+            val savedProfileTitle = config.presets?.get("print")
+            val savedProfile = requireNotNull(config.findPrint(savedProfileTitle))
+            assertEquals("Only explicit profile Save persists the accepted numeric edit", appliedValue,
+                savedProfile.get(option.key))
+        } finally {
+            ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINT)
+            profile.put(option.key, originalLayerHeight)
+            check(SliceBeam.saveConfig()) { "Could not restore the print profile layer-height fixture" }
         }
     }
 

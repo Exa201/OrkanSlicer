@@ -176,14 +176,16 @@ private fun Destination(
     ) {
         Surface(
             shape = RoundedCornerShape(OrkanUiTokens.compactCornerRadius),
-            color = if (selected) accent
+            color = if (selected) accent.copy(alpha = 0.20f)
                 else androidx.compose.ui.graphics.Color.Transparent,
         ) {
             Box(Modifier.padding(horizontal = 10.dp, vertical = 3.dp).size(OrkanUiTokens.navigationIconSize)) {
                 Icon(
                     painterResource(item.icon), contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
-                    tint = if (selected) onAccent else (item.accent?.copy(alpha = 0.88f) ?: MaterialTheme.colorScheme.onSurfaceVariant),
+                    // Workspace assets are deliberately multicolor; applying a selected-state
+                    // tint erased their shape cues. The accent now stays in the backing chip.
+                    tint = Color.Unspecified,
                 )
                 if (selected && showPanelToggleIndicator) {
                     Icon(

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
@@ -154,7 +155,7 @@ internal fun CustomizableBedMenuActionsContent(
         // Keep the customization control beside the action grid. A separate
         // header row consumed most of the short workspace panel on compact phones and
         // reduced every action to an unusable touch target.
-        Row(modifier.fillMaxSize(), verticalAlignment = Alignment.Top) {
+        Row(modifier.fillMaxWidth().wrapContentHeight(), verticalAlignment = Alignment.Top) {
             BedMenuActionsContent(
                 visibleActions, portrait, Modifier.weight(1f),
                 onActionPositioned = onActionPositioned,
@@ -173,7 +174,7 @@ internal fun CustomizableBedMenuActionsContent(
             )
             TextButton(
                 onClick = openCustomization,
-                modifier = Modifier.width(48.dp).fillMaxSize().testTag("menu-customize-$menuKey"),
+                modifier = Modifier.width(48.dp).heightIn(min = 48.dp).testTag("menu-customize-$menuKey"),
             ) {
                 Text("⋮", style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.semantics { contentDescription = menuCustomizeLabel })

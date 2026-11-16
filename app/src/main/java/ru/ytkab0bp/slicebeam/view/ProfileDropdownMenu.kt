@@ -67,7 +67,7 @@ internal fun ProfileDropdownContent(
     onClone: () -> Unit,
     canManage: Boolean = true,
 ) {
-    val compactPhone = LocalConfiguration.current.screenWidthDp < 480
+    val compactPhone = LocalConfiguration.current.screenWidthDp <= 480
     Box(modifier = Modifier.fillMaxWidth()) {
         Surface(
             modifier = Modifier
@@ -87,9 +87,9 @@ internal fun ProfileDropdownContent(
             ) {
                 Text(
                     text = title.orEmpty(),
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("profile-dropdown-selected-title"),
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = if (compactPhone) 3 else 2,
+                    maxLines = if (compactPhone) 5 else 3,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.width(8.dp))
@@ -119,7 +119,7 @@ internal fun ProfileDropdownContent(
                     text = {
                         Text(
                             text = profileTitle,
-                            maxLines = 3,
+                            maxLines = 5,
                             overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.bodyLarge,
                         )

@@ -38,6 +38,6 @@ object OrkanUiTokens {
     val menuIconSize = 20.dp
     val menuLabelSize = 13.sp
     val menuTileHeight = 62.dp
-    val navigationIconSize = 20.dp
+    val navigationIconSize = 23.dp
     val navigationLabelSize = 12.sp
 }

@@ -216,6 +216,7 @@ private class SliceInfoWorkspaceController(private val bed: BedFragment, private
         }
 
         val config = SliceBeam.requireConfig()
+        val printProfile = config.findPrint(config.presets?.get("print"))
         val filament = config.findFilament(config.presets?.get("filament"))
         val costPerKg = filament?.get("filament_cost")
             ?.takeIf { it.isNotBlank() }
@@ -245,6 +246,18 @@ private class SliceInfoWorkspaceController(private val bed: BedFragment, private
                 layers,
             ),
             costSummary = costSummary,
+            layerHeightSummary = summaryString(
+                R.string.SliceSummaryHeightValue,
+                R.string.SliceSummaryHeight,
+                formatProfileValue(printProfile?.get("layer_height")),
+                formatProfileValue(printProfile?.get("initial_layer_print_height")),
+            ),
+            speedSummary = summaryString(
+                R.string.SliceSummarySpeedValue,
+                R.string.SliceSummarySpeed,
+                formatProfileValue(printProfile?.get("outer_wall_speed")),
+                formatProfileValue(printProfile?.get("sparse_infill_speed")),
+            ),
             totalSummary = formatComplex(totalWeight, totalLength, totalEstimatedTime(viewer)),
             roles = roles,
             segmentValues = segmentValues,
@@ -261,6 +274,18 @@ private class SliceInfoWorkspaceController(private val bed: BedFragment, private
         val app = SliceBeam.requireInstance()
         return app.getString(valueRes, app.getString(labelRes), value)
     }
+
+    private fun summaryString(valueRes: Int, labelRes: Int, first: String, second: String): String =
+        SliceBeam.requireInstance().getString(valueRes, SliceBeam.requireInstance().getString(labelRes), first, second)
+
+    private fun summaryString(valueRes: Int, labelRes: Int, first: String, second: String, third: String): String =
+        SliceBeam.requireInstance().getString(valueRes, SliceBeam.requireInstance().getString(labelRes), first, second, third)
+
+    private fun formatProfileValue(value: String?): String = value
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?.let { raw -> raw.toDoubleOrNull()?.let { number -> decimalFormat.format(number) } ?: raw }
+        ?: "–"
 
     private fun formatComplex(weight: Double, length: Double, time: Float): String = buildString {
         if (weight > 0.0) {
@@ -384,6 +409,8 @@ private data class SliceInfoUiState(
     val lengthSummary: String = "",
     val layersSummary: String = "",
     val costSummary: String = "",
+    val layerHeightSummary: String = "",
+    val speedSummary: String = "",
     val totalSummary: String = "",
     val roles: List<SliceRoleSummary> = emptyList(),
     val segmentValues: FloatArray = floatArrayOf(0f, 1f),
@@ -468,14 +495,18 @@ private fun SliceInfoContent(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Row(modifier = Modifier.fillMaxWidth()) {
-                SliceSummaryCell(state.timeSummary, Modifier.weight(1f))
-                SliceSummaryCell(state.weightSummary, Modifier.weight(1f))
-                SliceSummaryCell(state.layersSummary, Modifier.weight(1f))
+                SliceSummaryCell(state.timeSummary, Modifier.weight(1f).testTag("slice-summary-time"))
+                SliceSummaryCell(state.weightSummary, Modifier.weight(1f).testTag("slice-summary-weight"))
+                SliceSummaryCell(state.layersSummary, Modifier.weight(1f).testTag("slice-summary-layers"))
             }
             Row(modifier = Modifier.fillMaxWidth()) {
-                SliceSummaryCell(state.lengthSummary, Modifier.weight(1f))
-                SliceSummaryCell(state.costSummary, Modifier.weight(1f))
+                SliceSummaryCell(state.lengthSummary, Modifier.weight(1f).testTag("slice-summary-length"))
+                SliceSummaryCell(state.costSummary, Modifier.weight(1f).testTag("slice-summary-cost"))
                 Spacer(Modifier.weight(1f))
+            }
+            Row(modifier = Modifier.fillMaxWidth()) {
+                SliceSummaryCell(state.layerHeightSummary, Modifier.weight(1f).testTag("slice-summary-layer-height"))
+                SliceSummaryCell(state.speedSummary, Modifier.weight(1f).testTag("slice-summary-speed"))
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

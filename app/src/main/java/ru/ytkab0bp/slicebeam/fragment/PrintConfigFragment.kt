@@ -1,23 +1,12 @@
 package ru.ytkab0bp.slicebeam.fragment
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.runtime.key
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.MainActivity
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
-import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rUtils
-import ru.ytkab0bp.slicebeam.utils.Prefs
 
 /** Process-profile screen with printer filtering and purge controls. Filament routing lives in the workspace palette. */
 class PrintConfigFragment : ProfileListFragment() {
@@ -25,8 +14,6 @@ class PrintConfigFragment : ProfileListFragment() {
     private var lastPrinter: String? = null
     private var lastUid = 0
     private var currentConfig: ConfigObject? = null
-    private var toolsThemeRevision by mutableIntStateOf(0)
-    private var activeToolDialog by mutableStateOf<PrintConfigToolDialogState?>(null)
 
     override fun getProfileListType(): Int = ConfigObject.PROFILE_LIST_PRINT
 
@@ -36,29 +23,15 @@ class PrintConfigFragment : ProfileListFragment() {
 
     override fun showFilamentPalette(): Boolean = false
 
-    override fun showBelowFilamentPaletteContent(): Boolean = true
-
     override fun onCreate() {
         super.onCreate()
         SliceBeam.ensurePrinterScopedProcess()
         onResetConfig()
     }
 
-    override fun onApplyTheme() {
-        super.onApplyTheme()
-        toolsThemeRevision++
-    }
-
     override fun onResume() {
         SliceBeam.ensurePrinterScopedProcess()
         super.onResume()
-        // Refresh printer-dependent controls when returning from another profile screen.
-        toolsThemeRevision++
-    }
-
-    override fun onDestroy() {
-        activeToolDialog = null
-        super.onDestroy()
     }
 
     override fun getItems(filter: Boolean): List<ProfileListItem> {
@@ -111,45 +84,6 @@ class PrintConfigFragment : ProfileListFragment() {
     override fun getConfigItems(): List<ProfileOptionElement> =
         OrcaPrintSettingsBuilder.build(this)
 
-    @androidx.compose.runtime.Composable
-    override fun BelowFilamentPaletteContent(modifier: Modifier) {
-        val revision = toolsThemeRevision
-        Box(modifier = modifier.fillMaxWidth()) {
-            key(revision) {
-                PrintConfigToolsBar(
-                    modifier = Modifier.fillMaxWidth(),
-                    onPrimeTower = ::showPrimeTowerPositionDialog,
-                    onFlushVolumes = ::showFlushVolumesDialog,
-                )
-            }
-            when (val dialog = activeToolDialog) {
-                is PrintConfigToolDialogState.FlushVolumes -> FlushVolumesDialog(
-                    matrix = dialog.matrix,
-                    onDismiss = { activeToolDialog = null },
-                    onApply = { serialized ->
-                        activeToolDialog = null
-                        applyOptionValue("flush_volumes_matrix", serialized)
-                        getContext()?.let { Toast.makeText(it, R.string.PrintConfigFlushVolumesUpdated, Toast.LENGTH_SHORT).show() }
-                    },
-                )
-                is PrintConfigToolDialogState.PrimeTower -> PrimeTowerPositionDialog(
-                    positions = dialog.positions,
-                    onDismiss = { activeToolDialog = null },
-                    placementMap = dialog.placementMap,
-                    previewPlateIndex = dialog.previewPlateIndex,
-                    towerWidth = dialog.footprint.width,
-                    towerDepth = dialog.footprint.depth,
-                    onApply = { serialized ->
-                        activeToolDialog = null
-                        applyOptionValue("wipe_tower_x", serialized.first)
-                        applyOptionValue("wipe_tower_y", serialized.second)
-                    },
-                )
-                null -> Unit
-            }
-        }
-    }
-
     private fun optionValue(key: String): String {
         val definition = PrintConfigDef.getInstance().options[key]
         val profile = requireNotNull(currentConfig)
@@ -161,50 +95,6 @@ class PrintConfigFragment : ProfileListFragment() {
     internal fun currentSettingValue(key: String): String = optionValue(key)
 
     internal fun refreshConditionalSettings() = onUpdateConfigItems()
-
-    private fun applyOptionValue(key: String, value: String) {
-        val definition = PrintConfigDef.getInstance().options[key]
-        if (definition != null) {
-            updateConfigField(definition, -1, value)
-        } else {
-            val profile = requireNotNull(currentConfig)
-            ProfileSettingsRepository.setPendingValue(
-                getProfileListType(), key, profile.get(key), value,
-            )
-        }
-        onUpdateConfigItems()
-    }
-
-    private fun showFlushVolumesDialog() {
-        val matrix = PrintConfigToolsLogic.flushMatrix(
-            serialized = optionValue("flush_volumes_matrix"),
-            slotCount = Prefs.getFilamentSlots().size,
-            maxSlots = Prefs.MAX_FILAMENT_COLORS,
-        )
-        activeToolDialog = PrintConfigToolDialogState.FlushVolumes(matrix)
-    }
-
-    private fun showPrimeTowerPositionDialog() {
-        val workspace = (getContext() as? MainActivity)
-            ?.navigationDelegate?.getFragmentForSlot(0) as? BedFragment
-        val positions = PrintConfigToolsLogic.towerPositions(
-            optionValue("wipe_tower_x"),
-            optionValue("wipe_tower_y"),
-            requiredPlateCount = (workspace?.plateCount ?: 1).coerceAtLeast(1),
-        )
-        val previewPlateIndex = (workspace?.activePlateIndex ?: 0).coerceIn(0, positions.plateCount - 1)
-        val footprint = PrintConfigToolsLogic.towerFootprint(
-            optionValue("prime_tower_width"),
-            optionValue("wipe_tower_width"),
-            optionValue("flush_volumes_matrix"),
-        )
-        activeToolDialog = PrintConfigToolDialogState.PrimeTower(
-            positions,
-            workspace?.primeTowerPlacementMap() ?: BedFragment.configuredPrimeTowerPlacementMap(),
-            previewPlateIndex,
-            footprint,
-        )
-    }
 
     override fun cloneCurrentProfile() {
         val current = currentConfig ?: return
@@ -306,14 +196,4 @@ class PrintConfigFragment : ProfileListFragment() {
         return true
     }
 
-}
-
-private sealed interface PrintConfigToolDialogState {
-    data class FlushVolumes(val matrix: PrintConfigFlushMatrix) : PrintConfigToolDialogState
-    data class PrimeTower(
-        val positions: PrintConfigTowerPositions,
-        val placementMap: ru.ytkab0bp.slicebeam.render.PrimeTowerPlacementMap?,
-        val previewPlateIndex: Int,
-        val footprint: PrintConfigTowerFootprint,
-    ) : PrintConfigToolDialogState
 }

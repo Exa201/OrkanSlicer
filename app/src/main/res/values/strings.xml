@@ -57,6 +57,7 @@
     <string name="QuickSliceProjectFilaments">3MF project filaments: %1$s. Edit them in the Filament tab.</string>
     <string name="QuickSliceProjectHelp">Choose the printer and print quality. The 3MF project filaments remain active.</string>
     <string name="WorkspaceProjectFilaments">3MF: %1$s (%2$d colors)</string>
+    <string name="WorkspaceProjectFilamentSummary">3MF · %1$d colors</string>
     <string name="PrintPrepareMaterialMismatchTitle">Check filament before printing</string>
     <string name="PrintPrepareMaterialMismatch">T%1$d was sliced for %2$s, but ACE slot %3$d contains %4$s. Change the project filament settings and slice again before starting a print. You can upload the file without starting it.</string>
     <string name="PrintPrepareUploadOnly">Upload only</string>
@@ -307,7 +308,7 @@
     <string name="ImportLargeStlMessage">This STL contains %1$s triangles. Reading it may take several minutes and use a lot of memory. Continue loading? You can decide whether to simplify it after reading.</string>
     <string name="ImportLargeStlContinue">Continue loading</string>
     <string name="MenuFileOpenStlReading">Reading STL facets: %1$d%%</string>
-    <string name="MenuFileOpenStlPreparing">STL read · Preparing geometry…</string>
+    <string name="MenuFileOpenStlPreparing">STL facets: 100% · Preparing geometry…</string>
     <string name="MenuFileOpenStlCancelling">Stopping STL import…</string>
     <string name="MenuAddPlate">Add plate</string>
     <string name="MenuSwitchPlate">Switch plate</string>
@@ -357,7 +358,8 @@
     <string name="ModelMenuDeleteSelected">Delete selected model</string>
     <string name="ModelMenuSelectAll">Select all models</string>
     <string name="ModelMenuDeleteAll">Delete all models</string>
-    <string name="ModelMenuDuplicateShort">Create copies</string>
+    <string name="ModelMenuDuplicateShort">Copy</string>
+    <string name="ModelMenuSplitShort">Split parts</string>
     <string name="ModelMenuMoveToPlateShort">Other plate</string>
     <string name="ModelMenuCenterOnBedShort">Center</string>
     <string name="ModelMenuFillBedShort">Fill with copies</string>
@@ -696,6 +698,7 @@
     <string name="SvgSimplifyTitle">Simplify SVG?</string>
     <string name="SvgSimplifyPrompt">%1$s\n\nWould you like to reduce the contours and load a simplified copy? The original file will remain unchanged.</string>
     <string name="SvgSimplifyUnavailable">%1$s\n\nFiles over 25 MB cannot be simplified on this device.</string>
+    <string name="SvgImportFailedInvalid">This SVG could not be read safely. Check that the file is a valid SVG and try exporting it again.</string>
     <string name="SvgSimplifyAction">Simplify and load</string>
     <string name="SvgSimplifyFailedTitle">SVG simplification failed</string>
     <string name="SvgSimplifyFailedFallback">The contours could not be safely reduced.</string>
@@ -747,6 +750,8 @@
     <string name="PrinterWebSetupMessage">No host address is saved for this printer yet. Open printer settings and enter its IP address or host name.</string>
     <string name="PrinterWebSetupAction">Open printer settings</string>
     <string name="PrinterWebConfigureDescription">Set up the printer web interface</string>
+    <string name="PrinterWebConnected">Printer web host is reachable</string>
+    <string name="PrinterWebDisconnected">Printer web host is not reachable</string>
     <string name="PrinterWebOpenFailed">Could not open the printer web interface.</string>
     <string name="PrinterWebRetry">Retry</string>
     <string name="PrinterWebOpenInBrowser">Open in browser</string>
@@ -1222,8 +1227,12 @@
     <string name="WorkspaceFilamentPaletteTitle">Filaments</string>
     <string name="WorkspaceFilamentPaletteCount">%1$d materials</string>
     <string name="WorkspaceFilamentPaletteEdit">Edit</string>
+    <string name="WorkspaceFilamentPaletteApply">Apply</string>
+    <string name="FilamentPaletteDeleteDescription">Remove filament slot %1$d</string>
+    <string name="FilamentPaletteDeleteConfirm">Remove filament slot %1$d from this palette?</string>
     <string name="WorkspaceFilamentAssignModel">Assign filaments to model</string>
     <string name="FilamentPaletteSlotDescription">Filament tool T%1$d, %2$s</string>
+    <string name="FilamentPaletteColorDescription">Color %1$s</string>
     <string name="RemoveFilament">Remove filament</string>
     <string name="MmuSyncButton">Sync printer filaments</string>
     <string name="MmuSyncShort">Sync</string>
@@ -1272,7 +1281,9 @@
     <string name="QuickSliceLayerHeight">Layer height (mm)</string>
     <string name="QuickSliceInfill">Infill (%)</string>
     <string name="QuickSliceSupport">Generate support</string>
-    <string name="QuickSliceBrim">Add brim (5 mm)</string>
+    <string name="QuickSliceBrim">Add brim</string>
+    <string name="QuickSliceBrimWidth">Brim width (mm)</string>
+    <string name="QuickSliceInvalidBrimWidth">Enter a brim width greater than 0 and at most 50 mm.</string>
     <string name="QuickSliceStart">Slice</string>
     <string name="QuickSliceInvalidLayerHeight">Enter a layer height greater than 0 mm.</string>
     <string name="QuickSliceInvalidInfill">Enter an infill value from 0 to 100 percent.</string>
@@ -1289,11 +1300,15 @@
     <string name="SliceSummaryLength">Filament</string>
     <string name="SliceSummaryLayers">Layers</string>
     <string name="SliceSummaryCost">Material cost</string>
+    <string name="SliceSummaryHeight">Layer height</string>
+    <string name="SliceSummarySpeed">Profile speeds</string>
     <string name="SliceSummaryTimeValue">%1$s\n%2$s</string>
     <string name="SliceSummaryWeightValue">%1$s\n%2$s g</string>
     <string name="SliceSummaryLengthValue">%1$s\n%2$s m</string>
     <string name="SliceSummaryLayersValue">%1$s\n%2$d</string>
     <string name="SliceSummaryCostValue">%1$s\n%2$s €</string>
+    <string name="SliceSummaryHeightValue">%1$s\n%2$s mm · first layer %3$s mm</string>
+    <string name="SliceSummarySpeedValue">%1$s\nOuter wall %2$s · infill %3$s mm/s</string>
     <string name="SliceSummaryUnavailableValue">%1$s\n–</string>
     <string name="FilamentToolLabel">T%1$d</string>
     <string name="ProfileGroupExpandedTitle">▾  %1$s</string>
@@ -1469,7 +1484,7 @@
     <string name="CalibrationReadyToSlice">Calibration is ready. Slice the model to generate its G-code.</string>
     <string name="SetupOrcaCoreVersion">OrcaSlicer print core</string>
     <string name="WorkspaceProfilesOpenLabel">Profiles</string>
-    <string name="WorkspaceProfileStatusSummary">Nozzle %1$s · %2$s</string>
+    <string name="WorkspaceProfileStatusSummary">%1$s mm · %2$s</string>
     <string name="WorkspaceProfilesStatusDescription">Selected printer: %1$s. Nozzle: %2$s. Filament: %3$s. Print profile: %4$s. Opens profile selection.</string>
     <string name="ModelUndo">Undo</string>
     <string name="ModelRedo">Redo</string>
@@ -1585,6 +1600,16 @@
     <string name="MenuActionLayerHeightShort">Layer height</string>
     <string name="MenuActionEmbossShort">Emboss</string>
     <string name="MenuActionMeasureShort">Measure</string>
+    <string name="MenuActionQuickSliceShort">Quick</string>
+    <string name="MenuActionSmartSliceShort">Smart</string>
+    <string name="MenuActionManualSliceShort">Manual</string>
+    <string name="MenuActionCalibrateShort">Calibrate</string>
+    <string name="MenuActionMoveShort">Move</string>
+    <string name="MenuActionRotateShort">Rotate</string>
+    <string name="MenuActionScaleShort">Scale</string>
+    <string name="MenuActionCutShort">Cut</string>
+    <string name="MenuActionTextShort">Text</string>
+    <string name="MenuActionLayerShort">Layer</string>
     <string name="MenuCameraOrthoShort">Parallel</string>
     <string name="ModelColorSlotsAction">Colors → slots</string>
     <string name="ModelColorSlotsApply">Apply assignment</string>
@@ -1639,4 +1664,9 @@
     <string name="AdaptivePAModelNoMeasurements">Filament %1$d has no adaptive pressure advance measurements. Enter calibration data before printing.</string>
     <string name="AdaptivePAModelNoMeasurementsShort">No calibration measurements entered.</string>
     <string name="AdaptivePAModelSliceWarningContinue">Continue</string>
+    <string name="RecentModelsTitle">Recent models</string>
+    <string name="RecentModelsEmpty">No recently opened model files are available.</string>
+    <string name="RecentModelsOpen">Open</string>
+    <string name="ModelObjectDimensionsAndPlate">%1$s × %2$s × %3$s mm · Plate %4$d/%5$d</string>
+    <string name="ModelObjectPreviewDescription">Model size preview: %1$s × %2$s × %3$s mm</string>
 </resources>

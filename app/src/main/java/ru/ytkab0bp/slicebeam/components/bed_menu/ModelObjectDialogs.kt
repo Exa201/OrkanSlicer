@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
@@ -47,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
@@ -79,6 +81,11 @@ internal data class ModelObjectRow(
     val objectIndex: Int = 0,
     val heightMm: Double = 0.0,
     val sizeMm3: Double = 0.0,
+    val widthMm: Double = 0.0,
+    val depthMm: Double = 0.0,
+    val plateNumber: Int = 1,
+    val plateCount: Int = 1,
+    val previewMesh: FloatArray = FloatArray(0),
 )
 
 internal enum class ModelObjectOrder(val label: String) {
@@ -484,14 +491,20 @@ internal fun ModelObjectsDialog(
     onEditPart: (objectIndex: Int, partIndex: Int) -> Unit,
     onApplySelection: (IntArray) -> Unit,
 ) {
-    var groupSelectionMode by remember(rows) { mutableStateOf(false) }
-    var orderMenuExpanded by remember(rows) { mutableStateOf(false) }
-    var order by remember(rows) { mutableStateOf(ModelObjectOrder.ORIGINAL) }
-    var searchQuery by remember(rows) { mutableStateOf("") }
-    val stagedSelection = remember(rows) {
+    // Callers often build these rows from a live native snapshot on recomposition. Key state
+    // by their stable object/part identity so a fresh List instance does not reset search or
+    // collapse multipart rows while the user is interacting with the dialog.
+    val rowsStateKey = rows.joinToString("|") { row ->
+        "${row.objectIndex}:${row.parts.joinToString(",") { it.label }}"
+    }
+    var groupSelectionMode by remember(rowsStateKey) { mutableStateOf(false) }
+    var orderMenuExpanded by remember(rowsStateKey) { mutableStateOf(false) }
+    var order by remember(rowsStateKey) { mutableStateOf(ModelObjectOrder.ORIGINAL) }
+    var searchQuery by remember(rowsStateKey) { mutableStateOf("") }
+    val stagedSelection = remember(rowsStateKey) {
         mutableStateListOf<Int>().apply { addAll(rows.filter { it.selected }.map { it.objectIndex }) }
     }
-    val orderedRows = remember(rows, order, searchQuery) {
+    val orderedRows = remember(rowsStateKey, rows, order, searchQuery) {
         val query = searchQuery.trim()
         orderModelObjectRows(rows, order).filter { row ->
             query.isEmpty() || row.name.contains(query, ignoreCase = true) ||
@@ -502,7 +515,7 @@ internal fun ModelObjectsDialog(
         }
     }
     val maxRowsHeight = (LocalConfiguration.current.screenHeightDp * 0.56f).dp.coerceIn(220.dp, 520.dp)
-    var expandedGroups by remember(rows) {
+    var expandedGroups by remember(rowsStateKey) {
         mutableStateOf(rows.filter { it.parts.size > 1 }.map { it.objectIndex }.toSet())
     }
     val visibleEntries = remember(orderedRows, expandedGroups) {
@@ -645,12 +658,38 @@ internal fun ModelObjectsDialog(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     ) {
-                                        Box(Modifier.size(20.dp).background(Color(row.color), CircleShape))
-                                        Column(Modifier.weight(1f)) {
-                                            Text(row.name, fontWeight = FontWeight.Medium)
+                                        ObjectEnvelopePreview(
+                                            widthMm = row.widthMm,
+                                            depthMm = row.depthMm,
+                                            heightMm = row.heightMm,
+                                            color = row.color,
+                                            previewMesh = row.previewMesh,
+                                            modifier = Modifier.weight(0.6f).heightIn(min = 112.dp),
+                                        )
+                                        Column(
+                                            Modifier.weight(0.4f),
+                                            verticalArrangement = Arrangement.spacedBy(3.dp),
+                                        ) {
+                                            Text(row.name, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                             Text(
                                                 "T${row.tool}: ${row.material} · #${row.color.toUInt().toString(16).padStart(6, '0').takeLast(6).uppercase()}",
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                            Text(
+                                                stringResource(
+                                                    R.string.ModelObjectDimensionsAndPlate,
+                                                    formatObjectDimension(row.widthMm),
+                                                    formatObjectDimension(row.depthMm),
+                                                    formatObjectDimension(row.heightMm),
+                                                    row.plateNumber,
+                                                    row.plateCount,
+                                                ),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
                                             )
                                         }
                                         if (groupSelectionMode) {
@@ -771,6 +810,130 @@ internal fun ModelObjectsDialog(
                 }
             }
         }
+    }
+}
+
+private fun formatObjectDimension(value: Double): String =
+    String.format(Locale.getDefault(), "%.1f", value.coerceAtLeast(0.0))
+
+/** A compact, size-accurate isometric envelope that makes similarly named parts easier to scan. */
+@Composable
+private fun ObjectEnvelopePreview(
+    widthMm: Double,
+    depthMm: Double,
+    heightMm: Double,
+    color: Int,
+    previewMesh: FloatArray = FloatArray(0),
+    modifier: Modifier = Modifier,
+) {
+    val tint = Color(color)
+    val bounds = stringResource(
+        R.string.ModelObjectPreviewDescription,
+        formatObjectDimension(widthMm),
+        formatObjectDimension(depthMm),
+        formatObjectDimension(heightMm),
+    )
+    Canvas(modifier = modifier.semantics { contentDescription = bounds }) {
+        if (previewMesh.size >= 9 && previewMesh.size % 9 == 0) {
+            data class ProjectedTriangle(
+                val points: List<androidx.compose.ui.geometry.Offset>,
+                val depth: Float,
+                val shade: Float,
+            )
+            val projected = ArrayList<Triple<Float, Float, Float>>(previewMesh.size / 3)
+            var minX = Float.POSITIVE_INFINITY
+            var minY = Float.POSITIVE_INFINITY
+            var maxX = Float.NEGATIVE_INFINITY
+            var maxY = Float.NEGATIVE_INFINITY
+            for (index in previewMesh.indices step 3) {
+                val x = previewMesh[index]
+                val y = previewMesh[index + 1]
+                val z = previewMesh[index + 2]
+                val px = x - y
+                val py = (x + y) * 0.5f - z
+                projected += Triple(px, py, x + y + z)
+                minX = minOf(minX, px); maxX = maxOf(maxX, px)
+                minY = minOf(minY, py); maxY = maxOf(maxY, py)
+            }
+            val spanX = (maxX - minX).coerceAtLeast(1e-3f)
+            val spanY = (maxY - minY).coerceAtLeast(1e-3f)
+            val scale = minOf((size.width - 20f) / spanX, (size.height - 18f) / spanY).coerceAtLeast(0.01f)
+            val offsetX = (size.width - spanX * scale) * 0.5f - minX * scale
+            val offsetY = (size.height - spanY * scale) * 0.5f - minY * scale
+            fun point(index: Int) = androidx.compose.ui.geometry.Offset(
+                projected[index].first * scale + offsetX,
+                projected[index].second * scale + offsetY,
+            )
+            val triangles = ArrayList<ProjectedTriangle>(projected.size / 3)
+            for (triangle in 0 until projected.size / 3) {
+                val a = triangle * 3
+                val p0 = point(a); val p1 = point(a + 1); val p2 = point(a + 2)
+                val ax = previewMesh[a * 3]; val ay = previewMesh[a * 3 + 1]; val az = previewMesh[a * 3 + 2]
+                val bx = previewMesh[(a + 1) * 3]; val by = previewMesh[(a + 1) * 3 + 1]; val bz = previewMesh[(a + 1) * 3 + 2]
+                val cx = previewMesh[(a + 2) * 3]; val cy = previewMesh[(a + 2) * 3 + 1]; val cz = previewMesh[(a + 2) * 3 + 2]
+                val ux = bx - ax; val uy = by - ay
+                val vx = cx - ax; val vy = cy - ay
+                val normalZ = ux * vy - uy * vx
+                val normalLength = kotlin.math.sqrt((ux * ux + uy * uy) * (vx * vx + vy * vy)).coerceAtLeast(1e-4f)
+                val shade = (0.52f + 0.42f * kotlin.math.abs(normalZ) / normalLength).coerceIn(0.45f, 1f)
+                triangles += ProjectedTriangle(
+                    listOf(p0, p1, p2),
+                    (projected[a].third + projected[a + 1].third + projected[a + 2].third) / 3f,
+                    shade,
+                )
+            }
+            triangles.sortedBy { it.depth }.forEach { triangle ->
+                val path = Path().apply {
+                    moveTo(triangle.points[0].x, triangle.points[0].y)
+                    lineTo(triangle.points[1].x, triangle.points[1].y)
+                    lineTo(triangle.points[2].x, triangle.points[2].y)
+                    close()
+                }
+                drawPath(path, Color(
+                    red = (tint.red * triangle.shade).coerceIn(0f, 1f),
+                    green = (tint.green * triangle.shade).coerceIn(0f, 1f),
+                    blue = (tint.blue * triangle.shade).coerceIn(0f, 1f),
+                    alpha = 1f,
+                ))
+            }
+            return@Canvas
+        }
+        val maxDimension = maxOf(widthMm, depthMm, heightMm, 1.0)
+        val footprint = minOf(size.width * 0.72f, size.height * 0.58f).coerceAtLeast(12f)
+        val scale = footprint / maxDimension.toFloat()
+        val xLength = (widthMm.toFloat() * scale).coerceAtLeast(footprint * 0.08f)
+        val yLength = (depthMm.toFloat() * scale).coerceAtLeast(footprint * 0.08f)
+        val zLength = (heightMm.toFloat() * scale).coerceAtLeast(footprint * 0.12f)
+        val originX = size.width * 0.5f
+        val originY = size.height * 0.82f
+        val x = xLength * 0.31f
+        val y = yLength * 0.31f
+        val lift = (zLength * 0.72f).coerceAtMost(size.height * 0.56f)
+        val p0 = androidx.compose.ui.geometry.Offset(originX, originY)
+        val px = androidx.compose.ui.geometry.Offset(originX + x, originY + x * 0.52f)
+        val py = androidx.compose.ui.geometry.Offset(originX - y, originY + y * 0.52f)
+        val pxy = androidx.compose.ui.geometry.Offset(originX + x - y, originY + (x + y) * 0.52f)
+        val p0Top = androidx.compose.ui.geometry.Offset(p0.x, p0.y - lift)
+        val pxTop = androidx.compose.ui.geometry.Offset(px.x, px.y - lift)
+        val pyTop = androidx.compose.ui.geometry.Offset(py.x, py.y - lift)
+        val pxyTop = androidx.compose.ui.geometry.Offset(pxy.x, pxy.y - lift)
+        fun face(points: List<androidx.compose.ui.geometry.Offset>): Path = Path().apply {
+            moveTo(points.first().x, points.first().y)
+            points.drop(1).forEach { lineTo(it.x, it.y) }
+            close()
+        }
+        drawPath(face(listOf(p0, px, pxTop, p0Top)), tint.copy(alpha = 0.92f))
+        drawPath(face(listOf(p0, py, pyTop, p0Top)), tint.copy(alpha = 0.68f))
+        drawPath(face(listOf(p0Top, pxTop, pxyTop, pyTop)), tint.copy(alpha = 1f))
+        val outline = Color.White.copy(alpha = 0.78f)
+        drawLine(outline, p0, px, 1.4f)
+        drawLine(outline, p0, py, 1.4f)
+        drawLine(outline, p0, p0Top, 1.4f)
+        drawLine(outline, px, pxTop, 1.4f)
+        drawLine(outline, py, pyTop, 1.4f)
+        drawLine(outline, pxTop, pxyTop, 1.4f)
+        drawLine(outline, pyTop, pxyTop, 1.4f)
+        drawCircle(tint.copy(alpha = 0.18f), radius = maxDimension.toFloat().coerceIn(8f, 20f), center = p0Top)
     }
 }
 

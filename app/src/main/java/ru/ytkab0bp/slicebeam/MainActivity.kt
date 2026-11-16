@@ -105,6 +105,7 @@ import ru.ytkab0bp.slicebeam.utils.ImageDecodePolicy
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.ModelImportPackingOrder
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.RecentModelDocuments
 import ru.ytkab0bp.slicebeam.utils.StlImportPreflight
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
@@ -501,6 +502,19 @@ if (uri != null) selectedFiles.add(uri)
 else if (data != null && data.getData() != null)
 {
 selectedFiles.add(data.getData()!!)
+}
+if (data != null && data.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0) {
+    selectedFiles.forEach { uri ->
+        val name = IOUtils.getDisplayName(uri)?.takeIf { isSupportedModelFile(it) && !isGcodeFile(it) }
+        if (name != null) {
+            runCatching {
+                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                RecentModelDocuments.add(uri, name)
+            }.onFailure { error ->
+                android.util.Log.i("MainActivity", "Document provider did not keep a persistent recent-file grant", error)
+            }
+        }
+    }
 }
 if (selectedFiles.size > 1)
 {
@@ -1642,8 +1656,9 @@ IOUtils.IO_POOL.submit {
 }
 }
 private fun showStlImportProgress(tag: String, step: Int, cancelled: java.util.concurrent.atomic.AtomicBoolean) {
-    val title = if (step == 10) getString(R.string.MenuFileOpenStlPreparing)
-        else getString(R.string.MenuFileOpenStlReading, step * 10)
+    val boundedStep = step.coerceIn(0, 10)
+    val title = if (boundedStep == 10) getString(R.string.MenuFileOpenStlPreparing)
+        else getString(R.string.MenuFileOpenStlReading, boundedStep * 10)
     val event = NeedSnackbarEvent(SnackbarsLayout.Type.LOADING, title)
         .button(android.R.string.cancel, android.view.View.OnClickListener {
             cancelled.set(true)
@@ -1705,7 +1720,7 @@ private var lastReadStep = -1
 private val cancelled = java.util.concurrent.atomic.AtomicBoolean(false)
 override fun onProgress(fraction: Float): Boolean {
     if (cancelled.get()) return false
-    val step = if (fraction >= 0.5f) 10 else ((fraction.coerceAtLeast(0f) * 20f).toInt()).coerceIn(0, 9)
+    val step = StlImportProgressPolicy.stepForFraction(fraction)
     if (step != lastReadStep) {
         lastReadStep = step
         showStlImportProgress(tag, step, cancelled)
@@ -1779,18 +1794,24 @@ android.util.Log.e("MainActivity", "Failed to load model", e)
 f.delete()
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
 ViewUtils.postOnMainThread({ showFileOperationError(
-    getString(R.string.MenuFileOpenFileFailed), e.toString(),
+    getString(R.string.MenuFileOpenFileFailed), modelImportErrorMessage(f, e),
 ) })
 }
 catch (e:Exception) {
 android.util.Log.e("MainActivity", "Silent crash in loadFile", e)
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
 ViewUtils.postOnMainThread({ showFileOperationError(
-    getString(R.string.MenuFileOpenFileFailed), e.toString(),
+    getString(R.string.MenuFileOpenFileFailed), modelImportErrorMessage(f, e),
 ) })
 }
 } })
 }
+private fun modelImportErrorMessage(file: File, error: Exception): String =
+    if (file.extension.equals("svg", ignoreCase = true)) {
+        getString(R.string.SvgImportFailedInvalid)
+    } else {
+        error.message ?: getString(R.string.MenuFileOpenFileFailed)
+    }
 private fun showStepImportOptions(file:File, autoorient:Boolean, readinessAttempt:Int = 0) {
     if (isFinishing || isDestroyed) { file.delete(); return }
     val bed = runCatching { navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull()
@@ -1894,6 +1915,12 @@ showFileOperationError(
 })
 }
 private fun loadFile(uri:Uri) = loadFile(uri, stepDetectedFromContent = false)
+
+/** Opens a persisted SAF document from the Project menu's recent-model list. */
+fun openRecentModelDocument(uriString: String) {
+    val uri = runCatching { Uri.parse(uriString) }.getOrNull() ?: return
+    runInWorkspaceBed { loadFile(uri) }
+}
 
 private fun loadFile(uri:Uri, stepDetectedFromContent:Boolean) {
 if (uri.scheme.equals(ContentResolver.SCHEME_FILE, ignoreCase = true)) {
@@ -2111,7 +2138,7 @@ private fun stageMultipleMeshFiles(files:List<Uri>, index:Int, cachedFiles:Array
             private var failedInBatch = 0
             override fun onProgress(fraction:Float):Boolean {
                 if (cancelled.get()) return false
-                val step = (fraction.coerceIn(0f, 1f) * 20f).toInt().coerceIn(0, 20)
+                val step = StlImportProgressPolicy.stepForFraction(fraction)
                 if (step != lastStep) {
                     lastStep = step
                     showStlImportProgress(tag, step, cancelled)

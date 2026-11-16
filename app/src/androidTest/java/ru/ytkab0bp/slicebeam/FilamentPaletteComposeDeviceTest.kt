@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -21,6 +22,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.performClick
@@ -79,7 +82,7 @@ class FilamentPaletteComposeDeviceTest {
     val compose = createComposeRule()
 
     @Test
-    fun workspaceFilamentSheetRendersAndDismissesFromCancel() {
+    fun workspaceFilamentSheetUsesApplyLabelWhenClosing() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val app = context.applicationContext as SliceBeam
         SliceBeam.INSTANCE = app
@@ -101,9 +104,9 @@ class FilamentPaletteComposeDeviceTest {
         }
 
         compose.onNodeWithText(context.getString(R.string.WorkspaceFilamentPaletteTitle)).assertIsDisplayed()
-        val cancel = compose.onNodeWithText(context.getString(android.R.string.cancel))
+        val apply = compose.onNodeWithText(context.getString(R.string.WorkspaceFilamentPaletteApply))
             .assertIsDisplayed().assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
-        cancel.performClick()
+        apply.performClick()
         compose.runOnIdle { assertTrue(dismissed.value) }
         assertEquals(0, compose.onAllNodesWithText(
             context.getString(R.string.WorkspaceFilamentPaletteTitle),
@@ -184,6 +187,40 @@ class FilamentPaletteComposeDeviceTest {
     }
 
     @Test
+    fun workspacePaletteDeletesSlotDirectlyAfterConfirmation() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        SliceBeam.INSTANCE = context.applicationContext as SliceBeam
+        Prefs.init(context.applicationContext as SliceBeam)
+        val previousSlots = Prefs.getStoredFilamentSlots()
+        Prefs.setStoredFilamentSlots(listOf(
+            FilamentSlot(0xFF123456.toInt(), "PLA"),
+            FilamentSlot(0xFF654321.toInt(), "PETG"),
+        ))
+        val controller = FilamentPaletteController()
+        compose.setContent {
+            BeamComposeTheme {
+                controller.WorkspaceSheetContent(
+                    hasModel = false,
+                    sidePanel = false,
+                    onAssignModel = {},
+                    onDismiss = {},
+                    onSyncFilaments = null,
+                )
+            }
+        }
+
+        try {
+            compose.onNodeWithTag("filament-slot-delete-0").assertIsDisplayed().performClick()
+            compose.onNodeWithText(context.getString(R.string.FilamentPaletteDeleteConfirm, 1)).assertIsDisplayed()
+            compose.onNodeWithTag("filament-slot-delete-confirm").performClick()
+            compose.onNodeWithText(context.getString(R.string.WorkspaceFilamentPaletteCount, 1)).assertIsDisplayed()
+            compose.runOnIdle { assertEquals(1, Prefs.getStoredFilamentSlots().size) }
+        } finally {
+            Prefs.setStoredFilamentSlots(previousSlots)
+        }
+    }
+
+    @Test
     fun workspaceProfileSheetRendersAndAndroidBackDismisses() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
@@ -223,6 +260,63 @@ class FilamentPaletteComposeDeviceTest {
                 context.getString(R.string.WorkspaceProfilesTitle),
             ).fetchSemanticsNodes().size)
         } finally {
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
+    fun workspaceProfileProcessSelectionUpdatesSummaryBeforeApply() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val app = context.applicationContext as SliceBeam
+        SliceBeam.INSTANCE = app
+        Prefs.init(app)
+        val previousConfig = SliceBeam.CONFIG
+        TemporaryProjectSettings.clear()
+        val config = context.assets.open("orca_profiles/Anycubic.ini").use { Slic3rConfigWrapper(it) }
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val currentProcess = requireNotNull(config.findPrint("0.16mm Standard"))
+        val nextProcess = requireNotNull(config.printConfigs.firstOrNull { it.title != currentProcess.title })
+        val currentProcessTitle = requireNotNull(currentProcess.title)
+        val nextProcessTitle = requireNotNull(nextProcess.title)
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        currentProcess.put("layer_height", "0.16")
+        currentProcess.put("wall_loops", "2")
+        nextProcess.put("layer_height", "0.33")
+        nextProcess.put("wall_loops", "7")
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", currentProcessTitle)
+            put("filament", filament.title)
+        }
+        SliceBeam.CONFIG = config
+        val dismissed = mutableStateOf(false)
+        lateinit var sheet: WorkspaceProfileSheet
+        compose.runOnUiThread { sheet = WorkspaceProfileSheet(context, null) }
+        compose.setContent {
+            BeamComposeTheme {
+                if (!dismissed.value) sheet.Content { dismissed.value = true }
+            }
+        }
+
+        try {
+            val summary = compose.onNodeWithTag("workspace-profile-settings-summary")
+                .assertIsDisplayed().fetchSemanticsNode().config[SemanticsProperties.Text]
+                .joinToString(separator = " ") { it.text }
+            assertTrue("initial summary should reflect the active process", summary.contains("0,16 mm") && summary.contains("Wände 2"))
+
+            compose.onNodeWithText(currentProcessTitle).performScrollTo().performClick()
+            compose.onNodeWithTag("slice-choice-search").performTextInput(nextProcessTitle)
+            compose.onAllNodesWithText(nextProcessTitle).onLast().performClick()
+            compose.waitForIdle()
+
+            val preview = compose.onNodeWithTag("workspace-profile-settings-summary")
+                .fetchSemanticsNode().config[SemanticsProperties.Text]
+                .joinToString(separator = " ") { it.text }
+            assertTrue("summary must preview the selected process before applying it", preview.contains("0,33 mm") && preview.contains("Wände 7"))
+            assertEquals("previewing a profile must not commit its selection", currentProcessTitle, config.presets!!["print"])
+            assertFalse(dismissed.value)
+        } finally {
+            TemporaryProjectSettings.clear()
             SliceBeam.CONFIG = previousConfig
         }
     }
@@ -404,7 +498,11 @@ class FilamentPaletteComposeDeviceTest {
                 filament = FilamentSlot(0xFF000000.toInt() or (index * 0x111111), "Material-$index"),
             )
         }
-        compose.setContent { BeamComposeTheme { AcePhysicalSlotsBar(gates, Modifier.width(360.dp)) } }
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 1f)) {
+                BeamComposeTheme { AcePhysicalSlotsBar(gates, Modifier.width(360.dp)) }
+            }
+        }
 
         val first = compose.onNodeWithText(context.getString(R.string.AcePhysicalSlotTool, 1, 0))
             .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
@@ -722,6 +820,28 @@ class FilamentPaletteComposeDeviceTest {
                 compose.runOnIdle { assertEquals(lastIndex, selectedIndex) }
             }
         }
+    }
+
+    @Test
+    fun filamentSlotTalkBackAnnouncesIndexMaterialAndColor() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val color = 0xFF123456.toInt()
+        compose.setContent {
+            BeamComposeTheme {
+                FilamentPaletteContent(
+                    slots = listOf(PaletteSlotSnapshot(color, "PETG")),
+                    selectedGates = null,
+                    onSlotClick = {},
+                    onAddClick = {},
+                )
+            }
+        }
+
+        val slotDescription = context.getString(R.string.FilamentPaletteSlotDescription, 0, "PETG")
+        val colorDescription = context.getString(R.string.FilamentPaletteColorDescription, "#123456")
+        compose.onNodeWithContentDescription(slotDescription)
+            .assertIsDisplayed()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, colorDescription))
     }
 
     @Test

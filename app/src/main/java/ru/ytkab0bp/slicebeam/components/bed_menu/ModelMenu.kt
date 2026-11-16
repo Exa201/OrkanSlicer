@@ -8,10 +8,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
@@ -48,7 +48,7 @@ class ModelMenu : ListBedMenu() {
         }
         val selectedActions = composeActions.value.filter { ModelMenuActionScope.isSelectionScoped(it.titleRes) }
         val allActions = composeActions.value.filterNot { ModelMenuActionScope.isSelectionScoped(it.titleRes) }
-        Column(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxWidth().wrapContentHeight()) {
             Row(
                 Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -70,7 +70,7 @@ class ModelMenu : ListBedMenu() {
                 menuKey = if (selectedScope.intValue == 0) "model_selected" else "model_all",
                 actions = if (selectedScope.intValue == 0) selectedActions else allActions,
                 portrait = portrait,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }

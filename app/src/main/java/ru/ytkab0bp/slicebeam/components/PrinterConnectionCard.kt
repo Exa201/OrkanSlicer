@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 import ru.ytkab0bp.slicebeam.utils.PrinterWebOriginPolicy
@@ -38,8 +39,8 @@ fun PrinterConnectionCard(
 ) {
     val displayHost = PrinterWebOriginPolicy.dashboardUrl(configuredHost)
     val openWebDescription = stringResource(R.string.PrinterOpenWebDescription)
-    val stackDetails = LocalConfiguration.current.screenWidthDp < 560 ||
-        ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current >= 1.35f
+    val compactAction = LocalConfiguration.current.screenWidthDp < 400 ||
+        ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current >= 1.5f
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(OrkanUiTokens.compactCornerRadius),
@@ -50,16 +51,17 @@ fun PrinterConnectionCard(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(
-                text = stringResource(R.string.PrinterConnectionTitle),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            if (stackDetails) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(
+                    painter = painterResource(R.drawable.menu3d_printer),
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = Color.Unspecified,
+                )
                 Text(
-                    text = displayHost ?: stringResource(R.string.PrinterWebHostMissing),
-                    style = MaterialTheme.typography.bodySmall,
-                    softWrap = true,
+                    text = stringResource(R.string.PrinterConnectionTitle),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
             Row(
@@ -67,17 +69,13 @@ fun PrinterConnectionCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (!stackDetails) {
-                    Text(
-                        text = displayHost ?: stringResource(R.string.PrinterWebHostMissing),
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                } else {
-                    Spacer(Modifier.weight(1f))
-                }
+                Text(
+                    text = displayHost ?: stringResource(R.string.PrinterWebHostMissing),
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             OutlinedButton(
                 onClick = onOpenWeb,
                 modifier = Modifier
@@ -88,12 +86,15 @@ fun PrinterConnectionCard(
                 shape = RoundedCornerShape(OrkanUiTokens.compactCornerRadius),
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.globe_cross_outline_28),
+                    painter = painterResource(R.drawable.menu3d_printer_send),
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
+                    tint = Color.Unspecified,
                 )
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.PrinterOpenWebShort), maxLines = 1)
+                if (!compactAction) {
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.PrinterOpenWebShort), maxLines = 1)
+                }
             }
             }
         }

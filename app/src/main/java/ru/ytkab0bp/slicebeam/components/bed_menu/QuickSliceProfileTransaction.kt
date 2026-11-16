@@ -21,6 +21,7 @@ internal object QuickSliceProfileTransaction {
         val infillPercent: String,
         val supports: Boolean,
         val brim: Boolean,
+        val brimWidth: String = "5",
     )
 
     fun apply(
@@ -33,7 +34,7 @@ internal object QuickSliceProfileTransaction {
                 "layer_height" to values.layerHeight,
                 "sparse_infill_density" to "${values.infillPercent}%",
                 "enable_support" to if (values.supports) "1" else "0",
-                "brim_width" to if (values.brim) "5" else "0",
+                "brim_width" to if (values.brim) values.brimWidth else "0",
                 "brim_type" to if (values.brim) "outer_only" else "no_brim",
             ))
             return Result.SAVED
@@ -50,7 +51,7 @@ internal object QuickSliceProfileTransaction {
             quick.put("layer_height", values.layerHeight)
             quick.put("fill_density", "${values.infillPercent}%")
             quick.put("support_material", if (values.supports) "1" else "0")
-            quick.put("brim_width", if (values.brim) "5" else "0")
+            quick.put("brim_width", if (values.brim) values.brimWidth else "0")
             quick.put("brim_type", if (values.brim) "outer_only" else "no_brim")
             presets.put("print", PROFILE_NAME)
 

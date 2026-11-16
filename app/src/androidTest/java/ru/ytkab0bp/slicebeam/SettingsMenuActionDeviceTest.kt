@@ -1,11 +1,10 @@
 package ru.ytkab0bp.slicebeam
 
-import android.app.Activity
 import android.app.Application
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import android.util.SparseArray
 import android.view.View
-import android.view.ViewGroup
-import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
@@ -20,8 +19,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
-import androidx.test.runner.lifecycle.Stage
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -40,11 +37,10 @@ import ru.ytkab0bp.slicebeam.components.KromacutEditorMenu
 import ru.ytkab0bp.slicebeam.navigation.NavigationDelegate
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
+import ru.ytkab0bp.slicebeam.slic3r.OrcaLanguage
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.render.DevicePerformancePolicy
 import ru.ytkab0bp.slicebeam.utils.Prefs
-import ru.ytkab0bp.slicebeam.components.ColorChooserPalette
-import java.util.Locale
 
 /** Exercises an app-settings action through MainActivity's real workspace destination. */
 @RunWith(AndroidJUnit4::class)
@@ -148,37 +144,14 @@ class SettingsMenuActionDeviceTest {
     }
 
     @Test
-    fun themeSelectionAppliesAndBackDoesNotChangeTheCommittedTheme() {
+    fun themeSelectionIsRemovedAndDarkModeRemainsFixed() {
         val activity = compose.activity
-        val originalTheme = Prefs.getThemeMode()
-        val targetTheme = Prefs.ThemeMode.values().first { it != originalTheme }
-        val targetLabel = activity.getString(targetTheme.title)
-
-        try {
-            navigateToSettings(activity)
-
-            compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
-                .performScrollTo().assertIsDisplayed().performClick()
-            compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceTheme))
-                .assertIsDisplayed().performClick()
-            compose.onNodeWithText(targetLabel).performScrollTo().assertIsDisplayed().performClick()
-            compose.waitUntil(timeoutMillis = 5_000) { Prefs.getThemeMode() == targetTheme }
-            assertEquals(targetTheme, Prefs.getThemeMode())
-
-            compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceTheme))
-                .assertIsDisplayed().performClick()
-            compose.onNodeWithText(activity.getString(android.R.string.cancel)).assertIsDisplayed()
-            InstrumentationRegistry.getInstrumentation()
-                .sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
-            compose.waitForIdle()
-            assertEquals("Android Back dismisses the theme picker without changing its committed value",
-                targetTheme, Prefs.getThemeMode())
-        } finally {
-            activity.runOnUiThread {
-                Prefs.setThemeMode(originalTheme.ordinal)
-                ThemesRepo.invalidate(activity)
-            }
-        }
+        navigateToSettings(activity)
+        compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
+            .performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceTheme)).assertDoesNotExist()
+        compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceColor)).assertDoesNotExist()
+        assertEquals(Prefs.ThemeMode.DARK, Prefs.getThemeMode())
     }
 
     @Test
@@ -287,54 +260,46 @@ class SettingsMenuActionDeviceTest {
     }
 
     @Test
-    fun aboutActionOpensComposeAboutRouteAndAndroidBackReturnsToSettings() {
+    fun aboutActionLaunchesTheAboutOnlySetupRoute() {
         val mainActivity = compose.activity
         navigateToSettings(mainActivity)
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val setupMonitor = instrumentation.addMonitor(SetupActivity::class.java.name, null, false)
 
         compose.onNodeWithText(mainActivity.getString(R.string.SettingsAppInformation))
             .performScrollTo().assertIsDisplayed().performClick()
         compose.onNodeWithText(mainActivity.getString(R.string.SettingsAbout))
             .performScrollTo().assertIsDisplayed().performClick()
 
-        compose.waitUntil(timeoutMillis = 10_000) { resumedActivity() is SetupActivity }
-        val aboutActivity = resumedActivity() as SetupActivity
+        val aboutActivity = instrumentation.waitForMonitorWithTimeout(setupMonitor, 10_000) as? SetupActivity
+            ?: throw AssertionError("About action must launch SetupActivity")
+        instrumentation.removeMonitor(setupMonitor)
         assertEquals(true, aboutActivity.intent.getBooleanExtra(SetupActivity.EXTRA_ABOUT, false))
-        assertTrue("About route should attach its Compose screen", containsComposeView(aboutActivity.window.decorView))
-
-        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
-        compose.waitUntil(timeoutMillis = 10_000) {
-            resumedActivity() === mainActivity && mainActivity.navigationDelegate.getCurrentFragment() is SettingsFragment
-        }
-        waitForSettingsContent(mainActivity)
-        compose.onNodeWithText(mainActivity.getString(R.string.SlotAppSettings)).performScrollTo().assertIsDisplayed()
+        assertTrue("The original settings route remains on the main activity",
+            mainActivity.navigationDelegate.getCurrentFragment() is SettingsFragment)
     }
 
     @Test
-    fun addPrinterActionOpensPresetSetupAndBackPreservesTheActivePrinter() {
+    fun addPrinterActionLaunchesPresetSetupWithoutChangingTheActivePrinter() {
         val mainActivity = compose.activity
         val config = requireNotNull(SliceBeam.CONFIG)
         val activePrinter = config.presets?.get("printer")
         navigateToSettings(mainActivity)
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
 
         compose.onNodeWithText(mainActivity.getString(R.string.SettingsDevices))
             .performScrollTo().assertIsDisplayed().performClick()
+        val setupMonitor = instrumentation.addMonitor(SetupActivity::class.java.name, null, false)
         compose.onNodeWithText(mainActivity.getString(R.string.SettingsAddPrinter))
             .performScrollTo().assertIsDisplayed().performClick()
 
-        compose.waitUntil(timeoutMillis = 10_000) { resumedActivity() is SetupActivity }
-        val setupActivity = resumedActivity() as SetupActivity
+        val setupActivity = instrumentation.waitForMonitorWithTimeout(setupMonitor, 10_000) as? SetupActivity
+            ?: throw AssertionError("Add printer action must launch SetupActivity")
+        instrumentation.removeMonitor(setupMonitor)
         assertTrue("Add printer must enter the preset setup flow", setupActivity.intent.getBooleanExtra(
             SetupActivity.EXTRA_ADD_PRINTER, false,
         ))
-        assertTrue("Printer preset selection should be hosted by Compose", containsComposeView(setupActivity.window.decorView))
-
-        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
-        compose.waitUntil(timeoutMillis = 10_000) {
-            resumedActivity() === mainActivity && mainActivity.navigationDelegate.getCurrentFragment() is SettingsFragment
-        }
-        waitForSettingsContent(mainActivity)
-        compose.onNodeWithText(mainActivity.getString(R.string.SlotAppSettings)).performScrollTo().assertIsDisplayed()
-        assertEquals("Opening and backing out of preset selection must not switch the active printer",
+        assertEquals("Opening printer setup must not switch the active printer",
             activePrinter, config.presets?.get("printer"))
     }
 
@@ -372,37 +337,45 @@ class SettingsMenuActionDeviceTest {
     }
 
     @Test
-    fun accentColorPaletteBackCancelsAndSelectingASwatchAppliesTheColor() {
+    fun themeAndAccentAreFixedAndNoLongerOfferedAsSettings() {
         val activity = compose.activity
-        val originalColor = Prefs.getAccentColor()
-        val selectedSwatch = ColorChooserPalette.commonColors().first { (it or -0x1000000) != originalColor }
-        val expectedColor = selectedSwatch or -0x1000000
-        val colorLabel = activity.getString(
-            R.string.ColorChooserSwatchDescription,
-            String.format(Locale.ROOT, "#%06X", selectedSwatch and 0x00FFFFFF),
-        )
+        navigateToSettings(activity)
+        compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
+            .performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceTheme)).assertDoesNotExist()
+        compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceColor)).assertDoesNotExist()
+        assertEquals(Prefs.ThemeMode.DARK, Prefs.getThemeMode())
+        assertEquals(0xff1dbdff.toInt(), Prefs.getAccentColor())
+    }
 
+    @Test
+    fun appLanguagePickerListsPackagedOrcaLanguagesAndPersistsSelection() {
+        val activity = compose.activity
+        val originalLanguage = Prefs.getAppLanguage()
+        val selectedLanguage = OrcaLanguage.all.first { it.tag == "en" }
         try {
             navigateToSettings(activity)
             compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
                 .performScrollTo().assertIsDisplayed().performClick()
-            compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceColor))
-                .assertIsDisplayed().performClick()
-            compose.onNodeWithText(activity.getString(R.string.ColorChooserCommon)).assertIsDisplayed()
-
-            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
-            compose.waitForIdle()
-            assertEquals("Back closes the color palette without changing the accent", originalColor, Prefs.getAccentColor())
-
-            compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceColor))
-                .assertIsDisplayed().performClick()
-            compose.onAllNodesWithContentDescription(colorLabel).get(0)
+            compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceLanguage))
                 .performScrollTo().assertIsDisplayed().performClick()
-            compose.waitUntil(timeoutMillis = 5_000) { Prefs.getAccentColor() == expectedColor }
-            assertEquals("Selecting an accessible swatch applies its opaque color", expectedColor, Prefs.getAccentColor())
+
+            OrcaLanguage.all.forEach { language ->
+                val options = compose.onAllNodesWithText(language.nativeName)
+                val optionCount = options.fetchSemanticsNodes().size
+                assertTrue("Packaged language ${language.tag} should be listed", optionCount > 0)
+                options.get(optionCount - 1).performScrollTo().assertIsDisplayed()
+            }
+            val selectedOptions = compose.onAllNodesWithText(selectedLanguage.nativeName)
+            selectedOptions.get(selectedOptions.fetchSemanticsNodes().lastIndex).performScrollTo().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { Prefs.getAppLanguage() == selectedLanguage.tag }
+            assertEquals("Choosing a packaged language persists its Orca tag", selectedLanguage.tag,
+                Prefs.getAppLanguage())
         } finally {
-            Prefs.setAccentColor(originalColor)
-            ThemesRepo.invalidate(activity)
+            activity.runOnUiThread {
+                Prefs.setAppLanguage(originalLanguage)
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(originalLanguage))
+            }
         }
     }
 
@@ -547,17 +520,4 @@ class SettingsMenuActionDeviceTest {
         compose.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot.toString()
     }
 
-    private fun resumedActivity(): Activity? {
-        val resumed = AtomicReference<Activity?>()
-        InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            resumed.set(ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED).firstOrNull())
-        }
-        return resumed.get()
-    }
-
-    private fun containsComposeView(view: View): Boolean = when (view) {
-        is AbstractComposeView -> view.isAttachedToWindow
-        is ViewGroup -> (0 until view.childCount).any { index -> containsComposeView(view.getChildAt(index)) }
-        else -> false
-    }
 }

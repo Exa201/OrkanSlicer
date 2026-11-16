@@ -233,11 +233,13 @@ open class Prefs {
         fun getCameraSensitivity(): Float = 5f
 
         @JvmStatic
-        fun getAccentColor(): Int = requirePrefs().getInt("accent", SetupActivity.AccentColors.DEFAULT.color)
+        /** Fixed brand accent; stale per-user selections are intentionally ignored. */
+        fun getAccentColor(): Int = 0xff1dbdff.toInt()
 
         @JvmStatic
         fun setAccentColor(color: Int) {
-            requirePrefs().edit().putInt("accent", color).apply()
+            // Kept as a compatibility shim for older callers; user-selectable accents are retired.
+            requirePrefs().edit().remove("accent").apply()
         }
 
         @JvmStatic
@@ -306,20 +308,13 @@ open class Prefs {
                 .apply()
         }
 
-        private var cachedThemeMode: ThemeMode? = null
-
         @JvmStatic
-        fun getThemeMode(): ThemeMode {
-            cachedThemeMode?.let { return it }
-            val mode = PrefsValueCodec.themeMode(requirePrefs().getInt("theme_mode", 0))
-            cachedThemeMode = mode
-            return mode
-        }
+        fun getThemeMode(): ThemeMode = ThemeMode.DARK
 
         @JvmStatic
         fun setThemeMode(i: Int) {
-            requirePrefs().edit().putInt("theme_mode", i).apply()
-            cachedThemeMode = null
+            // The professional dark palette is fixed. Remove any pre-existing choice.
+            requirePrefs().edit().remove("theme_mode").apply()
         }
 
         @JvmStatic

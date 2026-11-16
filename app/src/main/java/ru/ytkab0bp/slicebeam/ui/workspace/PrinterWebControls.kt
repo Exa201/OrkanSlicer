@@ -21,6 +21,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,17 +32,24 @@ import ru.ytkab0bp.slicebeam.R
 @Composable
 internal fun PrinterWebOpenButton(
     hostConfigured: Boolean,
+    connected: Boolean,
     onOpen: () -> Unit,
 ) {
-    val description = stringResource(
-        if (hostConfigured) R.string.PrinterOpenWebDescription
-        else R.string.PrinterWebConfigureDescription,
+    val baseDescription = stringResource(
+        if (hostConfigured) R.string.PrinterOpenWebDescription else R.string.PrinterWebConfigureDescription,
+    )
+    val connectionDescription = stringResource(
+        if (connected) R.string.PrinterWebConnected else R.string.PrinterWebDisconnected,
     )
     Button(
         onClick = onOpen,
         modifier = Modifier
             .fillMaxSize()
-            .semantics { contentDescription = description },
+            .testTag("printer-web-connection")
+            .semantics {
+                contentDescription = "$baseDescription. $connectionDescription"
+                stateDescription = connectionDescription
+            },
         shape = RoundedCornerShape(10.dp),
         contentPadding = PaddingValues(0.dp),
         colors = ButtonDefaults.buttonColors(
@@ -48,8 +57,25 @@ internal fun PrinterWebOpenButton(
             contentColor = MaterialTheme.colorScheme.onPrimary,
         ),
     ) {
-        Icon(painterResource(R.drawable.globe_cross_outline_28), contentDescription = null,
-            modifier = Modifier.size(22.dp))
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                painterResource(R.drawable.globe_cross_outline_28),
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+            )
+            if (connected) {
+                Surface(
+                    modifier = Modifier.align(Alignment.BottomEnd).size(13.dp),
+                    shape = CircleShape,
+                    color = Color(0xFF36C275),
+                    contentColor = Color.White,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(painterResource(R.drawable.done_outline_28), null, Modifier.size(10.dp))
+                    }
+                }
+            }
+        }
     }
 }
 

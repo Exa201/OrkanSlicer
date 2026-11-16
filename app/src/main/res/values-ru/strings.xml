@@ -32,6 +32,9 @@
     <string name="WorkspaceFilamentPaletteCount">Материалов: %1$d</string>
     <string name="WorkspaceMoreTitle">Дополнительные инструменты</string>
     <string name="WorkspaceFilamentPaletteEdit">Изменить</string>
+    <string name="WorkspaceFilamentPaletteApply">Применить</string>
+    <string name="FilamentPaletteDeleteDescription">Удалить филамент %1$d</string>
+    <string name="FilamentPaletteDeleteConfirm">Удалить филамент %1$d из палитры?</string>
     <string name="WorkspaceFilamentAssignModel">Назначить филаменты модели</string>
     <string name="ColorChooserCustom">Свой цвет</string>
     <string name="ColorChooserCommon">Часто используемые цвета</string>
@@ -394,4 +397,9 @@
     <string name="MenuCustomizeReset">Сбросить</string>
     <string name="MenuCustomizeMoveUp">Переместить выше</string>
     <string name="MenuCustomizeMoveDown">Переместить ниже</string>
+    <string name="RecentModelsTitle">Недавние модели</string>
+    <string name="RecentModelsEmpty">Недавно открытых файлов моделей нет.</string>
+    <string name="RecentModelsOpen">Открыть</string>
+    <string name="ModelObjectDimensionsAndPlate">%1$s × %2$s × %3$s мм · Пластина %4$d/%5$d</string>
+    <string name="ModelObjectPreviewDescription">Предпросмотр размера модели: %1$s × %2$s × %3$s мм</string>
 </resources>

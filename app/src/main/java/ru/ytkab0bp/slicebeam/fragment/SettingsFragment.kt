@@ -66,7 +66,6 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SetupActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.slic3r.OrcaLanguage
-import ru.ytkab0bp.slicebeam.components.ColorChooserDialog
 import ru.ytkab0bp.slicebeam.events.BeamServerDataUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CloudUserInfoUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CameraProjectionChangedEvent
@@ -76,7 +75,6 @@ import ru.ytkab0bp.slicebeam.events.CameraPresetRequestedEvent
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPreset
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
-import ru.ytkab0bp.slicebeam.theme.BeamTheme
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.OrkanSection
@@ -96,7 +94,6 @@ class SettingsFragment : Fragment() {
     private var expandedSections by mutableStateOf(emptySet<Int>())
     private var activeChoiceDialog by mutableStateOf<SettingsChoiceDialogState?>(null)
     private var showUiTextScaleDialog by mutableStateOf(false)
-    private var showAccentColorDialog by mutableStateOf(false)
     private var showFolderPickerError by mutableStateOf(false)
     private var showResetConfirmation by mutableStateOf(false)
 
@@ -108,7 +105,6 @@ class SettingsFragment : Fragment() {
     override fun onDestroy() {
         activeChoiceDialog = null
         showUiTextScaleDialog = false
-        showAccentColorDialog = false
         showFolderPickerError = false
         showResetConfirmation = false
         SliceBeam.EVENT_BUS.unregisterListener(this)
@@ -130,8 +126,6 @@ class SettingsFragment : Fragment() {
                             expandedSections = expandedSections,
                             cloudAvailable = BeamServerData.isCloudAvailable(),
                             boostyAvailable = BeamServerData.isBoostyAvailable(),
-                            themeName = ctx.getString(Prefs.getThemeMode().title),
-                            accentColor = "#%08X".format(Prefs.getAccentColor()),
                             uiTextScale = "${(Prefs.getUiTextScale() * 100).toInt()}%",
                             renderScale = if (Prefs.getRenderScaleOverridePercent() == 0) {
                                 ctx.getString(R.string.SettingsRenderQualityAutomatic, (Prefs.getAutomaticRenderScale() * 100).toInt())
@@ -145,9 +139,7 @@ class SettingsFragment : Fragment() {
                             appLanguage = OrcaLanguage.byTag(Prefs.getAppLanguage()).nativeName,
                             onToggleSection = ::toggleSection,
                             onMaker = ::openMaker,
-                            onTheme = ::showThemePicker,
                             onLanguage = ::showLanguagePicker,
-                            onAccent = ::showAccentPicker,
                             onUiTextScale = ::showUiTextScalePicker,
                             onRenderScale = ::showRenderQualityPicker,
                             onViewportFpsCap = ::showViewportFpsCapPicker,
@@ -176,21 +168,6 @@ class SettingsFragment : Fragment() {
                                     Prefs.setUiTextScale(scale)
                                     showUiTextScaleDialog = false
                                     (getContext() as? Activity)?.let { ThemesRepo.invalidate(it) } ?: run { themeRevision++ }
-                                },
-                            )
-                        }
-                        if (showAccentColorDialog) {
-                            ColorChooserDialog(
-                                initialColor = Prefs.getAccentColor(),
-                                resetLabel = ctx.getString(R.string.SettingsInterfaceColorReset),
-                                onDismiss = { showAccentColorDialog = false },
-                                onColorChosen = { color ->
-                                    Prefs.setAccentColor(color)
-                                    applyAccentColor()
-                                },
-                                onReset = {
-                                    Prefs.setAccentColor(SetupActivity.AccentColors.DEFAULT.color)
-                                    applyAccentColor()
                                 },
                             )
                         }
@@ -229,20 +206,6 @@ class SettingsFragment : Fragment() {
         activity.startActivity(Intent(activity, SetupActivity::class.java).putExtra(extra, true))
     }
 
-    private fun showThemePicker() {
-        val context = getContext() ?: return
-        val modes = Prefs.ThemeMode.values()
-        showChoiceDialog(
-            title = R.string.SettingsInterfaceTheme,
-            options = modes.map { context.getString(it.title) },
-            selectedIndex = Prefs.getThemeMode().ordinal,
-        ) { which ->
-            Prefs.setThemeMode(which)
-            (getContext() as? Activity)?.let { ThemesRepo.invalidate(it) }
-            themeRevision++
-        }
-    }
-
     private fun showLanguagePicker() {
         val current = OrcaLanguage.byTag(Prefs.getAppLanguage())
         showChoiceDialog(
@@ -268,18 +231,6 @@ class SettingsFragment : Fragment() {
                 activeChoiceDialog = null
             }
         }
-    }
-
-    private fun showAccentPicker() {
-        if (getContext() != null) showAccentColorDialog = true
-    }
-
-    private fun applyAccentColor() {
-        val color = Prefs.getAccentColor()
-        BeamTheme.LIGHT.colors.put(android.R.attr.colorAccent, color)
-        BeamTheme.DARK.colors.put(android.R.attr.colorAccent, color)
-        (getContext() as? Activity)?.let { ThemesRepo.invalidate(it) }
-        themeRevision++
     }
 
     private fun showUiTextScalePicker() {
@@ -535,8 +486,6 @@ internal fun SettingsContent(
     expandedSections: Set<Int>,
     cloudAvailable: Boolean,
     boostyAvailable: Boolean,
-    themeName: String,
-    accentColor: String,
     uiTextScale: String,
     converterRoot: String,
     cameraProjection: String,
@@ -544,9 +493,7 @@ internal fun SettingsContent(
     appLanguage: String = "Deutsch",
     onToggleSection: (Int) -> Unit,
     onMaker: () -> Unit,
-    onTheme: () -> Unit,
     onLanguage: () -> Unit = {},
-    onAccent: () -> Unit,
     onUiTextScale: () -> Unit,
     onConverterFolder: () -> Unit,
     onCameraProjection: () -> Unit,
@@ -589,12 +536,12 @@ internal fun SettingsContent(
             OrkanPageHeader(
                 title = stringResource(R.string.SlotAppSettings),
                 subtitle = stringResource(R.string.SettingsScreenDescription),
-                iconRes = R.drawable.vk_gear_outline_24,
+                iconRes = R.drawable.menu3d_tools,
                 modifier = Modifier.padding(bottom = if (compactLayout) 10.dp else 16.dp),
             )
 
             SettingsActionRow(
-                R.drawable.magic_wand_outline_28,
+                R.drawable.menu3d_smart_slice,
                 R.string.SettingsAppMakerTitle,
                 if (shortLandscapeLayout) null else stringResource(R.string.SettingsAppMakerDescription),
                 onMaker,
@@ -609,13 +556,13 @@ internal fun SettingsContent(
                         index = 4,
                         expandedSections = expandedSections,
                         onToggle = onToggleSection,
-                        iconRes = R.drawable.cloud_plus_outline_28,
+                        iconRes = R.drawable.menu3d_file_import,
                         title = stringResource(R.string.SettingsCloudSection),
                         compactLayout = compactLayout,
                         denseLandscape = shortLandscapeLayout,
                     ) {
                         SettingsActionRow(
-                            R.drawable.cloud_plus_outline_28,
+                            R.drawable.menu3d_file_import,
                             R.string.SettingsCloudProfile,
                             stringResource(R.string.SettingsCloudProfileDescription),
                             onCloud,
@@ -630,27 +577,15 @@ internal fun SettingsContent(
                     index = 0,
                     expandedSections = expandedSections,
                     onToggle = onToggleSection,
-                    iconRes = R.drawable.paint_roller_outline_28,
+                    iconRes = R.drawable.menu3d_tune,
                     title = stringResource(R.string.SettingsInterface),
                     compactLayout = compactLayout,
                     denseLandscape = shortLandscapeLayout,
                 ) {
                     SettingsRow(
-                        R.string.SettingsInterfaceTheme,
-                        value = themeName,
-                        onClick = onTheme,
-                        compactLayout = compactLayout,
-                    )
-                    SettingsRow(
                         R.string.SettingsInterfaceLanguage,
                         value = appLanguage,
                         onClick = onLanguage,
-                        compactLayout = compactLayout,
-                    )
-                    SettingsRow(
-                        R.string.SettingsInterfaceColor,
-                        value = accentColor,
-                        onClick = onAccent,
                         compactLayout = compactLayout,
                     )
                     SettingsRow(
@@ -689,7 +624,7 @@ internal fun SettingsContent(
                     index = 1,
                     expandedSections = expandedSections,
                     onToggle = onToggleSection,
-                    iconRes = R.drawable.picture_outline_28,
+                    iconRes = R.drawable.menu3d_combine,
                     title = stringResource(R.string.ConverterFolderSection),
                     compactLayout = compactLayout,
                     denseLandscape = shortLandscapeLayout,
@@ -709,7 +644,7 @@ internal fun SettingsContent(
                     index = 5,
                     expandedSections = expandedSections,
                     onToggle = onToggleSection,
-                    iconRes = R.drawable.camera_outline_28,
+                    iconRes = R.drawable.menu3d_rotate,
                     title = stringResource(R.string.MenuCamera),
                     compactLayout = compactLayout,
                     denseLandscape = shortLandscapeLayout,
@@ -727,7 +662,7 @@ internal fun SettingsContent(
                             CameraPreset.ISOMETRIC -> R.string.MenuCameraIsometric
                         }
                         SettingsActionRow(
-                            iconRes = R.drawable.camera_outline_28,
+                            iconRes = R.drawable.menu3d_rotate,
                             titleRes = label,
                             description = null,
                             onClick = { onCameraPreset(preset) },
@@ -743,13 +678,13 @@ internal fun SettingsContent(
                     index = 2,
                     expandedSections = expandedSections,
                     onToggle = onToggleSection,
-                    iconRes = R.drawable.printer_outline_28,
+                    iconRes = R.drawable.menu3d_tools,
                     title = stringResource(R.string.SettingsDevices),
                     compactLayout = compactLayout,
                     denseLandscape = shortLandscapeLayout,
                 ) {
                     SettingsActionRow(
-                        R.drawable.printer_outline_28,
+                        R.drawable.menu3d_tools,
                         R.string.SettingsAddPrinter,
                         stringResource(R.string.SettingsAddPrinterDescription),
                         onAddPrinter,
@@ -763,13 +698,13 @@ internal fun SettingsContent(
                     index = 3,
                     expandedSections = expandedSections,
                     onToggle = onToggleSection,
-                    iconRes = R.drawable.info_outline_28,
+                    iconRes = R.drawable.menu3d_layers,
                     title = stringResource(R.string.SettingsAppInformation),
                     compactLayout = compactLayout,
                     denseLandscape = shortLandscapeLayout,
                 ) {
                     SettingsActionRow(
-                        R.drawable.info_outline_28,
+                        R.drawable.menu3d_layers,
                         R.string.SettingsAbout,
                         stringResource(R.string.SettingsAboutDescription),
                         onAbout,

@@ -63,6 +63,7 @@ import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.RecentModelDocuments
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.GLView
 import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
@@ -184,6 +185,21 @@ class FileMenu : ListBedMenu() {
 
     private fun showObjectsDialog(view: View) = objectActions()?.showObjectsDialog(view)
 
+    private fun showRecentModels(view: View) {
+        val bed = fragment ?: return
+        val documents = RecentModelDocuments.list()
+        bed.showWorkspaceComposeDialog { dismiss ->
+            RecentModelDocumentsDialog(
+                documents = documents,
+                onDismiss = dismiss,
+                onOpen = { document ->
+                    dismiss()
+                    (bed.getContext() as? MainActivity)?.openRecentModelDocument(document.uri)
+                },
+            )
+        }
+    }
+
     private fun showSelectedObjectActions(view: View) = objectActions()?.showSelectedObjectActions(view)
 
     /** Assigns a whole object to an ACE/slicer tool; fine-grained color painting stays separate. */
@@ -239,9 +255,9 @@ class FileMenu : ListBedMenu() {
                 }
         }
 
-        items += BedMenuItem(R.string.MenuFileCalibrations, R.drawable.menu_calibrate_la_28)
+        items += BedMenuItem(R.string.MenuFileCalibrations, R.drawable.vk_wrench_outline_24)
             .onClick { showCalibrationWorkspace(bed) }
-        items += BedMenuItem(R.string.MenuFileImportProfiles, R.drawable.folder_simple_arrow_up_outline_28)
+        items += BedMenuItem(R.string.MenuFileImportProfiles, R.drawable.vk_folder_simple_outline_24)
             .onClick {
                 val activity = bed.getContext() as? Activity ?: return@onClick
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -265,6 +281,8 @@ class FileMenu : ListBedMenu() {
         return listOf(
             BedMenuItem(R.string.WorkspaceAddModelAction, R.drawable.folder_simple_plus_outline_28)
                 .onClick(::openModel),
+            BedMenuItem(R.string.RecentModelsTitle, R.drawable.clock_outline_28)
+                .onClick(::showRecentModels),
             BedMenuItem(R.string.MenuFileExport3mf, R.drawable.arrow_down_to_square_outline_28)
                 .setEnabled(modelSelectionState().objectCount > 0)
                 .onClick { view ->

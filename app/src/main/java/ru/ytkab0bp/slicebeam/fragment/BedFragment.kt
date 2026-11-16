@@ -6,6 +6,8 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import android.text.TextUtils
 import android.util.Log
@@ -93,8 +95,6 @@ import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebOpenButton
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceFilamentButton
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShell
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShellLayoutPolicy
-import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewCube
-import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewFace
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceSnackbarController
 import ru.ytkab0bp.slicebeam.render.PrimeTowerObstacle
 import ru.ytkab0bp.slicebeam.render.PrimeTowerDragLogic
@@ -120,6 +120,7 @@ import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.utils.QidiGCode3mfPackager
 import ru.ytkab0bp.slicebeam.utils.StlImportPreflight
 import ru.ytkab0bp.slicebeam.utils.PrinterWebOriginPolicy
+import ru.ytkab0bp.slicebeam.utils.PrinterConnectionProbe
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.GLView
 import ru.ytkab0bp.slicebeam.view.FilamentPaletteController
@@ -182,6 +183,7 @@ private var platePreviewBuiltRevision = -1
 private var plateTabsThemeRevision by mutableIntStateOf(0)
 private val platePickerOpen = mutableStateOf(false)
 private var printerWebAvailable by mutableStateOf(false)
+private var printerWebConnected by mutableStateOf(false)
 private var printerWebThemeRevision by mutableIntStateOf(0)
 private var profileStatusTitle by mutableStateOf("")
 private var profileStatusSummary by mutableStateOf("")
@@ -196,6 +198,8 @@ private var stableModelSnapshot: Model? = null
 private var modelHistoryDisabledForMemory:Boolean = false
 private var largeModelWarningShown:Boolean = false
 @Volatile private var modelLoadInProgress:Boolean = false
+private val modelLoadQueueLock = Any()
+private val pendingModelLoadRequests = java.util.ArrayDeque<() -> Unit>()
 @Volatile private var modelImportGeneration:Int = 0
 @Volatile private var importSimplifyDecision: Boolean? = null
 @Volatile private var plateLoadGeneration:Int = 0
@@ -203,6 +207,17 @@ private var largeModelWarningShown:Boolean = false
 private val pendingPlateModelsLock = Object()
 private val pendingPlateModels = HashSet<Model>()
 private val plateLoadExecutor = Executors.newSingleThreadExecutor({ r-> Thread(r, "OrcaPlateLoader") })
+private val printerStatusExecutor = Executors.newSingleThreadExecutor({ r -> Thread(r, "PrinterStatusProbe") })
+private val printerStatusHandler = Handler(Looper.getMainLooper())
+private var printerStatusActive = false
+private var printerStatusGeneration = 0
+private val printerStatusPoll = object : Runnable {
+    override fun run() {
+        if (!printerStatusActive || destroyed) return
+        probePrinterWebHost()
+        printerStatusHandler.postDelayed(this, PRINTER_STATUS_POLL_INTERVAL_MS)
+    }
+}
 val currentModel:Model?
 get() {
 if (platesModels.isEmpty()) return null
@@ -1000,6 +1015,34 @@ showWorkspaceComposeDialog { dismiss ->
     )
 }
 }
+
+private fun showFlushVolumesDialogFromDashboard() {
+    val config = SliceBeam.buildCurrentConfigObject()
+    val matrix = PrintConfigToolsLogic.flushMatrix(
+        serialized = config.get("flush_volumes_matrix"),
+        slotCount = Prefs.getFilamentSlots().size,
+        maxSlots = Prefs.MAX_FILAMENT_COLORS,
+    )
+    showWorkspaceComposeDialog { dismiss ->
+        FlushVolumesDialog(
+            matrix = matrix,
+            onDismiss = dismiss,
+            onApply = { serialized ->
+                val base = SliceBeam.CONFIG?.let { cfg ->
+                    cfg.presets?.get("print")?.let(cfg::findPrint)
+                }
+                ProfileSettingsRepository.setPendingValue(
+                    ConfigObject.PROFILE_LIST_PRINT,
+                    "flush_volumes_matrix",
+                    base?.get("flush_volumes_matrix"),
+                    serialized,
+                )
+                glView?.requestRender()
+                dismiss()
+            },
+        )
+    }
+}
 /** Opens a Compose-owned workspace tool in the exclusive tool panel. */
 fun showWorkspaceComposeTool(menu: WorkspaceComposeToolRoute) {
     val context = getContext() ?: return
@@ -1680,6 +1723,10 @@ if (workspaceController.activePanel == WorkspaceOverlayPanel.MESSAGE_DIALOG) {
     workspaceController.dismissActivePanel()
 }
 destroyed = true
+printerStatusActive = false
+printerStatusGeneration++
+printerStatusHandler.removeCallbacks(printerStatusPoll)
+printerStatusExecutor.shutdownNow()
 modelImportGeneration++
 plateLoadGeneration++
 plateLoadExecutor.shutdownNow()
@@ -1719,19 +1766,49 @@ glView!!.queueEvent {
 }
 updateProfileStatus()
 filamentPaletteRevision++
+printerStatusActive = true
 updatePrinterWebViewAvailability()
+printerStatusHandler.removeCallbacks(printerStatusPoll)
+printerStatusHandler.post(printerStatusPoll)
 }
 private fun updatePrinterWebViewAvailability() {
 val cfg = SliceBeam.CONFIG!!.findPrinter(SliceBeam.CONFIG!!.presets!!.get("printer"))
-var enable = cfg != null && !TextUtils.isEmpty(cfg.get("print_host"))
-configuredWebHost = null
-if (enable)
-{
-configuredWebHost = PrinterWebOriginPolicy.dashboardUrl(cfg!!.get("print_host"))
-enable = !TextUtils.isEmpty(configuredWebHost)
-}
+val nextHost = cfg?.get("print_host")
+    ?.takeIf { !TextUtils.isEmpty(it) }
+    ?.let(PrinterWebOriginPolicy::dashboardUrl)
+    ?.takeIf { !TextUtils.isEmpty(it) }
+configuredWebHost = nextHost
+val enable = nextHost != null
 printerWebAvailable = enable
+if (nextHost != printerStatusHost) {
+    printerStatusGeneration++
+    printerStatusHost = nextHost
+    printerWebConnected = false
+    if (printerStatusActive && nextHost != null) probePrinterWebHost()
+}
 if (!enable) destroyPrinterWebView()
+}
+private var printerStatusHost: String? = null
+private fun probePrinterWebHost() {
+    val host = configuredWebHost ?: run {
+        printerWebConnected = false
+        return
+    }
+    val generation = printerStatusGeneration
+    try {
+        printerStatusExecutor.execute {
+            val reachable = PrinterConnectionProbe.isReachable(host)
+            printerStatusHandler.post {
+                if (!destroyed && printerStatusActive && generation == printerStatusGeneration &&
+                    host == configuredWebHost
+                ) {
+                    printerWebConnected = reachable
+                }
+            }
+        }
+    } catch (_: java.util.concurrent.RejectedExecutionException) {
+        // The fragment is being destroyed; a stale status result is not useful.
+    }
 }
 private fun openPrinterWebView() {
 updatePrinterWebViewAvailability()
@@ -1889,6 +1966,10 @@ if (panelWebViewContainer != null) panelWebViewContainer!!.setVisibility(View.GO
 }
 override fun onPause() {
 super.onPause()
+printerStatusActive = false
+printerStatusGeneration++
+printerStatusHandler.removeCallbacks(printerStatusPoll)
+printerWebConnected = false
 destroyPrinterWebView()
 // Free render meshes while Android hosts another activity (for example, the file
  // picker). Keep the native model; GLRenderer recreates the mesh buffers on demand.
@@ -1914,12 +1995,21 @@ val filament = if (!projectSlots.isNullOrEmpty()) {
     context.getString(R.string.WorkspaceProjectFilaments,
         materials.joinToString("/"), projectSlots.size)
 } else SliceBeam.CONFIG!!.presets!!.get("filament")
+val visibleFilamentSummary = if (!projectSlots.isNullOrEmpty()) {
+    context.getString(R.string.WorkspaceProjectFilamentSummary, projectSlots.size)
+} else {
+    val selectedFilament = filament.orEmpty()
+    val material = SliceBeam.CONFIG!!.findFilament(selectedFilament)?.get("filament_type")
+        ?.substringBefore(';')?.trim().orEmpty()
+    material.ifBlank { selectedFilament }
+}
 val process = SliceBeam.CONFIG!!.presets!!.get("print")
-profileStatusTitle = printerName ?: unavailable
+val visiblePrinterModel = printer?.get("printer_model")?.trim()?.takeIf(String::isNotEmpty)
+profileStatusTitle = visiblePrinterModel ?: printerName ?: unavailable
 profileStatusSummary = context.getString(
 R.string.WorkspaceProfileStatusSummary,
 nozzle,
-if (TextUtils.isEmpty(filament)) unavailable else filament)
+if (TextUtils.isEmpty(visibleFilamentSummary)) unavailable else visibleFilamentSummary)
 profileStatusDescription = context.getString(
 R.string.WorkspaceProfilesStatusDescription,
 printerName, nozzle, if (TextUtils.isEmpty(filament)) unavailable else filament,
@@ -1939,7 +2029,9 @@ sessionRestored = true
 @SuppressLint("SetJavaScriptEnabled")
 override fun onCreateView(ctx:Context):View {
 workspaceFontScale = ctx.resources.configuration.fontScale
-if (platesModels.isEmpty()) platesModels.add(Model())
+if (platesModels.isEmpty()) {
+    platesModels.add(Model())
+}
 restoreSession()
 glView = GLView(ctx)
 rendererAdapter = RendererAdapter(ctx, glView!!)
@@ -2078,6 +2170,14 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                             }
                         }
                     },
+                    dashboardPrintToolsContent = {
+                        BeamComposeTheme(section = ru.ytkab0bp.slicebeam.ui.OrkanSection.PRINT) {
+                            WorkspacePrintToolActions(
+                                onPrimeTower = ::showPrimeTowerPositionDialogForCurrentPlate,
+                                onFlushVolumes = ::showFlushVolumesDialogFromDashboard,
+                            )
+                        }
+                    },
                     platePickerContent = {
                         val revision = plateTabsThemeRevision
                         if (revision >= 0) BeamComposeTheme(themeRevision = revision) {
@@ -2101,35 +2201,13 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                             )
                         }
                     },
-                    viewCubeContent = {
-                        WorkspaceViewCube(
-                            onFaceSelected = { face ->
-                                val preset = when (face) {
-                                    WorkspaceViewFace.FRONT -> CameraPreset.FRONT
-                                    WorkspaceViewFace.BACK -> CameraPreset.BACK
-                                    WorkspaceViewFace.RIGHT -> CameraPreset.RIGHT
-                                    WorkspaceViewFace.LEFT -> CameraPreset.LEFT
-                                    WorkspaceViewFace.TOP -> CameraPreset.TOP
-                                    WorkspaceViewFace.BOTTOM -> CameraPreset.BOTTOM
-                                }
-                                (menuMap.get(WorkspaceDestination.CAMERA.ordinal) as? CameraMenu)?.let { cameraMenu ->
-                                    // The cube lives in the persistent workspace header and can be
-                                    // used before the Camera destination has ever been opened.
-                                    cameraMenu.onSetBed(this@BedFragment)
-                                    cameraMenu.selectCameraPreset(preset)
-                                }
-                            },
-                            onCameraRotated = { x, y, z ->
-                                (menuMap.get(WorkspaceDestination.CAMERA.ordinal) as? CameraMenu)?.let { cameraMenu ->
-                                    cameraMenu.onSetBed(this@BedFragment)
-                                    cameraMenu.selectCameraDirection(x, y, z)
-                                }
-                            },
-                        )
-                    },
                     printerWebButtonContent = {
                         BeamComposeTheme(themeRevision = printerWebThemeRevision) {
-                            PrinterWebOpenButton(hostConfigured = printerWebAvailable, onOpen = ::openPrinterWebView)
+                            PrinterWebOpenButton(
+                                hostConfigured = printerWebAvailable,
+                                connected = printerWebConnected,
+                                onOpen = ::openPrinterWebView,
+                            )
                         }
                     },
                     modePanelContent = workspaceController.activeToolPanelContent,
@@ -2333,40 +2411,12 @@ if (removed != null) glView!!.queueEvent(Runnable { removed.release() })
 updatePlateIndicator()
 if (platesModels.all { it != null && it.objectsCount == 0 }) TemporaryProjectSettings.clear()
 }
-/**
- * Hand the renderer every plate except the active one, with grid offsets relative to the
- * active plate (which always renders at the origin), so all plates are visible at once.
- */
+/** Keep the active plate index in sync with the renderer; only that plate is drawn. */
  private fun pushPlatesToRenderer() {
 val active = currentPlateIndex
-val models = java.util.ArrayList(platesModels)
 glView!!.queueEvent(object:Runnable {
 override fun run() {
-val bed = glView!!.renderer.bed
-if (bed == null)
-{
-ViewUtils.postOnMainThread({ glView!!.queueEvent(this) })
-return
-}
-val inactive = java.util.ArrayList<Model>()
-val offsets = java.util.ArrayList<DoubleArray>()
-if (models.size > 1)
-{
-val cols = computePlateCols(models.size)
-val activeOrigin = DoubleArray(2)
-val tmp = DoubleArray(2)
-computePlateOrigin(active, cols, bed.getVolumeMin()!!, bed.getVolumeMax()!!, activeOrigin)
-for (i in 0 until models.size)
-{
-if (i == active || models.get(i) == null) continue
-computePlateOrigin(i, cols, bed.getVolumeMin()!!, bed.getVolumeMax()!!, tmp)
-val inactiveModel = models.get(i) ?: continue
-inactive.add(inactiveModel)
-offsets.add(doubleArrayOf(tmp[0] - activeOrigin[0], tmp[1] - activeOrigin[1]))
-}
-}
 glView!!.renderer.setCurrentPlateIndex(active)
-glView!!.renderer.setInactivePlates(inactive, offsets)
 glView!!.requestRender()
 }
 })
@@ -2566,14 +2616,61 @@ private fun refreshPlateThumbnails() {
 }
 @Throws(Slic3rRuntimeError::class)
 @JvmOverloads fun loadModel(f:File, preserveProjectLayout:Boolean = false, plateCount:Int = 1, callback:ModelLoadCallback? = null, stepOptions:StepImportOptions? = null, autoOrientImportedModels:Boolean = false) {
-if (destroyed || modelLoadInProgress)
-{
-if (callback != null)
-    ViewUtils.postOnMainThread({ callback?.onFailed(
-IllegalStateException("Ein anderes Modell wird gerade geladen.")) })
-return
+if (destroyed) {
+    ViewUtils.postOnMainThread { callback?.onCancelled() }
+    return
 }
-modelLoadInProgress = true
+enqueueModelLoadRequest {
+    startModelLoad(f, preserveProjectLayout, plateCount, callback, stepOptions, autoOrientImportedModels)
+}
+}
+
+private fun enqueueModelLoadRequest(request: () -> Unit) {
+    val startNow = synchronized(modelLoadQueueLock) {
+        if (destroyed) false
+        else if (modelLoadInProgress) {
+            pendingModelLoadRequests.addLast(request)
+            false
+        } else {
+            modelLoadInProgress = true
+            true
+        }
+    }
+    if (startNow) request()
+    else if (destroyed) finishModelLoadRequest()
+}
+
+private fun finishModelLoadRequest() {
+    val next = synchronized(modelLoadQueueLock) {
+        if (destroyed) pendingModelLoadRequests.clear()
+        if (destroyed || pendingModelLoadRequests.isEmpty()) {
+            modelLoadInProgress = false
+            null
+        } else pendingModelLoadRequests.removeFirst()
+    }
+    next?.invoke()
+}
+
+private fun trackedModelLoadCallback(delegate: ModelLoadCallback?): ModelLoadCallback {
+    val terminal = java.util.concurrent.atomic.AtomicBoolean(false)
+    fun finish() { if (terminal.compareAndSet(false, true)) finishModelLoadRequest() }
+    return object : ModelLoadCallback {
+        override fun onLoaded(model: Model, firstNewObject: Int, addedObjects: Int) {
+            try { delegate?.onLoaded(model, firstNewObject, addedObjects) } finally { finish() }
+        }
+        override fun onFailed(error: Exception) {
+            try { delegate?.onFailed(error) } finally { finish() }
+        }
+        override fun onCancelled() {
+            try { delegate?.onCancelled() } finally { finish() }
+        }
+        override fun onProgress(fraction: Float): Boolean = delegate?.onProgress(fraction) ?: true
+        override fun onPartialFailures(failedFiles: Int) { delegate?.onPartialFailures(failedFiles) }
+    }
+}
+
+private fun startModelLoad(f:File, preserveProjectLayout:Boolean, plateCount:Int, callback:ModelLoadCallback?, stepOptions:StepImportOptions?, autoOrientImportedModels:Boolean) {
+val terminalCallback = trackedModelLoadCallback(callback)
 val importGeneration = ++modelImportGeneration
 platePreviewRevision++
 importSimplifyDecision = null
@@ -2583,23 +2680,21 @@ Thread({ try
 StlImportPreflight.largeTriangleCount(f, IMPORT_TRIANGLE_LIMIT.toLong())?.let {
     if (!confirmLargeStlImport(it)) throw ImportCancelledException()
 }
-loadModelBlocking(f, preserveProjectLayout, plateCount, importGeneration, callback, stepOptions, autoOrientImportedModels)
+loadModelBlocking(f, preserveProjectLayout, plateCount, importGeneration, terminalCallback, stepOptions, autoOrientImportedModels)
+if (destroyed || importGeneration != modelImportGeneration) terminalCallback.onCancelled()
 }
 catch (e:Exception) {
 if (e is ImportCancelledException || e is java.util.concurrent.CancellationException) {
-    ViewUtils.postOnMainThread { if (!destroyed && importGeneration == modelImportGeneration) callback?.onCancelled() }
+    ViewUtils.postOnMainThread { if (!destroyed && importGeneration == modelImportGeneration) terminalCallback.onCancelled() else finishModelLoadRequest() }
     return@Thread
 }
 Log.e("BedFragment", "Could not load model", e)
 if (plateCount > 1) resetFailedMultiPlateImport(importGeneration)
 ViewUtils.postOnMainThread({ if (destroyed || importGeneration != modelImportGeneration) return@postOnMainThread
 if (callback == null) SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuFileOpenFileFailed))
-if (callback != null) callback?.onFailed(e) })
+terminalCallback.onFailed(e) })
 }
-finally
-{
-modelLoadInProgress = false
-} }, "OrcaModelLoader").start()
+finally { if (destroyed) finishModelLoadRequest() } }, "OrcaModelLoader").start()
 }
 private fun resetFailedMultiPlateImport(importGeneration:Int) {
 ViewUtils.postOnMainThread({ if (destroyed || importGeneration != modelImportGeneration) return@postOnMainThread
@@ -2653,8 +2748,8 @@ this.currentPlateIndex = 0
 // Load only the active plate. A multi-plate project can contain several large meshes;
  // keeping every plate's native model alive during import needlessly multiplies the
  // peak memory use. Other plates are loaded by switchPlate() when the user selects one.
- // The renderer still displays the complete plate grid while unloaded plates remain
- // empty, and their models keep the original 3MF plate coordinates until normalized.
+ // Only the active plate appears in the viewport; other plate models are loaded when
+ // their plate is selected. Stored 3MF coordinates are normalized at that time.
  val cols = computePlateCols(plateCount)
 val fileBed = DoubleArray(2)
 val haveFileBed = readProjectBedSize(f, fileBed)
@@ -2744,11 +2839,15 @@ fun loadModelBatch(files:List<File>, callback:ModelLoadCallback? = null, autoOri
         callback?.onFailed(IllegalArgumentException("No supported mesh files selected"))
         return
     }
-    if (destroyed || modelLoadInProgress) {
-        callback?.onFailed(IllegalStateException("Ein anderes Modell wird gerade geladen."))
+    if (destroyed) {
+        callback?.onCancelled()
         return
     }
-    modelLoadInProgress = true
+    enqueueModelLoadRequest { startModelBatch(files, callback, autoOrientImportedModels) }
+}
+
+private fun startModelBatch(files:List<File>, callback:ModelLoadCallback?, autoOrientImportedModels:Boolean) {
+    val terminalCallback = trackedModelLoadCallback(callback)
     val importGeneration = ++modelImportGeneration
     platePreviewRevision++
     importSimplifyDecision = null
@@ -2791,24 +2890,22 @@ fun loadModelBatch(files:List<File>, callback:ModelLoadCallback? = null, autoOri
             val reduction = if (reducedBefore > 0L) ImportReduction(reducedBefore, reducedAfter) else null
             loadImportedModelOnRenderer(batch, reduction, false, object:ModelLoadCallback {
                 override fun onLoaded(loadedModel:Model, firstNewObject:Int, addedObjects:Int) {
-                    callback?.onPartialFailures(failedFiles)
-                    callback?.onLoaded(loadedModel, firstNewObject, addedObjects)
+                    terminalCallback.onPartialFailures(failedFiles)
+                    terminalCallback.onLoaded(loadedModel, firstNewObject, addedObjects)
                 }
-                override fun onFailed(error:Exception) = callback?.onFailed(error) ?: Unit
-                override fun onCancelled() = callback?.onCancelled() ?: Unit
-                override fun onProgress(fraction:Float):Boolean = callback?.onProgress(fraction) ?: true
+                override fun onFailed(error:Exception) = terminalCallback.onFailed(error)
+                override fun onCancelled() = terminalCallback.onCancelled()
+                override fun onProgress(fraction:Float):Boolean = terminalCallback.onProgress(fraction)
             }, autoOrientImportedModels, null)
         } catch (error:Exception) {
             batch.release()
             if (error is ImportCancelledException || error is java.util.concurrent.CancellationException) {
-                ViewUtils.postOnMainThread { if (!destroyed && importGeneration == modelImportGeneration) callback?.onCancelled() }
+                ViewUtils.postOnMainThread { if (!destroyed && importGeneration == modelImportGeneration) terminalCallback.onCancelled() else finishModelLoadRequest() }
             } else {
                 Log.e("BedFragment", "Could not load mesh batch", error)
-                ViewUtils.postOnMainThread { if (!destroyed && importGeneration == modelImportGeneration) callback?.onFailed(error) }
+                ViewUtils.postOnMainThread { if (!destroyed && importGeneration == modelImportGeneration) terminalCallback.onFailed(error) else finishModelLoadRequest() }
             }
-        } finally {
-            modelLoadInProgress = false
-        }
+        } finally { if (destroyed) finishModelLoadRequest() }
     }, "OrcaMeshBatchLoader").start()
 }
 
@@ -3317,6 +3414,7 @@ configuration.orientation == Configuration.ORIENTATION_PORTRAIT)
 }
 private val SESSION_PLATE_COUNT = "last_session_plate_count"
 private val MAX_HISTORY = 5
+private const val PRINTER_STATUS_POLL_INTERVAL_MS = 15_000L
 private fun modelHistoryWouldExceedBudget(triangleCount: Long): Boolean =
     triangleCount.coerceAtLeast(0L) > MODEL_HISTORY_MEMORY_BUDGET_BYTES /
         ESTIMATED_BYTES_PER_TRIANGLE / (MAX_HISTORY + 1)

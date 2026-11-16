@@ -30,7 +30,7 @@ class WorkspaceProfileStatusDeviceTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
-    fun longPrinterNameWrapsInCompactAccessibleStatusAtNarrowLargeText() {
+    fun printerModelWrapsInCompactAccessibleStatusAtNarrowLargeText() {
         val accessibilityLabel = "Anycubic Kobra 3 V2 Combo Multi Material printer profile, 0.4 mm nozzle"
         compose.setContent {
             CompositionLocalProvider(
@@ -41,9 +41,9 @@ class WorkspaceProfileStatusDeviceTest {
                 },
             ) {
                 BeamComposeTheme {
-                    Box(Modifier.width(320.dp)) {
+                    Box(Modifier.width(220.dp)) {
                         WorkspaceProfileStatus(
-                            title = "Anycubic Kobra 3 V2 Combo Multi Material",
+                            title = "Anycubic Kobra 3 V2",
                             summary = "0.4 mm nozzle · PLA · Standard",
                             accessibilityDescription = accessibilityLabel,
                             onOpen = {},
@@ -62,7 +62,7 @@ class WorkspaceProfileStatusDeviceTest {
         val titleHeightPx = titleNode.fetchSemanticsNode().boundsInRoot.height
         val oneLineAtLargeTextPx = with(Density(1f, 1.5f)) { 30.dp.toPx() }
         val twoLinesAtLargeTextPx = with(Density(1f, 1.5f)) { 60.dp.toPx() }
-        assertTrue("Long printer title should wrap instead of being reduced to one truncated line", titleHeightPx > oneLineAtLargeTextPx)
-        assertTrue("Printer title should stay within two large-text lines", titleHeightPx <= twoLinesAtLargeTextPx)
+        assertTrue("Printer model should wrap into two readable lines at large text", titleHeightPx > oneLineAtLargeTextPx)
+        assertTrue("Printer model should stay within two large-text lines", titleHeightPx <= twoLinesAtLargeTextPx)
     }
 }

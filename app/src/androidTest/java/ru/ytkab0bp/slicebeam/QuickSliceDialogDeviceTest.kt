@@ -93,6 +93,26 @@ class QuickSliceDialogDeviceTest {
     }
 
     @Test
+    fun brimWidthCanBeEnteredAndReturnedWithQuickSliceSettings() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        var result: QuickSliceProfileSettings? = null
+        compose.setContent {
+            BeamComposeTheme {
+                QuickSliceDialogContent(options(), onDismiss = {}) { _, _, settings -> result = settings }
+            }
+        }
+
+        compose.onNodeWithTag("quick-slice-brim-toggle").performClick()
+        compose.onNodeWithTag("quick-slice-brim-width").performScrollTo().performTextReplacement("3.5")
+        compose.onNodeWithText(context.getString(R.string.QuickSliceStart)).performClick()
+
+        compose.runOnIdle {
+            assertEquals("3.5", result?.brimWidth)
+            assertTrue(result?.brim == true)
+        }
+    }
+
+    @Test
     fun androidBackDismissesWithoutStarting() {
         var dismissed = false
         var started = false

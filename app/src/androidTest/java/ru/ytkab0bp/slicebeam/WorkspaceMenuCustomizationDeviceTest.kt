@@ -221,11 +221,16 @@ class WorkspaceMenuCustomizationDeviceTest {
                         compose.onNodeWithText(context.getString(R.string.MenuCustomize)).assertIsDisplayed()
                     }
                     compose.onNodeWithTag("menu-customize-view").performClick()
+                    // On slower Android 16 devices the AlertDialog opens in a
+                    // separate Compose window. Wait for that window to attach
+                    // before querying its semantics tree.
+                    compose.waitForIdle()
                     compose.onNodeWithTag("menu-customize-list-view").assertIsDisplayed()
                     compose.onNodeWithTag("menu-customize-list-view").performScrollToIndex(1)
                     compose.onNodeWithTag("menu-customize-visible-view-${context.resources.getResourceEntryName(R.string.MenuCameraControlMode)}")
                         .assertIsDisplayed()
                     compose.onNodeWithText(context.getString(AndroidR.string.cancel)).performClick()
+                    compose.waitForIdle()
                     compose.onNodeWithTag("workspace-menu-action-${R.string.MenuCameraOrtho}").assertIsDisplayed()
                     compose.onNodeWithContentDescription(context.getString(R.string.MenuCameraOrtho)).assertIsDisplayed()
                     compose.onNodeWithTag("workspace-menu-action-${R.string.MenuCameraOrtho}").performClick()

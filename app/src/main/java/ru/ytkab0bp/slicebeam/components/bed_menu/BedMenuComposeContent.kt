@@ -62,8 +62,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
-import ru.ytkab0bp.slicebeam.ui.LocalOrkanSection
-import ru.ytkab0bp.slicebeam.ui.OrkanSection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -102,8 +100,12 @@ internal data class BedComposeMenuAction(
 
 /** Keeps phone portrait action menus consistent with four tiles in each of two rows. */
 internal object BedMenuActionTileWidthPolicy {
+    private const val TILE_SIZE_REDUCTION = 0.8f
+
     @Suppress("UNUSED_PARAMETER")
     fun columnsForLayout(fontScale: Float, screenWidthDp: Int): Int = 4
+
+    fun reducedTileSizeDp(sizeDp: Int): Int = (sizeDp * TILE_SIZE_REDUCTION).toInt().coerceAtLeast(48)
 
     /** Up to four actions use one row; later rows are revealed only by vertical scrolling. */
     fun visibleRowsForActionCount(actionCount: Int): Int =
@@ -145,7 +147,9 @@ internal fun BedMenuActionsContent(
     val fontScale = ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current
     if (portrait) {
         val columns = BedMenuActionTileWidthPolicy.columnsForLayout(fontScale, widthDp)
-        BoxWithConstraints(modifier.fillMaxSize()) {
+        // Measure to the actual one/two-row grid height. The workspace overlay wraps
+        // this content, so a short menu no longer reserves a large empty panel.
+        BoxWithConstraints(modifier.fillMaxWidth()) {
             val visibleRows = BedMenuActionTileWidthPolicy.visibleRowsForActionCount(actions.size)
             val tileWidth = BedMenuActionTileWidthPolicy.gridTileWidthDp(
                 screenWidthDp = maxWidth.value.toInt(),
@@ -181,7 +185,8 @@ internal fun BedMenuActionsContent(
                     delay(16)
                 }
             }
-            val gridTileHeight = if (fontScale >= 1.15f) 112.dp else 94.dp
+            val gridTileHeight = BedMenuActionTileWidthPolicy
+                .reducedTileSizeDp(if (fontScale >= 1.15f) 112 else 94).dp
             val gridHeight = minOf(
                 maxHeight,
                 gridTileHeight * visibleRows + 2.dp * (visibleRows - 1),
@@ -209,24 +214,27 @@ internal fun BedMenuActionsContent(
                 // Slice menus replace their whole action set after slicing. Stable action
                 // identity prevents the grid from reusing an old tile and its click handler.
                 items(actions, key = { action -> action.titleRes }) { action ->
-                    BedMenuActionTile(
-                        action,
-                        portrait = true,
-                        menuView = menuView,
-                        // At large text sizes the icon yields its space to the full label.
-                        compactPortraitGrid = fontScale >= 1.3f,
-                        modifier = Modifier.width(tileWidth).height(gridTileHeight),
-                        onActionPositioned = onActionPositioned,
-                        onActionDragStart = onActionDragStart,
-                        onActionDrag = onActionDrag,
-                        onActionDragEnd = onActionDragEnd,
-                        onMoveAction = onMoveAction,
-                        draggedActionTitleRes = draggedActionTitleRes,
-                        dropTargetTitleRes = dropTargetTitleRes,
-                        draggedActionTranslation = draggedActionTranslation,
-                        draggedActionPointerInRoot = draggedActionPointerInRoot,
-                        onDragAutoScroll = onDragAutoScroll,
-                    )
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        BedMenuActionTile(
+                            action,
+                            portrait = true,
+                            menuView = menuView,
+                            compactPortraitGrid = false,
+                            modifier = Modifier.width(
+                                BedMenuActionTileWidthPolicy.reducedTileSizeDp(tileWidth.value.toInt()).dp,
+                            ).height(gridTileHeight),
+                            onActionPositioned = onActionPositioned,
+                            onActionDragStart = onActionDragStart,
+                            onActionDrag = onActionDrag,
+                            onActionDragEnd = onActionDragEnd,
+                            onMoveAction = onMoveAction,
+                            draggedActionTitleRes = draggedActionTitleRes,
+                            dropTargetTitleRes = dropTargetTitleRes,
+                            draggedActionTranslation = draggedActionTranslation,
+                            draggedActionPointerInRoot = draggedActionPointerInRoot,
+                            onDragAutoScroll = onDragAutoScroll,
+                        )
+                    }
                 }
             }
         }
@@ -265,6 +273,37 @@ internal fun BedMenuActionsContent(
     }
 }
 
+/** Purpose-built isometric pictograms make frequent actions recognizable without labels. */
+private fun colorfulMenuActionIcon(titleRes: Int): Int? = when (titleRes) {
+    R.string.WorkspaceObjects -> R.drawable.menu3d_objects
+    R.string.ModelMenuDuplicate -> R.drawable.menu3d_duplicate
+    R.string.ModelMenuMoveToPlate -> R.drawable.menu3d_move_plate
+    R.string.ModelMenuSplit -> R.drawable.menu3d_split
+    R.string.ModelMenuCenterOnBed -> R.drawable.menu3d_center
+    R.string.ModelScaleToBuildVolume, R.string.MenuTransformScale, R.string.ModelContextResetScale ->
+        R.drawable.menu3d_scale
+    R.string.ModelMenuPlaceGroupOnBed, R.string.ModelMenuPlaceOnObject, R.string.ModelMenuPlaceOnSurface,
+    R.string.ModelContextSetOnFace -> R.drawable.menu3d_place
+    R.string.ModelMenuAlignSelected, R.string.ModelMenuAlignPrimaryAxes, R.string.ModelMenuDistributeSelected,
+    R.string.ModelMenuArrange, R.string.MenuOrientationArrange, R.string.MenuArrangeAllObjects,
+    R.string.MenuOrientAllObjects -> R.drawable.menu3d_arrange
+    R.string.ModelMenuCombineSelected, R.string.ModelMenuBoolean -> R.drawable.menu3d_combine
+    R.string.ModelMenuFillBed, R.string.ModelContextFillBed -> R.drawable.menu3d_fill_bed
+    R.string.MenuToolbarMove, R.string.MenuOrientationPosition ->
+        R.drawable.menu3d_move
+    R.string.MenuToolbarRotate, R.string.ModelContextResetRotation, R.string.MenuOrientationRotation ->
+        R.drawable.menu3d_rotate
+    R.string.MenuToolbarVariableLayerHeight, R.string.MenuSliceLayers -> R.drawable.menu3d_layers
+    R.string.QuickSliceTitle -> R.drawable.menu3d_quick_slice
+    R.string.SmartSliceTitle -> R.drawable.menu3d_smart_slice
+    R.string.MenuSliceCurrentSettings -> R.drawable.menu3d_tune
+    R.string.WorkspaceAddModelAction, R.string.MenuFileImportProfiles -> R.drawable.menu3d_file_import
+    R.string.MenuFileExport3mf, R.string.MenuFileExportProfiles, R.string.MenuSliceExportToFile ->
+        R.drawable.menu3d_file_export
+    R.string.MenuSliceSendToPrinter, R.string.MenuSliceSendToPrinterAndPrint -> R.drawable.menu3d_printer_send
+    else -> null
+}
+
 @Composable
 private fun BedMenuActionTile(
     action: BedComposeMenuAction,
@@ -286,6 +325,16 @@ private fun BedMenuActionTile(
     val fullTitle = stringResource(action.titleRes)
     val fontScale = ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current
     val compactLabel = when (action.titleRes) {
+        R.string.QuickSliceTitle -> R.string.MenuActionQuickSliceShort
+        R.string.SmartSliceTitle -> R.string.MenuActionSmartSliceShort
+        R.string.MenuSliceCurrentSettings -> R.string.MenuActionManualSliceShort
+        R.string.MenuFileCalibrations -> R.string.MenuActionCalibrateShort
+        R.string.MenuToolbarMove -> R.string.MenuActionMoveShort
+        R.string.MenuToolbarRotate -> R.string.MenuActionRotateShort
+        R.string.MenuTransformScale -> R.string.MenuActionScaleShort
+        R.string.MenuTransformCut -> R.string.MenuActionCutShort
+        R.string.MenuToolbarEmboss -> R.string.MenuActionTextShort
+        R.string.MenuToolbarVariableLayerHeight -> R.string.MenuActionLayerShort
         R.string.MenuCameraIsometric -> if (fontScale >= 1.3f) R.string.MenuCameraIsometricCompact else action.titleRes
         R.string.MenuFileImportProfiles -> R.string.MenuFileImportProfilesCompact
         R.string.MenuFileExportProfiles -> R.string.MenuFileExportProfilesCompact
@@ -298,6 +347,7 @@ private fun BedMenuActionTile(
         R.string.ModelContextFillBed -> R.string.EditFillBedShort
         R.string.ModelContextCenterOnBed -> R.string.EditCenterBedShort
         R.string.ModelMenuDuplicate -> R.string.ModelMenuDuplicateShort
+        R.string.ModelMenuSplit -> R.string.ModelMenuSplitShort
         R.string.ModelMenuMoveToPlate -> R.string.ModelMenuMoveToPlateShort
         R.string.ModelMenuCenterOnBed -> R.string.ModelMenuCenterOnBedShort
         R.string.ModelMenuPlaceGroupOnBed -> R.string.ModelMenuPlaceGroupOnBedShort
@@ -330,21 +380,23 @@ private fun BedMenuActionTile(
         R.string.MenuToolbarSeamPaint -> R.string.MenuActionSeamShort
         R.string.MenuToolbarFuzzyPaint -> R.string.MenuActionTextureShort
         R.string.MenuToolbarColorPaint -> R.string.MenuActionColorShort
-        R.string.MenuToolbarVariableLayerHeight -> R.string.MenuActionLayerHeightShort
-        R.string.MenuToolbarEmboss -> R.string.MenuActionEmbossShort
         R.string.MenuToolbarMeasure -> R.string.MenuActionMeasureShort
         else -> action.titleRes
     }
-    val section = LocalOrkanSection.current
     val background = (if (action.selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer)
         .copy(alpha = if (action.enabled) 1f else 0.38f)
     val foreground = (if (action.selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface)
         .copy(alpha = if (action.enabled) 1f else 0.55f)
-    val iconTint = when {
-        action.selected -> MaterialTheme.colorScheme.onPrimary
-        section != OrkanSection.DEFAULT -> section.iconAccent
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    // The section accent is already used by the tile surface. Reusing its darker
+    // shade for the glyph made icons disappear into that surface. Use the contrasting
+    // foreground and scale the vector up below so its strokes remain clear at phone size.
+    val iconTint = (if (action.selected) MaterialTheme.colorScheme.onPrimary
+        else MaterialTheme.colorScheme.onPrimaryContainer)
+        .copy(alpha = if (action.enabled) 1f else 0.55f)
+    val colorfulIcon = colorfulMenuActionIcon(action.titleRes)
+    val iconRes = colorfulIcon ?: action.iconRes
+    val iconColorFilter = if (colorfulIcon != null) null else ColorFilter.tint(iconTint)
+    val iconSize = if (colorfulIcon != null) 34.dp else 30.dp
     val interaction = if (action.toggleable) {
         Modifier.toggleable(
             value = action.selected,
@@ -444,10 +496,10 @@ private fun BedMenuActionTile(
             ) {
                 if (!compactPortraitGrid) {
                     Image(
-                        painter = painterResource(action.iconRes),
+                        painter = painterResource(iconRes),
                         contentDescription = null,
-                        colorFilter = ColorFilter.tint(iconTint),
-                        modifier = Modifier.size(OrkanUiTokens.menuIconSize),
+                        colorFilter = iconColorFilter,
+                        modifier = Modifier.size(iconSize),
                     )
                 }
                 Text(
@@ -456,8 +508,14 @@ private fun BedMenuActionTile(
                     fontSize = OrkanUiTokens.menuLabelSize,
                     lineHeight = 16.sp,
                     textAlign = TextAlign.Center,
-                    maxLines = if (portrait) 4 else Int.MAX_VALUE,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1,
+                    softWrap = false,
+                    autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
+                        minFontSize = 8.sp,
+                        maxFontSize = OrkanUiTokens.menuLabelSize,
+                        stepSize = 1.sp,
+                    ),
+                    overflow = TextOverflow.Clip,
                     modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                 )
             }
@@ -468,10 +526,10 @@ private fun BedMenuActionTile(
                 verticalArrangement = Arrangement.Center,
             ) {
                 Image(
-                    painter = painterResource(action.iconRes),
+                    painter = painterResource(iconRes),
                     contentDescription = null,
-                    colorFilter = ColorFilter.tint(iconTint),
-                    modifier = Modifier.size(OrkanUiTokens.menuIconSize),
+                    colorFilter = iconColorFilter,
+                    modifier = Modifier.size(iconSize),
                 )
                 Text(
                     text = stringResource(compactLabel),
@@ -479,6 +537,14 @@ private fun BedMenuActionTile(
                     fontSize = OrkanUiTokens.menuLabelSize,
                     lineHeight = 16.sp,
                     textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    softWrap = false,
+                    autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
+                        minFontSize = 8.sp,
+                        maxFontSize = OrkanUiTokens.menuLabelSize,
+                        stepSize = 1.sp,
+                    ),
+                    overflow = TextOverflow.Clip,
                     modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                 )
             }

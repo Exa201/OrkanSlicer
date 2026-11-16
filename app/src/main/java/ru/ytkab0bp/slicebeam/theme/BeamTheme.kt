@@ -66,7 +66,8 @@ class BeamTheme {
             colors.put(android.R.attr.textColorPrimary, 0xff000000.toInt())
             colors.put(android.R.attr.textColorSecondary, 0x99000000.toInt())
             colors.put(android.R.attr.windowBackground, 0xffffffff.toInt())
-            colors.put(android.R.attr.colorAccent, Prefs.getAccentColor())
+            // Brand accent is fixed across the app so GL, Views and Compose share one palette.
+            colors.put(android.R.attr.colorAccent, 0xff1dbdff.toInt())
             colors.put(android.R.attr.colorControlHighlight, 0x21000000.toInt())
         }
 
@@ -75,17 +76,19 @@ class BeamTheme {
             nameRes = R.string.SettingsInterfaceThemeDark
             colors = LIGHT.colors.clone()
 
-            // OrcaSlicer dark grey palette
-            colors.put(R.attr.dividerColor, 0xff3d3d3d.toInt())
-            colors.put(R.attr.dividerContrastColor, 0xff484848.toInt())
-            colors.put(R.attr.dialogBackground, 0xff2e2e2e.toInt())
-            colors.put(R.attr.switchThumbUncheckedColor, 0xff3a3a3a.toInt())
+            // Fixed navy surfaces and cyan brand accent form the app's CAD palette.
+            colors.put(R.attr.dividerColor, 0xff29334c.toInt())
+            colors.put(R.attr.dividerContrastColor, 0xff3a4968.toInt())
+            colors.put(R.attr.dialogBackground, 0xff151a2f.toInt())
+            colors.put(R.attr.switchThumbUncheckedColor, 0xff3a4968.toInt())
 
-            colors.put(R.attr.defaultBedColor, 0xff3a3a3a.toInt())
-            colors.put(R.attr.bedGridlinesColor, 0x80d0d0d0.toInt())
-            colors.put(R.attr.bedContourlinesColor, 0x33ffffff.toInt())
-            colors.put(R.attr.backgroundColorTop, 0xff2b2b2b.toInt())
-            colors.put(R.attr.backgroundColorBottom, 0xff1a1a1a.toInt())
+            // Dark blue-grey CAD palette inspired by Solidcraft: the build surface
+            // stays distinct from the viewport while its grid remains low-glare.
+            colors.put(R.attr.defaultBedColor, 0xff3a414f.toInt())
+            colors.put(R.attr.bedGridlinesColor, 0x667d8da7.toInt())
+            colors.put(R.attr.bedContourlinesColor, 0x88d2d9e5.toInt())
+            colors.put(R.attr.backgroundColorTop, 0xff252b3a.toInt())
+            colors.put(R.attr.backgroundColorBottom, 0xff202637.toInt())
             colors.put(R.attr.boostyColorBottom, 0xff884725.toInt())
 
             colors.put(R.attr.xTrackColor, 0xffee0000.toInt())
@@ -96,6 +99,8 @@ class BeamTheme {
 
             colors.put(android.R.attr.textColorPrimary, 0xffffffff.toInt())
             colors.put(android.R.attr.textColorSecondary, 0x99ffffff.toInt())
+            colors.put(android.R.attr.windowBackground, 0xff0b1020.toInt())
+            colors.put(android.R.attr.colorAccent, 0xff1dbdff.toInt())
             colors.put(android.R.attr.windowBackground, 0xff252525.toInt())
             colors.put(android.R.attr.colorControlHighlight, 0x21ffffff.toInt())
         }

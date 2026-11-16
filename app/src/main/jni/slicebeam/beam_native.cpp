@@ -1710,6 +1710,40 @@ extern "C" {
         return static_cast<jint>(std::min(count, static_cast<size_t>(INT32_MAX)));
     }
 
+    JNIEXPORT jfloatArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1object_1preview_1mesh(
+            JNIEnv* env, jclass, jlong ptr, jint i, jint max_triangles) {
+        ModelRef* model = (ModelRef*) (intptr_t) ptr;
+        if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size() ||
+            max_triangles < 4 || max_triangles > 256) return env->NewFloatArray(0);
+        ModelObject* object = model->model.objects[i];
+        if (object == nullptr) return env->NewFloatArray(0);
+        indexed_triangle_set mesh = object->mesh().its;
+        if (mesh.indices.empty()) return env->NewFloatArray(0);
+        if (mesh.indices.size() > static_cast<size_t>(max_triangles)) {
+            try {
+                its_quadric_edge_collapse(mesh, static_cast<uint32_t>(max_triangles));
+            } catch (const std::exception& e) {
+                __android_log_print(ANDROID_LOG_WARN, TAG, "Object thumbnail simplification failed: %s", e.what());
+                return env->NewFloatArray(0);
+            }
+        }
+        const size_t float_count = mesh.indices.size() * 9;
+        if (float_count > static_cast<size_t>(std::numeric_limits<jsize>::max())) return env->NewFloatArray(0);
+        std::vector<jfloat> vertices;
+        vertices.reserve(float_count);
+        for (const Vec3i32& triangle : mesh.indices) {
+            for (int corner = 0; corner < 3; ++corner) {
+                const Vec3f& point = mesh.vertices[triangle[corner]];
+                vertices.push_back(point.x());
+                vertices.push_back(point.y());
+                vertices.push_back(point.z());
+            }
+        }
+        jfloatArray result = env->NewFloatArray(static_cast<jsize>(vertices.size()));
+        if (result != nullptr && !vertices.empty()) env->SetFloatArrayRegion(result, 0, static_cast<jsize>(vertices.size()), vertices.data());
+        return result;
+    }
+
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1simplify(JNIEnv* env, jclass, jlong ptr, jint i, jfloat keepRatio) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
         if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size() ||
@@ -1871,6 +1905,23 @@ extern "C" {
 
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1rotation(JNIEnv* env, jclass, jlong ptr, jint object_index) {
         return model_object_vector(env, ptr, object_index, ModelVectorProperty::Rotation);
+    }
+
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1instance_1rotation(
+            JNIEnv* env, jclass, jlong ptr, jint object_index, jint instance_index) {
+        Vec3d value = Vec3d::Zero();
+        ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model != nullptr && object_index >= 0 &&
+            static_cast<size_t>(object_index) < model->model.objects.size()) {
+            ModelObject* object = model->model.objects[object_index];
+            if (object != nullptr && instance_index >= 0 &&
+                static_cast<size_t>(instance_index) < object->instances.size() &&
+                object->instances[instance_index] != nullptr)
+                value = object->instances[instance_index]->get_rotation();
+        }
+        jdoubleArray result = env->NewDoubleArray(3);
+        if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 3, value.data());
+        return result;
     }
 
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1mirror(JNIEnv* env, jclass, jlong ptr, jint object_index) {

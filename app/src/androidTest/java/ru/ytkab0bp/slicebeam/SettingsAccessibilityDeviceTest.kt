@@ -40,7 +40,6 @@ class SettingsAccessibilityDeviceTest {
         val screenWidthDp = mutableIntStateOf(320)
         val screenHeightDp = mutableIntStateOf(640)
         val fontScale = mutableFloatStateOf(1.5f)
-        var themeActionCount = 0
 
         compose.setContent {
             CompositionLocalProvider(
@@ -55,8 +54,6 @@ class SettingsAccessibilityDeviceTest {
                         expandedSections = expanded.value,
                         cloudAvailable = false,
                         boostyAvailable = false,
-                        themeName = "Dark",
-                        accentColor = "#FF123456",
                         uiTextScale = "150%",
                         converterRoot = "Default",
                         cameraProjection = "Orthographic",
@@ -65,8 +62,6 @@ class SettingsAccessibilityDeviceTest {
                             expanded.value = if (index in expanded.value) expanded.value - index else expanded.value + index
                         },
                         onMaker = {},
-                        onTheme = { themeActionCount++ },
-                        onAccent = {},
                         onUiTextScale = {},
                         onConverterFolder = {},
                         onCameraProjection = {},
@@ -94,11 +89,8 @@ class SettingsAccessibilityDeviceTest {
         compose.runOnIdle { assertEquals(setOf(0), expanded.value) }
         compose.onNodeWithText(sectionTitle)
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, collapse))
-        compose.onNodeWithText(context.getString(R.string.SettingsInterfaceTheme))
-            .assertIsDisplayed()
-            .assertHeightIsAtLeast(48.dp)
-            .performClick()
-        compose.runOnIdle { assertEquals(1, themeActionCount) }
+        compose.onNodeWithText(context.getString(R.string.SettingsInterfaceTheme)).assertDoesNotExist()
+        compose.onNodeWithText(context.getString(R.string.SettingsInterfaceColor)).assertDoesNotExist()
         compose.onNodeWithText(context.getString(R.string.SettingsRenderQuality))
             .performScrollTo()
             .assertIsDisplayed()
@@ -117,9 +109,11 @@ class SettingsAccessibilityDeviceTest {
             Triple(400, 850, 1.0f),
             Triple(400, 850, 1.3f),
             Triple(400, 850, 1.5f),
+            Triple(320, 640, 2.0f),
             Triple(640, 320, 1.0f),
             Triple(640, 320, 1.3f),
             Triple(640, 320, 1.5f),
+            Triple(640, 320, 2.0f),
         )
         configurations.forEach { (width, height, scale) ->
             compose.runOnIdle {

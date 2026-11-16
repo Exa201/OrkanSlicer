@@ -23,7 +23,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -66,54 +65,6 @@ import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
-
-@Composable
-internal fun PrintConfigToolsBar(
-    modifier: Modifier = Modifier,
-    onPrimeTower: () -> Unit,
-    onFlushVolumes: () -> Unit,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        PrintToolButton(
-            modifier = Modifier.weight(1f),
-            icon = R.drawable.print_tower_position_24,
-            label = stringResource(R.string.PrimeTowerPositionShort),
-            description = stringResource(R.string.PrimeTowerPositionInlineHelp),
-            onClick = onPrimeTower,
-        )
-        PrintToolButton(
-            modifier = Modifier.weight(1f),
-            icon = R.drawable.print_purge_volume_24,
-            label = stringResource(R.string.FlushVolumes),
-            description = stringResource(R.string.PrintConfigFlushVolumesHelp),
-            onClick = onFlushVolumes,
-        )
-    }
-}
-
-@Composable
-private fun PrintToolButton(
-    modifier: Modifier,
-    icon: Int,
-    label: String,
-    description: String,
-    onClick: () -> Unit,
-) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = 56.dp).semantics { contentDescription = "$label. $description" },
-        contentPadding = PaddingValues(horizontal = 3.dp, vertical = 5.dp),
-        shape = RoundedCornerShape(10.dp),
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(22.dp))
-            Text(label, fontSize = 12.sp, lineHeight = 14.sp, maxLines = 2, textAlign = TextAlign.Center)
-        }
-    }
-}
 
 @Composable
 internal fun FlushVolumesEditor(

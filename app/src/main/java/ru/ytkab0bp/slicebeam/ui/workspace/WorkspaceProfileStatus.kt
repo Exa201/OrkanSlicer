@@ -64,20 +64,21 @@ internal fun WorkspaceProfileStatus(
                     text = visibleTitle,
                     modifier = Modifier.testTag("workspace-profile-title"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 14.sp,
-                    lineHeight = 18.sp,
+                    fontSize = 12.sp,
+                    lineHeight = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    // Allow profile names to wrap so the compact toolbar does not hide
-                    // the selected printer behind an ellipsis on narrow / large-text screens.
+                    // The caller supplies the concise printer model name; two fixed
+                    // lines keep it readable without changing the workspace header.
                     maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
                 Text(
                     text = summary,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp,
-                    maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
+                    fontSize = 9.sp,
+                    lineHeight = 9.sp,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
             Spacer(Modifier.width(8.dp))

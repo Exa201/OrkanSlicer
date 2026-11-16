@@ -3,6 +3,7 @@ package ru.ytkab0bp.slicebeam
 import android.app.Application
 import android.app.Activity
 import android.app.Instrumentation.ActivityResult
+import android.graphics.Bitmap
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.ClipData
@@ -21,6 +22,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.FileProvider
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
@@ -48,6 +50,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
@@ -71,6 +74,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import android.os.SystemClock
 import java.io.File
+import java.text.NumberFormat
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
@@ -80,11 +84,6 @@ import java.util.concurrent.TimeUnit
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenuObjectActions
 import ru.ytkab0bp.slicebeam.components.bed_menu.ListBedMenu
-import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPreset
-import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPresetGeometry
-import ru.ytkab0bp.slicebeam.components.bed_menu.CameraVector
-import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewCubeGeometry
-import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewFace
 import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
@@ -562,42 +561,57 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun compactViewCubeIsVisibleAccessibleAndAtLeast48Dp() {
+    fun workspaceHeaderOmitsUnusedViewCubeAndKeepsPrinterConnectionControl() {
         // A fresh debug install can show the in-app changelog above the workspace.
         // Dismiss it so this checks the header at the requested display size.
         val changelogTitle = compose.activity.getString(R.string.Changelog)
         val changelogOk = compose.activity.getString(R.string.ChangelogOK)
-        fun cubeIsDisplayed(): Boolean = try {
-            compose.onNodeWithTag("workspace-view-cube").assertIsDisplayed()
-            true
-        } catch (_: AssertionError) {
-            false
-        }
         compose.waitUntil(10_000) {
-            compose.onAllNodesWithText(changelogTitle).fetchSemanticsNodes().isNotEmpty() || cubeIsDisplayed()
+            compose.onAllNodesWithText(changelogTitle).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag("workspace-header").fetchSemanticsNodes().isNotEmpty()
         }
         if (compose.onAllNodesWithText(changelogTitle).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithText(changelogOk).performClick()
-            compose.waitUntil(10_000) {
-                compose.onAllNodesWithText(changelogTitle).fetchSemanticsNodes().isEmpty() && cubeIsDisplayed()
-            }
+            compose.waitUntil(10_000) { compose.onAllNodesWithText(changelogTitle).fetchSemanticsNodes().isEmpty() }
         }
-        val cube = compose.onNodeWithTag("workspace-view-cube").assertIsDisplayed()
-        val node = cube.fetchSemanticsNode()
-        val printerActionDescription = listOf(
-            R.string.PrinterOpenWebDescription,
-            R.string.PrinterWebConfigureDescription,
-        ).map(compose.activity::getString).firstOrNull { description ->
-            compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
-        } ?: error("Printer header action should expose an accessibility description")
-        val printerAction = compose.onNodeWithContentDescription(printerActionDescription)
-            .assertIsDisplayed().fetchSemanticsNode()
-        val screenRight = compose.activity.window.decorView.width.toFloat()
-        assertTrue("Printer header action must remain on screen", printerAction.boundsInRoot.right <= screenRight)
-        val density = compose.activity.resources.displayMetrics.density
-        assertTrue("View cube must have a 48 dp touch target", node.size.width / density >= 48f)
-        assertTrue("View cube must have a 48 dp touch target", node.size.height / density >= 48f)
-        assertEquals(6, node.config[SemanticsActions.CustomActions].size)
+        compose.onNodeWithTag("workspace-view-cube").assertDoesNotExist()
+        compose.onNodeWithTag("printer-web-connection").assertIsDisplayed()
+    }
+
+    @Test
+    fun onlyActiveBuildPlateIsRenderedInMultiPlateProject() {
+        val bed = compose.activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val plates = BedFragment::class.java.getDeclaredField("platesModels").apply { isAccessible = true }
+            .get(bed) as ArrayList<Model?>
+        val originalPlateCount = plates.size
+        val pushPlates = BedFragment::class.java.getDeclaredMethod("pushPlatesToRenderer").apply { isAccessible = true }
+        val additionalPlates = List(3) { Model() }
+        val singlePlateFrame = snapshotRendererOnGl(glView)
+        try {
+            compose.runOnUiThread {
+                plates.addAll(additionalPlates)
+                pushPlates.invoke(bed)
+            }
+            compose.waitUntil(timeoutMillis = 10_000) { bed.plateCount == originalPlateCount + 3 }
+            compose.waitForIdle()
+            val multiPlateFrame = snapshotRendererOnGl(glView)
+            val baselinePixels = IntArray(singlePlateFrame.width * singlePlateFrame.height)
+            val multiPixels = IntArray(multiPlateFrame.width * multiPlateFrame.height)
+            singlePlateFrame.getPixels(baselinePixels, 0, singlePlateFrame.width, 0, 0,
+                singlePlateFrame.width, singlePlateFrame.height)
+            multiPlateFrame.getPixels(multiPixels, 0, multiPlateFrame.width, 0, 0,
+                multiPlateFrame.width, multiPlateFrame.height)
+            assertEquals("renderer snapshot dimensions must remain stable", baselinePixels.size, multiPixels.size)
+            val changedPixels = baselinePixels.indices.count { baselinePixels[it] != multiPixels[it] }
+            assertEquals("adding plates must not draw inactive bed grids or model previews", 0, changedPixels)
+        } finally {
+            compose.runOnUiThread {
+                while (plates.size > originalPlateCount) plates.removeAt(plates.lastIndex)
+                pushPlates.invoke(bed)
+            }
+            additionalPlates.forEach(Model::release)
+        }
     }
 
     @Test
@@ -1197,7 +1211,7 @@ class InitialProjectMenuDeviceTest {
                 revealMenuAction(activity, R.string.ModelMenuBoolean)
                 compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
                     .assertIsDisplayed().assertIsEnabled().performClick()
-                compose.onNodeWithText(unionLabel).assertIsDisplayed()
+                compose.onNodeWithText(unionLabel).performScrollTo().assertIsDisplayed()
             }
 
             fun assertSourcesUnchanged() {
@@ -1624,12 +1638,12 @@ class InitialProjectMenuDeviceTest {
             assertTrue("two selected-action test objects should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
             compose.runOnUiThread { bed.updateModel() }
 
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlatePickerCounterDescription, 1, 1))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuAddPlate))
                 .assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 10_000) { bed.plateCount == 2 && bed.currentPlateIndex == 1 }
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlatePickerCounterDescription, 2, 2))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.PlatePickerSelectDescription, "1"),
@@ -1653,7 +1667,7 @@ class InitialProjectMenuDeviceTest {
             assertEquals("stale move must stay on the source plate", 0, bed.currentPlateIndex)
             assertEquals("stale move must preserve both source objects", 2, readObjectCountOnGl(glView))
 
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlatePickerCounterDescription, 1, 1))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.PlatePickerSelectDescription, "2"),
@@ -3868,7 +3882,7 @@ class InitialProjectMenuDeviceTest {
             val uris = listOf(firstFile, secondFile).map { file ->
                 FileProvider.getUriForFile(activity, authority, file)
             }
-            MainActivity::class.java.getDeclaredMethod("loadMultipleStlFiles", List::class.java)
+            MainActivity::class.java.getDeclaredMethod("loadMultipleMeshFiles", List::class.java)
                 .apply { isAccessible = true }
                 .invoke(activity, uris)
 
@@ -4066,12 +4080,46 @@ class InitialProjectMenuDeviceTest {
                 assertTrue("object $index must remain inside the bed", box[0] >= min.x - 0.1 &&
                     box[1] >= min.y - 0.1 && box[3] <= max.x + 0.1 && box[4] <= max.y + 0.1)
             }
+            // Infer each rectangle's XY arrangement angle from its exact world-space bounds.
+            // Axis-aligned boxes falsely overlap after a 45-degree nest even when the model
+            // footprints retain the requested clearance; use each arranged instance rotation.
+            val sourceFootprints = listOf(
+                15.0 to 10.0,
+                10.0 to 15.0,
+                8.0 to 7.0,
+                7.0 to 8.0,
+            )
+            val objectAngles = bounds.indices.map { index ->
+                val rotation = ru.ytkab0bp.slicebeam.utils.Vec3d()
+                val finished = CountDownLatch(1)
+                glView.queueEvent {
+                    requireNotNull(glView.renderer.model).getInstanceRotation(index, 0, rotation)
+                    finished.countDown()
+                }
+                assertTrue("GL thread did not return object $index's instance rotation",
+                    finished.await(10, TimeUnit.SECONDS))
+                rotation.z
+            }
             for (first in bounds.indices) for (second in first + 1 until bounds.size) {
-                val separated = bounds[first][3] <= bounds[second][0] - 1.7 ||
-                    bounds[second][3] <= bounds[first][0] - 1.7 ||
-                    bounds[first][4] <= bounds[second][1] - 1.7 ||
-                    bounds[second][4] <= bounds[first][1] - 1.7
-                assertTrue("jointly nested objects $first and $second must keep their clearance",
+                val firstAngle = objectAngles[first]
+                val secondAngle = objectAngles[second]
+                val centerDx = (bounds[second][0] + bounds[second][3] - bounds[first][0] - bounds[first][3]) / 2.0
+                val centerDy = (bounds[second][1] + bounds[second][4] - bounds[first][1] - bounds[first][4]) / 2.0
+                val firstSize = sourceFootprints[first]
+                val secondSize = sourceFootprints[second]
+                val separated = listOf(firstAngle, firstAngle + Math.PI / 2.0,
+                    secondAngle, secondAngle + Math.PI / 2.0).any { axis ->
+                    val ux = kotlin.math.cos(axis)
+                    val uy = kotlin.math.sin(axis)
+                    val firstRadius = (firstSize.first * kotlin.math.abs(kotlin.math.cos(axis - firstAngle)) +
+                        firstSize.second * kotlin.math.abs(kotlin.math.sin(axis - firstAngle))) / 2.0
+                    val secondRadius = (secondSize.first * kotlin.math.abs(kotlin.math.cos(axis - secondAngle)) +
+                        secondSize.second * kotlin.math.abs(kotlin.math.sin(axis - secondAngle))) / 2.0
+                    kotlin.math.abs(centerDx * ux + centerDy * uy) - firstRadius - secondRadius >= 1.7
+                }
+                assertTrue("jointly nested objects $first and $second must keep their clearance; " +
+                    "first=${bounds[first].contentToString()} angle=$firstAngle " +
+                    "second=${bounds[second].contentToString()} angle=$secondAngle",
                     separated)
             }
         } finally {
@@ -4584,6 +4632,43 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun projectMenuCanHideAndRestoreAnActionAcrossWorkspaceNavigation() {
+        val activity = compose.activity
+        val prefs = activity.getSharedPreferences("workspace_menu_customization", 0)
+        val previousOrder = prefs.getString("order_project", null)
+        val previousHidden = prefs.getStringSet("hidden_project", null)?.toSet()
+        prefs.edit().remove("order_project").remove("hidden_project").commit()
+        val exportKey = activity.resources.getResourceEntryName(R.string.MenuFileExport3mf)
+        try {
+            openWorkspaceMenu(activity, WorkspaceDestination.PROJECT, R.string.MenuProject)
+            compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction)).assertIsDisplayed()
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuCustomize))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("menu-customize-visible-project-$exportKey")
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("menu-customize-save-project").performClick()
+            compose.onNodeWithText(activity.getString(R.string.MenuFileExport3mf)).assertDoesNotExist()
+            compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction)).assertIsDisplayed()
+
+            openWorkspaceMenu(activity, WorkspaceDestination.MODEL, R.string.MenuModel)
+            openWorkspaceMenu(activity, WorkspaceDestination.PROJECT, R.string.MenuProject)
+            compose.onNodeWithText(activity.getString(R.string.MenuFileExport3mf)).assertDoesNotExist()
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuCustomize))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("menu-customize-visible-project-$exportKey")
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("menu-customize-save-project").performClick()
+            compose.onNodeWithText(activity.getString(R.string.MenuFileExport3mf)).assertIsDisplayed()
+        } finally {
+            prefs.edit().also { editor ->
+                if (previousOrder == null) editor.remove("order_project") else editor.putString("order_project", previousOrder)
+                if (previousHidden == null) editor.remove("hidden_project") else editor.putStringSet("hidden_project", previousHidden)
+            }.commit()
+        }
+    }
+
+    @Test
     fun projectExportAvailabilityTracksModelLoadedOnGlThread() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -4644,6 +4729,55 @@ class InitialProjectMenuDeviceTest {
             assertTrue(request.categories?.contains(Intent.CATEGORY_OPENABLE) == true)
             assertTrue("the project route must allow selecting multiple models",
                 request.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false))
+        } finally {
+            launchers[requestCode] = previousLauncher
+        }
+    }
+
+    @Test
+    fun projectMenuPickerCancelLeavesWorkspaceUnchanged() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val requestCode = MainActivity.REQUEST_CODE_OPEN_FILE
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+            override fun unregister() = Unit
+        }
+        val originalPlateCount = bed.plateCount
+        val originalObjectsPerPlate = readPlateModels(bed).map { it.objectsCount }
+        try {
+            openWorkspaceMenu(activity, WorkspaceDestination.PROJECT, R.string.MenuProject)
+            compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { capturedIntent.get() != null }
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT, requireNotNull(capturedIntent.get()).action)
+
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, Activity.RESULT_CANCELED, Intent())
+            }
+            compose.waitForIdle()
+            assertEquals("picker cancel must keep plate count", originalPlateCount, bed.plateCount)
+            assertEquals("picker cancel must keep every plate's model count", originalObjectsPerPlate,
+                readPlateModels(bed).map { it.objectsCount })
+            assertFalse("picker cancel must not start a background model import",
+                BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                    .apply { isAccessible = true }.getBoolean(bed))
+            assertFalse("picker cancel must not activate temporary project settings",
+                TemporaryProjectSettings.active)
         } finally {
             launchers[requestCode] = previousLauncher
         }
@@ -4861,6 +4995,187 @@ class InitialProjectMenuDeviceTest {
             launchers[requestCode] = previousLauncher
             inputFile.delete()
             cachedImport.delete()
+        }
+    }
+
+    @Test
+    fun projectMenuShowsReadableErrorForInvalidSvgFromTheActualPickerResult() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val inputFile = File(activity.cacheDir, "invalid-menu-import-${System.nanoTime()}.svg")
+        val requestCode = MainActivity.REQUEST_CODE_OPEN_FILE
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+
+            override fun unregister() = Unit
+        }
+        @Suppress("DEPRECATION")
+        val provider = activity.packageManager.getPackageInfo(
+            activity.packageName,
+            PackageManager.GET_PROVIDERS,
+        ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
+        val authority = requireNotNull(provider.authority).substringBefore(';')
+        try {
+            inputFile.writeText("<html>this is not an SVG document</html>")
+            val originalObjectCount = bed.currentModel?.objectsCount ?: 0
+
+            openWorkspaceMenu(activity, WorkspaceDestination.PROJECT, R.string.MenuProject)
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { capturedIntent.get() != null }
+
+            val inputUri = FileProvider.getUriForFile(activity, authority, inputFile)
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, android.app.Activity.RESULT_OK, Intent().setData(inputUri))
+            }
+
+            compose.onNodeWithText(activity.getString(R.string.MenuFileOpenFileFailed))
+                .assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(R.string.SvgImportFailedInvalid)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitForIdle()
+            assertEquals("an invalid SVG must not add any model", originalObjectCount,
+                bed.currentModel?.objectsCount ?: 0)
+        } finally {
+            launchers[requestCode] = previousLauncher
+            inputFile.delete()
+        }
+    }
+
+    @Test
+    fun projectMenuImportsThreeMfAndPreservesItsObjectFilamentAssignments() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val sourceFile = File(activity.cacheDir, "menu-three-mf-source-${System.nanoTime()}.3mf")
+        val inputFile = File(activity.cacheDir, "menu-three-mf-import-${System.nanoTime()}.3mf")
+        val cachedImport = File(SliceBeam.getModelCacheDir(), inputFile.name)
+        val requestCode = MainActivity.REQUEST_CODE_OPEN_FILE
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+            override fun unregister() = Unit
+        }
+        @Suppress("DEPRECATION")
+        val provider = activity.packageManager.getPackageInfo(
+            activity.packageName, PackageManager.GET_PROVIDERS,
+        ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
+        val authority = requireNotNull(provider.authority).substringBefore(';')
+        try {
+            InstrumentationRegistry.getInstrumentation().context.assets
+                .open("models/two-color-project.3mf").use { source ->
+                    sourceFile.outputStream().use(source::copyTo)
+                }
+            createMultiPlateProjectFixture(sourceFile, inputFile, plateCount = 2)
+            openWorkspaceMenu(activity, WorkspaceDestination.PROJECT, R.string.MenuProject)
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { capturedIntent.get() != null }
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT, requireNotNull(capturedIntent.get()).action)
+
+            val inputUri = FileProvider.getUriForFile(activity, authority, inputFile)
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, Activity.RESULT_OK, Intent().setData(inputUri))
+            }
+            compose.waitUntil(timeoutMillis = 60_000) {
+                bed.plateCount == 2 && bed.currentModel?.objectsCount == 1
+            }
+            val model = requireNotNull(bed.currentModel)
+            assertEquals("the first project plate retains its object", 1, model.objectsCount)
+            assertEquals("the imported 3MF build plates must remain separate", 2, bed.plateCount)
+
+            val tools = AtomicReference<IntArray?>()
+            val triangleCounts = AtomicReference<IntArray?>()
+            val readFinished = CountDownLatch(1)
+            glView.queueEvent {
+                val imported = requireNotNull(bed.currentModel)
+                tools.set(imported.getUsedFilaments(0))
+                triangleCounts.set(IntArray(imported.objectsCount) { imported.getTriangleCount(it) })
+                readFinished.countDown()
+            }
+            assertTrue("GL thread should return imported 3MF state", readFinished.await(10, TimeUnit.SECONDS))
+            assertArrayEquals("plate one keeps its original T0 assignment", intArrayOf(1),
+                requireNotNull(tools.get()))
+            assertTrue("the imported plate object must retain renderable geometry",
+                requireNotNull(triangleCounts.get()).all { it > 0 })
+            assertTrue("the picker handler must stage the 3MF in app-owned cache",
+                cachedImport.isFile && cachedImport.length() > 0L)
+
+            val secondPlateLoaded = CountDownLatch(1)
+            val secondPlateError = AtomicReference<Exception?>()
+            activity.runOnUiThread {
+                BedFragment::class.java.getDeclaredMethod(
+                    "switchPlate", Int::class.javaPrimitiveType,
+                    Boolean::class.javaPrimitiveType, BedFragment.ModelLoadCallback::class.java,
+                ).apply { isAccessible = true }.invoke(bed, 1, true,
+                    object : BedFragment.ModelLoadCallback {
+                        override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                            secondPlateLoaded.countDown()
+                        }
+                        override fun onFailed(error: Exception) {
+                            secondPlateError.set(error)
+                            secondPlateLoaded.countDown()
+                        }
+                        override fun onCancelled() {
+                            secondPlateError.set(IllegalStateException("Second 3MF plate load was cancelled"))
+                            secondPlateLoaded.countDown()
+                        }
+                    })
+            }
+            assertTrue("the second imported project plate should remain loadable",
+                secondPlateLoaded.await(30, TimeUnit.SECONDS))
+            secondPlateError.get()?.let { throw AssertionError("second imported 3MF plate failed", it) }
+            val secondPlateTools = AtomicReference<IntArray?>()
+            val secondPlateRead = CountDownLatch(1)
+            glView.queueEvent {
+                secondPlateTools.set(requireNotNull(bed.currentModel).getUsedFilaments(0))
+                secondPlateRead.countDown()
+            }
+            assertTrue("GL thread should return the second plate's imported tool", secondPlateRead.await(10, TimeUnit.SECONDS))
+            assertArrayEquals("plate two keeps its original T1 assignment", intArrayOf(2),
+                requireNotNull(secondPlateTools.get()))
+        } finally {
+            launchers[requestCode] = previousLauncher
+            sourceFile.delete()
+            inputFile.delete()
+            cachedImport.delete()
+            TemporaryProjectSettings.clear()
         }
     }
 
@@ -5569,6 +5884,24 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithTag("slice-info-title").assertIsDisplayed()
             compose.onNodeWithTag("slice-info-scheme").assertIsDisplayed()
             compose.onNodeWithTag("slice-info-seams").assertIsDisplayed()
+            compose.onNodeWithTag("slice-summary-time").assertTextContains(activity.getString(R.string.SliceSummaryTime), substring = true)
+            compose.onNodeWithTag("slice-summary-weight").assertTextContains(activity.getString(R.string.SliceSummaryWeight), substring = true)
+            compose.onNodeWithTag("slice-summary-layers").assertTextContains(activity.getString(R.string.SliceSummaryLayers), substring = true)
+            compose.onNodeWithTag("slice-summary-length").assertTextContains(activity.getString(R.string.SliceSummaryLength), substring = true)
+            compose.onNodeWithTag("slice-summary-layer-height").assertTextContains(activity.getString(R.string.SliceSummaryHeight), substring = true)
+            compose.onNodeWithTag("slice-summary-layer-height").assertTextContains("mm", substring = true)
+            compose.onNodeWithTag("slice-summary-speed").assertTextContains(activity.getString(R.string.SliceSummarySpeed), substring = true)
+            compose.onNodeWithTag("slice-summary-speed").assertTextContains("mm/s", substring = true)
+            val activePrintProfile = requireNotNull(SliceBeam.requireConfig().findPrint(SliceBeam.requireConfig().presets?.get("print")))
+            val numberFormat = NumberFormat.getNumberInstance()
+            compose.onNodeWithTag("slice-summary-layer-height").assertTextContains(
+                numberFormat.format(requireNotNull(activePrintProfile.get("layer_height")).toDouble()), substring = true)
+            compose.onNodeWithTag("slice-summary-layer-height").assertTextContains(
+                numberFormat.format(requireNotNull(activePrintProfile.get("initial_layer_print_height")).toDouble()), substring = true)
+            compose.onNodeWithTag("slice-summary-speed").assertTextContains(
+                numberFormat.format(requireNotNull(activePrintProfile.get("outer_wall_speed")).toDouble()), substring = true)
+            compose.onNodeWithTag("slice-summary-speed").assertTextContains(
+                numberFormat.format(requireNotNull(activePrintProfile.get("sparse_infill_speed")).toDouble()), substring = true)
             val alternateScheme = activity.resources.getStringArray(R.array.GCodeColorSchemes).getOrNull(1)
             assertTrue("the result should offer multiple G-code color schemes", !alternateScheme.isNullOrBlank())
             compose.onNodeWithTag("slice-info-scheme").performClick()
@@ -5654,6 +5987,17 @@ class InitialProjectMenuDeviceTest {
             } finally {
                 instrumentation.removeMonitor(chooserMonitor)
             }
+
+            revealMenuAction(activity, R.string.MenuSliceLayers)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuSliceLayers))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceToolPanelAttached("slice-layer-preview") }
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuProject)).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                !bed.isWorkspaceToolPanelAttached("slice-layer-preview") &&
+                    glView.renderer.gcodeResult == null && glView.renderer.viewer == null
+            }
+            assertFalse("Leaving the Slice destination must discard stale result state", bed.hasSliceResult())
         } finally {
             Prefs.setPerformanceModeEnabled(oldPerformanceMode)
             prefs.edit().apply {
@@ -5864,12 +6208,16 @@ class InitialProjectMenuDeviceTest {
             loadSingleTestModel(bed, modelFile)
             assertEquals(1, bed.plateCount)
 
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerCounterDescription, 1, 1),
+            )
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuAddPlate))
                 .assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 10_000) { bed.plateCount == 2 && bed.currentPlateIndex == 1 }
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerCounterDescription, 2, 2),
+            )
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.PlatePickerSelectDescription, "1"),
@@ -5930,7 +6278,9 @@ class InitialProjectMenuDeviceTest {
             assertFalse("cancelling the document picker must not create an export file", output.exists())
             assertEquals("the confirmed export is limited to the selected plate", 2, bed.plateCount)
             assertEquals("the confirmed export must not switch the selected plate", 0, bed.currentPlateIndex)
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerCounterDescription, 1, 2),
+            )
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.PlateCloseDescription,
@@ -5941,7 +6291,9 @@ class InitialProjectMenuDeviceTest {
             }
             assertEquals("closing the empty second plate must retain the model on the first plate",
                 1, bed.currentModel?.objectsCount)
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerCounterDescription, 1, 1),
+            )
                 .assertIsDisplayed()
         } finally {
             launchers[requestCode] = previousLauncher
@@ -5999,29 +6351,75 @@ class InitialProjectMenuDeviceTest {
         }
         assertTrue("Three Tools actions must occupy the same first row: $actionRows",
             actionRows.maxOrNull()!! - actionRows.minOrNull()!! < 8f * activity.resources.displayMetrics.density)
+        val panelDensity = activity.resources.displayMetrics.density
+        val toolsPanelHeightDp = compose.onNodeWithTag("workspace-menu-panel")
+            .fetchSemanticsNode().boundsInWindow.height / panelDensity
+        assertTrue("A one-row menu should wrap its three tiles without a tall empty panel: $toolsPanelHeightDp dp",
+            toolsPanelHeightDp <= 110f)
+        val toolsPanelBounds = compose.onNodeWithTag("workspace-menu-panel").fetchSemanticsNode().boundsInWindow
+        val toolsGridBounds = compose.onNodeWithTag("workspace-menu-actions-grid").fetchSemanticsNode().boundsInWindow
+        assertTrue("One-row Tools menu should not leave a blank panel below the grid",
+            (toolsPanelBounds.bottom - toolsGridBounds.bottom) / panelDensity <= 8f)
 
         openModelMenu(activity)
         compose.onNodeWithTag("model-menu-scope-object").performClick()
+        val modelPanelHeightDp = compose.onNodeWithTag("workspace-menu-panel")
+            .fetchSemanticsNode().boundsInWindow.height / panelDensity
+        assertTrue("The model scope tabs should sit directly above the two action rows: $modelPanelHeightDp dp",
+            modelPanelHeightDp <= 270f)
         val menuGrid = compose.onNodeWithTag("workspace-menu-actions-grid")
+        val modelPanelBounds = compose.onNodeWithTag("workspace-menu-panel").fetchSemanticsNode().boundsInWindow
+        val modelGridBounds = menuGrid.fetchSemanticsNode().boundsInWindow
+        assertTrue("Model scope tabs must not leave a blank panel below the action grid",
+            (modelPanelBounds.bottom - modelGridBounds.bottom) / panelDensity <= 8f)
         fun verticalScrollPosition(): Float = menuGrid.fetchSemanticsNode().config[
             SemanticsProperties.VerticalScrollAxisRange
         ].value()
-        val modelScrollStart = verticalScrollPosition()
+        var modelScrollPosition = verticalScrollPosition()
         assertTrue("Model actions beyond the first eight must be vertically scrollable",
             menuGrid.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].maxValue() > 0f)
-        menuGrid.performTouchInput { swipeUp(startY = height * 0.82f, endY = height * 0.18f) }
-        compose.waitUntil(timeoutMillis = 5_000) { verticalScrollPosition() > modelScrollStart }
+        repeat(3) {
+            val before = modelScrollPosition
+            menuGrid.performTouchInput { swipeUp(startY = height * 0.82f, endY = height * 0.18f) }
+            compose.waitUntil(timeoutMillis = 5_000) { verticalScrollPosition() > before }
+            modelScrollPosition = verticalScrollPosition()
+            menuGrid.performTouchInput { swipeDown(startY = height * 0.18f, endY = height * 0.82f) }
+            compose.waitUntil(timeoutMillis = 5_000) { verticalScrollPosition() < modelScrollPosition }
+            modelScrollPosition = verticalScrollPosition()
+        }
 
         openEditMenu(activity)
         val editGrid = compose.onNodeWithTag("workspace-menu-actions-grid")
+        val editPanelHeightDp = compose.onNodeWithTag("workspace-menu-panel")
+            .fetchSemanticsNode().boundsInWindow.height / panelDensity
+        assertTrue("A two-row menu should fit two rows without reserving extra panel space: $editPanelHeightDp dp",
+            editPanelHeightDp in 155f..220f)
+        val editPanelBounds = compose.onNodeWithTag("workspace-menu-panel").fetchSemanticsNode().boundsInWindow
+        val editGridBounds = editGrid.fetchSemanticsNode().boundsInWindow
+        assertTrue("Two-row Edit menu should not leave a blank panel below the grid",
+            (editPanelBounds.bottom - editGridBounds.bottom) / panelDensity <= 8f)
         val editScrollStart = editGrid.fetchSemanticsNode().config[
             SemanticsProperties.VerticalScrollAxisRange
         ].value()
         assertTrue("Edit actions beyond the first eight must be vertically scrollable",
             editGrid.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].maxValue() > 0f)
-        editGrid.performTouchInput { swipeUp(startY = height * 0.82f, endY = height * 0.18f) }
-        compose.waitUntil(timeoutMillis = 5_000) {
-            editGrid.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value() > editScrollStart
+        var editScrollPosition = editScrollStart
+        repeat(3) {
+            val before = editScrollPosition
+            editGrid.performTouchInput { swipeUp(startY = height * 0.82f, endY = height * 0.18f) }
+            compose.waitUntil(timeoutMillis = 5_000) {
+                editGrid.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value() > before
+            }
+            editScrollPosition = editGrid.fetchSemanticsNode().config[
+                SemanticsProperties.VerticalScrollAxisRange
+            ].value()
+            editGrid.performTouchInput { swipeDown(startY = height * 0.18f, endY = height * 0.82f) }
+            compose.waitUntil(timeoutMillis = 5_000) {
+                editGrid.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value() < editScrollPosition
+            }
+            editScrollPosition = editGrid.fetchSemanticsNode().config[
+                SemanticsProperties.VerticalScrollAxisRange
+            ].value()
         }
 
         openModelMenu(activity)
@@ -6354,8 +6752,7 @@ class InitialProjectMenuDeviceTest {
         val previousProjection = Prefs.isOrthoProjectionEnabled()
         val previousControlMode = Prefs.getCameraControlMode()
         try {
-            // Camera options moved from the removed workspace destination into App settings;
-            // the view cube remains the persistent way to change standard camera direction.
+            // Camera options and standard camera directions are available in App settings.
             activity.runOnUiThread {
                 (activity.navigationDelegate as ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate).switchToSlot(5)
             }
@@ -6430,156 +6827,6 @@ class InitialProjectMenuDeviceTest {
                 restoreGlView.requestRender()
             }
         }
-    }
-
-    @Test
-    fun cameraPresetTilesUpdateTheRendererPoseForEveryPreset() {
-        val activity = compose.activity
-        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
-        compose.onNodeWithTag("workspace-view-cube").assertIsDisplayed()
-
-        val glView = requireNotNull(bed.glView)
-        val modelBed = glView.renderer.bed!!
-        val min = requireNotNull(modelBed.getVolumeMin())
-        val max = requireNotNull(modelBed.getVolumeMax())
-        val minVector = CameraVector(min.x, min.y, min.z)
-        val maxVector = CameraVector(max.x, max.y, max.z)
-        val presets = listOf(
-            R.string.ViewCubeTop to CameraPreset.TOP,
-            R.string.ViewCubeBottom to CameraPreset.BOTTOM,
-            R.string.ViewCubeFront to CameraPreset.FRONT,
-            R.string.ViewCubeBack to CameraPreset.BACK,
-            R.string.ViewCubeLeft to CameraPreset.LEFT,
-            R.string.ViewCubeRight to CameraPreset.RIGHT,
-        )
-        presets.forEach { (faceLabel, preset) ->
-            val target = CameraPresetGeometry.resolve(preset, minVector, maxVector)
-            performViewCubeFace(faceLabel)
-            compose.waitUntil(timeoutMillis = 5_000) {
-                val pose = readCameraPoseOnGl(glView)
-                kotlin.math.abs(pose[0] - target.origin.x) < 0.1 &&
-                    kotlin.math.abs(pose[1] - target.origin.y) < 0.1 &&
-                    kotlin.math.abs(pose[2] - target.origin.z) < 0.1 &&
-                    kotlin.math.abs(pose[3] - target.position.x) < 0.1 &&
-                    kotlin.math.abs(pose[4] - target.position.y) < 0.1 &&
-                    kotlin.math.abs(pose[5] - target.position.z) < 0.1
-            }
-            // Let the renderer's spring animation settle before requesting the next preset.
-            SystemClock.sleep(900L)
-            compose.waitForIdle()
-            val pose = readCameraPoseOnGl(glView)
-            assertTrue(
-                "${activity.getString(faceLabel)} must apply its configured renderer camera pose",
-                kotlin.math.abs(pose[0] - target.origin.x) < 0.1 &&
-                    kotlin.math.abs(pose[1] - target.origin.y) < 0.1 &&
-                    kotlin.math.abs(pose[2] - target.origin.z) < 0.1 &&
-                    kotlin.math.abs(pose[3] - target.position.x) < 0.1 &&
-                    kotlin.math.abs(pose[4] - target.position.y) < 0.1 &&
-                    kotlin.math.abs(pose[5] - target.position.z) < 0.1,
-            )
-        }
-    }
-
-    @Test
-    fun rapidCameraPresetChangesKeepTheLatestSelection() {
-        val activity = compose.activity
-        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
-        val glView = requireNotNull(bed.glView)
-        val modelBed = requireNotNull(glView.renderer.bed)
-        val min = requireNotNull(modelBed.getVolumeMin())
-        val max = requireNotNull(modelBed.getVolumeMax())
-        val target = CameraPresetGeometry.resolve(
-            CameraPreset.RIGHT,
-            CameraVector(min.x, min.y, min.z),
-            CameraVector(max.x, max.y, max.z),
-        )
-
-        compose.onNodeWithTag("workspace-view-cube").assertIsDisplayed()
-        performViewCubeFace(R.string.ViewCubeTop)
-        performViewCubeFace(R.string.ViewCubeRight)
-
-        compose.waitUntil(timeoutMillis = 5_000) {
-            val pose = readCameraPoseOnGl(glView)
-            kotlin.math.abs(pose[0] - target.origin.x) < 0.1 &&
-                kotlin.math.abs(pose[1] - target.origin.y) < 0.1 &&
-                kotlin.math.abs(pose[2] - target.origin.z) < 0.1 &&
-                kotlin.math.abs(pose[3] - target.position.x) < 0.1 &&
-                kotlin.math.abs(pose[4] - target.position.y) < 0.1 &&
-                kotlin.math.abs(pose[5] - target.position.z) < 0.1
-        }
-        SystemClock.sleep(900L)
-        val finalPose = readCameraPoseOnGl(glView)
-        assertTrue(
-            "a queued earlier preset must not replace the latest camera selection",
-            kotlin.math.abs(finalPose[3] - target.position.x) < 0.1 &&
-                kotlin.math.abs(finalPose[4] - target.position.y) < 0.1 &&
-                kotlin.math.abs(finalPose[5] - target.position.z) < 0.1,
-        )
-    }
-
-    @Test
-    fun viewCubeFaceTapSelectsThatViewAndDragRotatesTheRendererCamera() {
-        val activity = compose.activity
-        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
-        val glView = requireNotNull(bed.glView)
-        val modelBed = requireNotNull(glView.renderer.bed)
-        val min = requireNotNull(modelBed.getVolumeMin())
-        val max = requireNotNull(modelBed.getVolumeMax())
-        val target = CameraPresetGeometry.resolve(
-            CameraPreset.FRONT,
-            CameraVector(min.x, min.y, min.z),
-            CameraVector(max.x, max.y, max.z),
-        )
-        val cube = compose.onNodeWithTag("workspace-view-cube").assertIsDisplayed()
-        val size = cube.fetchSemanticsNode().size
-        val polygons = WorkspaceViewCubeGeometry.project(
-            size.width.toFloat(), size.height.toFloat(),
-            Math.toRadians(-35.0).toFloat(), Math.toRadians(-25.0).toFloat(),
-        )
-        val front = requireNotNull(polygons.firstOrNull { it.face == WorkspaceViewFace.FRONT })
-        val localX = front.points.map { it.x }.average().toFloat()
-        val localY = front.points.map { it.y }.average().toFloat()
-        assertEquals(WorkspaceViewFace.FRONT,
-            WorkspaceViewCubeGeometry.hitTest(polygons, localX, localY))
-
-        cube.performTouchInput {
-            down(Offset(localX, localY))
-            up()
-        }
-        compose.waitUntil(timeoutMillis = 5_000) {
-            val pose = readCameraPoseOnGl(glView)
-            kotlin.math.abs(pose[3] - target.position.x) < 0.1 &&
-                kotlin.math.abs(pose[4] - target.position.y) < 0.1 &&
-                kotlin.math.abs(pose[5] - target.position.z) < 0.1
-        }
-        SystemClock.sleep(900L)
-        val beforeDrag = readCameraPoseOnGl(glView)
-        cube.performTouchInput {
-            val start = Offset(size.width * 0.5f, size.height * 0.5f)
-            down(start)
-            moveTo(Offset(size.width * 0.82f, size.height * 0.68f), delayMillis = 250)
-            up()
-        }
-        compose.waitUntil(timeoutMillis = 5_000) {
-            val pose = readCameraPoseOnGl(glView)
-            (3..5).any { kotlin.math.abs(pose[it] - beforeDrag[it]) > 0.1 }
-        }
-    }
-
-    private fun performViewCubeFace(faceLabelRes: Int) {
-        val activity = compose.activity
-        val label = activity.getString(
-            R.string.ViewCubeShowFace,
-            activity.getString(faceLabelRes),
-        )
-        val action = requireNotNull(
-            compose.onNodeWithTag("workspace-view-cube")
-                .fetchSemanticsNode().config[SemanticsActions.CustomActions]
-                .firstOrNull { it.label == label },
-        ) {
-                "View cube should expose accessibility action '$label'"
-        }
-        compose.runOnIdle { action.action() }
     }
 
     @Test
@@ -7378,14 +7625,14 @@ class InitialProjectMenuDeviceTest {
             glView.selectModel(0, Runnable {})
             assertEquals(1, bed.plateCount)
 
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlatePickerCounterDescription, 1, 1))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuAddPlate))
                 .assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 10_000) {
                 bed.plateCount == 2 && bed.currentPlateIndex == 1
             }
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlatePickerCounterDescription, 2, 2))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.PlatePickerSelectDescription, "1"),
@@ -7407,7 +7654,7 @@ class InitialProjectMenuDeviceTest {
             }
             assertEquals("moving the selected object should keep the workspace's two plates", 2, bed.plateCount)
 
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlatePickerCounterDescription, 2, 2))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.PlatePickerSelectDescription, "1"),
@@ -7455,14 +7702,14 @@ class InitialProjectMenuDeviceTest {
             assertArrayEquals(intArrayOf(3), readUsedFilamentsOnGl(glView, 1))
             assertArrayEquals(intArrayOf(4), readUsedFilamentsOnGl(glView, 2))
 
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlatePickerCounterDescription, 1, 1))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuAddPlate))
                 .assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 10_000) {
                 bed.plateCount == 2 && bed.currentPlateIndex == 1
             }
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlatePickerCounterDescription, 2, 2))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.PlatePickerSelectDescription, "1"),
@@ -7495,7 +7742,7 @@ class InitialProjectMenuDeviceTest {
             assertEquals("the transfer must preserve the objects' relative X placement",
                 sourceBounds[1][0] - sourceBounds[0][0], targetBounds[1][0] - targetBounds[0][0], 0.03)
 
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlatePickerCounterDescription, 2, 2))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.PlatePickerSelectDescription, "1"),
@@ -7525,7 +7772,7 @@ class InitialProjectMenuDeviceTest {
                 readUsedFilamentsOnGl(glView, 2))
             assertArrayEquals("moving one selected object preserves its position", unselectedBounds,
                 readExactBoundsOnGl(glView, 2).single(), 0.03)
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlatePickerCounterDescription, 2, 2))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.PlatePickerSelectDescription, "1"),
@@ -7533,7 +7780,7 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) {
                 bed.currentPlateIndex == 0 && readObjectCountOnGl(glView) == 0
             }
-            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlatePickerCounterDescription, 1, 2))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.PlatePickerSelectDescription, "2"),
@@ -7791,6 +8038,8 @@ class InitialProjectMenuDeviceTest {
                 compose.onAllNodesWithText(activity.getString(R.string.ModelMenuObjectsShort))
                     .fetchSemanticsNodes().isNotEmpty()
             }
+            selectSingleObjectScope()
+            scrollMenuToIndex(19)
             revealMenuAction(activity, R.string.ModelMenuDeleteSelected)
             val deleteSelected = compose.onNodeWithContentDescription(
                 activity.getString(R.string.ModelMenuDeleteSelected),
@@ -8550,7 +8799,7 @@ class InitialProjectMenuDeviceTest {
             revealMenuAction(activity, R.string.MenuToolbarMove)
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarMove))
                 .assertIsDisplayed().performClick()
-            compose.onNodeWithText("Z =", substring = true).assertIsDisplayed().performClick()
+            compose.onNodeWithText("Z =", substring = true).performScrollTo().assertIsDisplayed().performClick()
             val positionField = compose.onNodeWithText(activity.getString(R.string.OrientationManualValue))
             positionField.assertIsDisplayed()
             positionField.performTextClearance()
@@ -8559,7 +8808,7 @@ class InitialProjectMenuDeviceTest {
             assertEquals("Cancelling the Z editor must preserve native Z", original.z,
                 readTranslationOnGl(glView, 0).z, 0.01)
 
-            compose.onNodeWithText("Z =", substring = true).assertIsDisplayed().performClick()
+            compose.onNodeWithText("Z =", substring = true).performScrollTo().assertIsDisplayed().performClick()
             positionField.assertIsDisplayed()
             positionField.performTextClearance()
             positionField.performTextInput("18.75")
@@ -8576,7 +8825,8 @@ class InitialProjectMenuDeviceTest {
             assertEquals("Redo should restore the confirmed Z position", 18.75,
                 readTranslationOnGl(glView, 0).z, 0.01)
 
-            compose.onNodeWithContentDescription("Z")
+            compose.onNodeWithContentDescription("Z").performScrollTo()
+                .assertIsDisplayed()
                 .performSemanticsAction(SemanticsActions.SetProgress) { setProgress -> setProgress(24f) }
             val rulerMoved = readTranslationOnGl(glView, 0)
             assertEquals("The Z ruler must preview and commit a Z translation", 24.0, rulerMoved.z, 0.01)
@@ -8627,7 +8877,7 @@ class InitialProjectMenuDeviceTest {
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
 
             fun enterAxisValue(axis: String, value: Double, confirm: Boolean) {
-                compose.onNodeWithText("$axis =", substring = true).assertIsDisplayed().performClick()
+                compose.onNodeWithText("$axis =", substring = true).performScrollTo().assertIsDisplayed().performClick()
                 val field = compose.onNodeWithText(activity.getString(R.string.OrientationManualValue))
                 field.assertIsDisplayed().performTextClearance()
                 field.performTextInput(value.toString())
@@ -9844,7 +10094,8 @@ class InitialProjectMenuDeviceTest {
                 .performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithText(activity.getString(R.string.VariableLayerTitle)).assertIsDisplayed()
             assertTrue("Variable Layer action should activate its workspace mode", bed.isVariableLayerHeightMode)
-            compose.onNodeWithText(activity.getString(R.string.ActionDone)).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.ActionDone)).performScrollTo()
+                .assertIsDisplayed().performClick()
             compose.waitForIdle()
             assertFalse("Done should close Variable Layer mode", bed.isVariableLayerHeightMode)
 
@@ -10520,7 +10771,7 @@ class InitialProjectMenuDeviceTest {
                 compose.onAllNodesWithTag("paint-filament-swatch-1").fetchSemanticsNodes().size)
             assertEquals("paint mode must expose one copy of each filament swatch", 1,
                 compose.onAllNodesWithTag("paint-filament-swatch-2").fetchSemanticsNodes().size)
-            compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(R.string.PaintWith)).assertIsDisplayed()
             compose.onNodeWithTag("workspace-docked-tool-panel").assertIsDisplayed()
             val paintViewportBounds = compose.onNodeWithTag("workspace-renderer-area")
                 .fetchSemanticsNode().boundsInRoot
@@ -11495,6 +11746,28 @@ class InitialProjectMenuDeviceTest {
         destination.writeBytes(bytes)
     }
 
+    private fun createMultiPlateProjectFixture(source: File, destination: File, plateCount: Int) {
+        require(plateCount > 1)
+        java.util.zip.ZipFile(source).use { original ->
+            java.util.zip.ZipOutputStream(destination.outputStream()).use { output ->
+                original.entries().asSequence().forEach { entry ->
+                    val bytes = original.getInputStream(entry).use { it.readBytes() }
+                    val content = if (entry.name == "Metadata/model_settings.config") {
+                        val plates = (1..plateCount).joinToString("") { plateId ->
+                            val objectId = if (plateId % 2 == 1) 1 else 2
+                            """<plate><metadata key="plater_id" value="$plateId"/><model_instance><metadata key="object_id" value="$objectId"/><metadata key="instance_id" value="0"/></model_instance></plate>"""
+                        }
+                        bytes.toString(Charsets.UTF_8).replace("</config>", "$plates</config>")
+                            .toByteArray(Charsets.UTF_8)
+                    } else bytes
+                    output.putNextEntry(java.util.zip.ZipEntry(entry.name))
+                    output.write(content)
+                    output.closeEntry()
+                }
+            }
+        }
+    }
+
     private fun writeScaledBoxStl(
         activity: MainActivity,
         destination: File,
@@ -11615,6 +11888,25 @@ class InitialProjectMenuDeviceTest {
         BedFragment::class.java.getDeclaredField("platesModels").apply { isAccessible = true }
             .get(bed).let { it as List<Model?> }.filterNotNull()
 
+    private fun snapshotRendererOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView): Bitmap {
+        val finished = CountDownLatch(1)
+        val bitmap = AtomicReference<Bitmap?>()
+        val failure = AtomicReference<Throwable?>()
+        glView.queueEvent {
+            try {
+                bitmap.set(glView.snapshotBitmap())
+            } catch (error: Throwable) {
+                failure.set(error)
+            } finally {
+                finished.countDown()
+            }
+        }
+        glView.requestRender()
+        assertTrue("GL renderer did not return a frame snapshot", finished.await(10, TimeUnit.SECONDS))
+        failure.get()?.let { throw AssertionError("Could not capture the GL renderer frame", it) }
+        return requireNotNull(bitmap.get())
+    }
+
     private fun scrollMenuToIndex(index: Int) {
         // Compact portrait menus use a four-column LazyVerticalGrid. Wide and landscape
         // layouts use a vertically scrollable action column.
@@ -11626,6 +11918,17 @@ class InitialProjectMenuDeviceTest {
     /** Brings an off-screen action into view using the menu's native vertical scroll behavior. */
     private fun revealMenuAction(activity: MainActivity, titleRes: Int) {
         val title = activity.getString(titleRes)
+        if (usesCompactPortraitLayout(activity)) {
+            // Lazy grids expose only their currently composed cells to semantics. Scroll through
+            // the real menu items first; asking Compose to scroll to a not-yet-composed node can
+            // never find late actions such as Scale, Delete, or Paint.
+            for (index in 0 until 64) {
+                if (compose.onAllNodesWithContentDescription(title).fetchSemanticsNodes().isNotEmpty()) break
+                val scrolled = runCatching { scrollMenuToIndex(index) }.isSuccess
+                if (!scrolled) break
+                compose.waitForIdle()
+            }
+        }
         compose.waitUntil(timeoutMillis = 5_000) {
             compose.onAllNodesWithContentDescription(title).fetchSemanticsNodes().isNotEmpty()
         }

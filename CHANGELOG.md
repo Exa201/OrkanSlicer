@@ -1,5 +1,63 @@
 # Changelog
 
+## 0.8.481 — Kalibrierung, Objektvorschau, Quick Slice und Modellimport — 2026-11-16
+
+- Kalibrierung erkennt Modelle auch während des Renderer-Handoffs über den Zustand der aktiven Platte.
+- Objektvorschauen verwenden jetzt ihre festgelegte Größe und zeigen die isometrische Modellhülle groß neben den vertikal geordneten Daten.
+- Quick Slice erlaubt eine validierte Brim-Breite bis 50 mm statt eines festen 5-mm-Werts.
+- Modell- und STEP-Importe werden nacheinander verarbeitet; ein Folgeimport wird gepuffert, statt mit „Ein anderes Modell wird gerade geladen“ verloren zu gehen.
+
+## 0.8.480 — Kobra-Übertragung: MMU-Synchronisierung threadsicher — 2026-11-16
+
+- MMU-/ACE-Synchronisierung wird immer auf dem Android-Main-Looper gestartet, damit LoopJ-Response-Handler nicht aus slicer-seitigen Worker-Threads ohne Looper erzeugt werden.
+- Regressionstest startet die Synchronisierung ausdrücklich von einem Thread ohne Looper und prüft die erfolgreiche Antwort.
+
+## 0.8.479 — Druckvorschau und Objektübersicht — 2026-11-16
+
+- Drucker-Vorschaubilder zeigen die vollständige Druckplatte samt Modell in isometrischer Ansicht; nur leerer Rand des Handy-Viewports wird entfernt.
+- Im Projektmenü lassen sich bis zu zehn zuletzt geöffnete Modelldateien erneut öffnen, sofern Android die dauerhafte Dokumentfreigabe gewährt.
+- Die Objektliste zeigt eine farbige isometrische Größenvorschau, X/Y/Z-Maße und die aktuelle Platte.
+
+## 0.8.478 — Filamentpalette: Direkt löschen und übernehmen — 2026-11-16
+
+- Filamentplätze lassen sich direkt aus der Workspace-Palette entfernen; eine Bestätigung schützt vor versehentlichem Löschen, der letzte Platz bleibt erhalten.
+- Der bisherige Schließen-Button heißt „Übernehmen“, weil Änderungen bereits beim Speichern im Filamenteditor dauerhaft geschrieben werden.
+- Löschaktion und Beschriftung sind für Deutsch, Englisch und Russisch ergänzt.
+
+## 0.8.477 — UI 2.1: Druckprofilfelder und Dashboard-Karten — 2026-11-16
+
+- Druckerverbindung kompakter aufgebaut, mit mehrfarbigen Printer-/Web-Vektoren und ohne doppelte Hostzeile bei großer Schrift.
+- Profilgruppen nutzen eine gemeinsame Navy-Oberfläche; Bereichsfarben bleiben als Icons und Werteakzent erhalten.
+- Numerische Druckeinstellungen zeigen Wert und Einheit nebeneinander und benötigen weniger Höhe.
+- Fehlende Orca-Beschriftungen erhalten einen lesbaren Fallback statt einer leeren Einstellungszeile.
+
+## 0.8.476 — UI 2.1: Druckwerkzeuge im Dashboard und feste CAD-Farbwelt — 2026-11-16
+
+- Turmposition und Spülvolumen sind als mehrfarbige isometrische Vektoraktionen im Dashboard erreichbar; beide öffnen dieselben Compose-Editoren und übernehmen Werte in das aktive Druckprofil.
+- Druckprofilseite von der doppelten Werkzeugleiste bereinigt.
+- App-Farbschema auf dunkles Navy/Cyan festgelegt; Theme- und Akzentfarbwahl aus den Einstellungen entfernt, ältere gespeicherte Auswahlen werden ignoriert.
+- Mehrfarbige Vektoricons in Workspace-Navigation, Profilkategorien und App-Einstellungen erweitert; schmale Header behalten 48-dp-Touchflächen ohne Überlappung.
+
+## 0.8.475 — UI 2.1: Kompakte Menüpanele und kontrastreiche Icons — 2026-11-15
+
+- Leere Fläche unter den Aktionskacheln entfällt: Ein- und Zwei-Zeilen-Menüs inklusive der Auswahlreiter im Modellmenü messen sich an ihrem Inhalt; zusätzliche Aktionen bleiben scrollbar.
+- Menüicons sind auf 30 dp vergrößert und heben sich mit kontrastierender Vordergrundfarbe klar von der Kachelfläche ab. Die Kachelgröße bleibt unverändert.
+- Geräteabnahme auf dem HONOR prüft die tatsächliche Höhe von Ein- und Zwei-Zeilen-Menüs.
+- Druckbett und 3D-Arbeitsfläche verwenden jetzt ein zurückhaltendes blaugraues CAD-Farbschema mit weniger grellem Raster, angelehnt an Solidcraft.
+- Häufige Modell- und Slice-Aktionen zeigen farbige isometrische Vektor-Piktogramme; „Kopieren“ und „Trennen“ haben kompakte, vollständige Kurzlabels.
+
+## 0.8.474 — UI 2.1: Scroll-Gesten nicht mehr abfangen — 2026-11-15
+
+- Der überlagernde Menü-Host konsumiert keine unbeanspruchten Touch-Ereignisse mehr. Scrollbare Menüs entscheiden selbst, wann ein vertikaler Wisch beginnt; ungenutzte Touches bleiben trotzdem über dem Renderer.
+- Auf dem Honor Magic7 Pro bei 480 dp / 150 %: dreimaliges Auf- und Abwärtsscrollen in „Modell“ und „Ändern“ sowie ein isolierter Scroll-Container geprüft (**2/2 Gerätetests**).
+
+## 0.8.473 — UI 2.1: Menükacheln und Touch-Scroll — 2026-11-15
+
+- Menü-Kacheln sind rund 20 % kleiner und zeigen ihre Kurzbeschriftung in einer Zeile; vollständige Aktionsnamen bleiben für TalkBack verfügbar.
+- Lange Aktionsbezeichnungen wurden auf klare, lokalisierte Kurzformen angepasst. Passende VK-Vektoricons werden für Werkzeug- und Profilaktionen verwendet.
+- Die transparente Menüfläche schirmt freie Bereiche erst nach den untergeordneten Scroll- und Klickgesten ab; das verhindert, dass vertikale Wischgesten vor dem Scroll-Container abgefangen werden.
+- Honor Magic7 Pro (480 dp, 150 % Schrift, Android 16): Modell-/Ändern-Menü scrollen per Wisch nach oben und unten; Gerätescreenshot-Abnahme ohne abgeschnittene Kurztexte.
+
 ## 0.8.472 — UI 2.1: Druckerverbindung bei großer Schrift — 2026-11-15
 
 - Die Druckerverbindungskarte ordnet Status und Web-Aktion auf schmalen Displays oder bei großer Schrift untereinander an.

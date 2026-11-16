@@ -34,4 +34,12 @@ class BedMenuActionTileWidthPolicyTest {
         assertEquals(2, BedMenuActionTileWidthPolicy.visibleRowsForActionCount(8))
         assertEquals(2, BedMenuActionTileWidthPolicy.visibleRowsForActionCount(9))
     }
+
+    @Test
+    fun portraitMenuTilesAreReducedByTwentyPercentWithoutFallingBelowTouchSize() {
+        assertEquals(75, BedMenuActionTileWidthPolicy.reducedTileSizeDp(94))
+        assertEquals(89, BedMenuActionTileWidthPolicy.reducedTileSizeDp(112))
+        assertEquals(48, BedMenuActionTileWidthPolicy.reducedTileSizeDp(48))
+        assertEquals(61, BedMenuActionTileWidthPolicy.reducedTileSizeDp(77))
+    }
 }

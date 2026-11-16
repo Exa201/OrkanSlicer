@@ -55,7 +55,7 @@ object ProfileOptionComposePresenter {
             }
             val nozzle = LineWidthConversion.nozzle(printer?.get("nozzle_diameter"))
             if (nozzle != null) {
-                ComposeLineWidthOption.Content(localized(def.getLabel()), initialValue, nozzle,
+                ComposeLineWidthOption.Content(optionLabel(def), initialValue, nozzle,
                     LineWidthConversion.maxPercent(def.key),
                     if (def.key == "bridge_line_width") localized(def.tooltip) else null, onChanged)
                 return
@@ -63,14 +63,14 @@ object ProfileOptionComposePresenter {
         }
         when (ProfileOptionDirectComposePolicy.kind(def, elementIndex, initialValue)) {
             ProfileOptionDirectComposePolicy.Kind.BOOLEAN -> ComposeProfileBooleanOption.Content(
-                localized(def.getLabel()),
+                optionLabel(def),
                 initialValue == "1",
                 Consumer { checked -> onChanged.accept(if (checked) "1" else "0") },
                 onLongClick,
             )
 
             ProfileOptionDirectComposePolicy.Kind.NUMBER -> ComposeProfileNumericOption.Content(
-                localized(def.getLabel()),
+                optionLabel(def),
                 initialValue,
                 localized(def.sidetext),
                 localized(def.tooltip),
@@ -92,7 +92,7 @@ object ProfileOptionComposePresenter {
                     localizedCopy(def.enumLabels), def.enumValues, integerEnum,
                 )
                 ComposeProfileOpenOption.Content(
-                    localized(def.getLabel()),
+                    optionLabel(def),
                     initialValue,
                     localized(def.tooltip),
                     localized(def.sidetext),
@@ -108,7 +108,7 @@ object ProfileOptionComposePresenter {
             }
 
             ProfileOptionDirectComposePolicy.Kind.COLOR -> ComposeProfileColorOption.Content(
-                localized(def.getLabel()),
+                optionLabel(def),
                 initialValue,
                 colorPicker(onChanged),
                 onLongClick,
@@ -131,7 +131,7 @@ object ProfileOptionComposePresenter {
                     values = Arrays.copyOf(sourceValues, count)
                 }
                 ComposeProfileEnumOption.Content(
-                    localized(def.getLabel()), initialValue, labels, values, onChanged, onLongClick,
+                    optionLabel(def), initialValue, labels, values, onChanged, onLongClick,
                     onEditorStateChanged,
                 )
             }
@@ -141,7 +141,7 @@ object ProfileOptionComposePresenter {
                 val sourceValues = def.enumValues.orEmpty()
                 val count = minOf(sourceLabels.size, sourceValues.size)
                 ComposeProfileEnumVectorOption.Content(
-                    localized(def.getLabel()),
+                    optionLabel(def),
                     initialValue,
                     Array(count) { localized(sourceLabels[it]) },
                     Arrays.copyOf(sourceValues, count),
@@ -162,7 +162,7 @@ object ProfileOptionComposePresenter {
                 val logicalCount = physicalExtruderLogicalCount(def)
                 val vectorValue = physicalExtruderDisplayValue(def, initialValue, logicalCount)
                 ComposeProfileVectorOption.Content(
-                    localized(def.getLabel()), vectorValue, localized(def.sidetext),
+                    optionLabel(def), vectorValue, localized(def.sidetext),
                     physicalExtruderDescription(def, localized(def.tooltip)),
                     if (def.key == "physical_extruder_map") 0f else def.min,
                     if (def.key == "physical_extruder_map") (logicalCount - 1).coerceAtLeast(0).toFloat() else def.max,
@@ -183,7 +183,7 @@ object ProfileOptionComposePresenter {
                     else -> ProfilePointValueValidator.Kind.POINT3
                 }
                 ComposeProfilePointOption.Content(
-                    localized(def.getLabel()),
+                    optionLabel(def),
                     initialValue,
                     localized(def.tooltip),
                     pointKind,
@@ -195,7 +195,7 @@ object ProfileOptionComposePresenter {
             }
 
             ProfileOptionDirectComposePolicy.Kind.STRING_VECTOR -> ComposeProfileStringVectorOption.Content(
-                localized(def.getLabel()),
+                optionLabel(def),
                 initialValue,
                 localized(def.tooltip),
                 def.multiline,
@@ -209,7 +209,7 @@ object ProfileOptionComposePresenter {
             )
 
             ProfileOptionDirectComposePolicy.Kind.STRING -> ComposeProfileStringOption.Content(
-                localized(def.getLabel()),
+                optionLabel(def),
                 initialValue,
                 localized(def.tooltip),
                 isPasswordOption(def),
@@ -223,7 +223,7 @@ object ProfileOptionComposePresenter {
             )
 
             ProfileOptionDirectComposePolicy.Kind.FALLBACK -> ComposeProfileFallbackOption.Content(
-                localized(def.getLabel()),
+                optionLabel(def),
                 localized(def.getFullLabel()),
                 localized(def.tooltip),
                 def,
@@ -266,7 +266,7 @@ object ProfileOptionComposePresenter {
         if (integerOpenEnum || floatOpenEnum) {
             val labels = localizedCopy(def.enumLabels)
             return ComposeProfileOpenOption.create(
-                localized(def.getLabel()), normalizedProvider(valueProvider), localized(def.tooltip),
+                optionLabel(def), normalizedProvider(valueProvider), localized(def.tooltip),
                 localized(def.sidetext), labels, def.enumValues,
                 integerOpenEnum, integerOpenEnum,
                 def.type == ConfigOptionDef.ConfigOptionType.PERCENT,
@@ -276,7 +276,7 @@ object ProfileOptionComposePresenter {
 
         if (def.guiType == ConfigOptionDef.GUIType.COLOR) {
             return ComposeProfileColorOption.create(
-                localized(def.getLabel()),
+                optionLabel(def),
                 normalizedProvider(valueProvider),
                 colorPicker(onChanged),
                 onLongClick,
@@ -305,7 +305,7 @@ object ProfileOptionComposePresenter {
                 values = Arrays.copyOf(sourceValues, count)
             }
             return ComposeProfileEnumOption.create(
-                localized(def.getLabel()), normalizedProvider(valueProvider), labels, values, onChanged, onLongClick,
+                optionLabel(def), normalizedProvider(valueProvider), labels, values, onChanged, onLongClick,
             )
         }
 
@@ -317,7 +317,7 @@ object ProfileOptionComposePresenter {
             val labels = Array(count) { localized(sourceLabels[it]) }
             val values = Arrays.copyOf(sourceValues, count)
             return ComposeProfileEnumVectorOption.create(
-                localized(def.getLabel()), normalizedProvider(valueProvider), labels, values, onChanged, onLongClick,
+                optionLabel(def), normalizedProvider(valueProvider), labels, values, onChanged, onLongClick,
             )
         }
 
@@ -335,7 +335,7 @@ object ProfileOptionComposePresenter {
                 physicalExtruderDisplayValue(def, valueProvider.get().orEmpty(), logicalCount)
             } else normalizedProvider(valueProvider)
             return ComposeProfileVectorOption.create(
-                localized(def.getLabel()), provider, localized(def.sidetext),
+                optionLabel(def), provider, localized(def.sidetext),
                 physicalExtruderDescription(def, localized(def.tooltip)),
                 if (def.key == "physical_extruder_map") 0f else def.min,
                 if (def.key == "physical_extruder_map") (logicalCount - 1).coerceAtLeast(0).toFloat() else def.max,
@@ -356,7 +356,7 @@ object ProfileOptionComposePresenter {
         }
         if (pointKind != null) {
             return ComposeProfilePointOption.create(
-                localized(def.getLabel()), normalizedProvider(valueProvider), localized(def.tooltip), pointKind,
+                optionLabel(def), normalizedProvider(valueProvider), localized(def.tooltip), pointKind,
                 def.type == ConfigOptionDef.ConfigOptionType.POINTS && elementIndex == -1,
                 onChanged, onLongClick,
             )
@@ -368,7 +368,7 @@ object ProfileOptionComposePresenter {
             def.type == ConfigOptionDef.ConfigOptionType.FLOAT_OR_PERCENT
         ) {
             return ComposeProfileNumericOption.create(
-                localized(def.getLabel()), normalizedProvider(valueProvider), localized(def.sidetext),
+                optionLabel(def), normalizedProvider(valueProvider), localized(def.sidetext),
                 localized(def.tooltip), def.min, def.max,
                 def.type == ConfigOptionDef.ConfigOptionType.INT,
                 def.type == ConfigOptionDef.ConfigOptionType.PERCENT ||
@@ -383,7 +383,7 @@ object ProfileOptionComposePresenter {
             elementIndex == -1 && ProfileStringVectorCodec.parse(valueProvider.get().orEmpty()) != null
         ) {
             return ComposeProfileStringVectorOption.create(
-                localized(def.getLabel()), normalizedProvider(valueProvider), localized(def.tooltip), def.multiline,
+                optionLabel(def), normalizedProvider(valueProvider), localized(def.tooltip), def.multiline,
                 def.height.takeIf { it > 0 } ?: 8,
                 localizedCopy(def.enumLabels), def.enumValues, onChanged, onLongClick, def.key,
             )
@@ -395,7 +395,7 @@ object ProfileOptionComposePresenter {
             elementIndex == -1 && def.guiType != ConfigOptionDef.GUIType.COLOR
         ) {
             return ComposeProfileStringOption.create(
-                localized(def.getLabel()), normalizedProvider(valueProvider), localized(def.tooltip),
+                optionLabel(def), normalizedProvider(valueProvider), localized(def.tooltip),
                 isPasswordOption(def),
                 def.multiline, def.height.takeIf { it > 0 } ?: 8,
                 localizedCopy(def.enumLabels), def.enumValues, onChanged, onLongClick,
@@ -432,7 +432,7 @@ object ProfileOptionComposePresenter {
     ): ProfileSettingsComposeItem {
         val choices = fallbackChoices(context, def)
         return ComposeProfileFallbackOption.create(
-            localized(def.getLabel()),
+            optionLabel(def),
             localized(def.getFullLabel()),
             localized(def.tooltip),
             def,
@@ -466,6 +466,14 @@ object ProfileOptionComposePresenter {
         onChanged.accept(String.format("#%06X", color and 0xFFFFFF))
     }
 
+    private fun optionLabel(def: ConfigOptionDef): String {
+        val label = localized(def.getLabel()).takeIf { it.isNotBlank() }
+            ?: localized(def.getFullLabel()).takeIf { it.isNotBlank() }
+        if (label != null) return label
+        val keyLabel = localized(def.key).takeIf { it.isNotBlank() && it != def.key }
+            ?: def.key.replace('_', ' ').replaceFirstChar { it.uppercase() }
+        return keyLabel
+    }
     private fun localized(value: String?): String =
         if (value.isNullOrEmpty()) "" else Slic3rLocalization.getString(value)
 

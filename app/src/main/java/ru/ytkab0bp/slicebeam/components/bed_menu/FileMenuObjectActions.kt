@@ -105,6 +105,11 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                     objectIndex = index,
                     heightMm = dz,
                     sizeMm3 = dx * dy * dz,
+                    widthMm = dx,
+                    depthMm = dy,
+                    plateNumber = fragment.currentPlateIndex + 1,
+                    plateCount = fragment.plateCount.coerceAtLeast(1),
+                    previewMesh = snapshot.model.getObjectPreviewMesh(index),
                 )
             }
             if (rows.isEmpty()) {

@@ -53,11 +53,23 @@ fun OrkanIconBadge(
     val section = LocalOrkanSection.current
     val start = if (section == OrkanSection.DEFAULT) MaterialTheme.colorScheme.primary else section.accent
     val end = if (section == OrkanSection.DEFAULT) MaterialTheme.colorScheme.secondary else section.secondary
+    val isometricAsset = when (iconRes) {
+        R.drawable.menu3d_arrange, R.drawable.menu3d_center, R.drawable.menu3d_combine,
+        R.drawable.menu3d_duplicate, R.drawable.menu3d_file_export, R.drawable.menu3d_file_import,
+        R.drawable.menu3d_fill_bed, R.drawable.menu3d_layers, R.drawable.menu3d_move,
+        R.drawable.menu3d_move_plate, R.drawable.menu3d_objects, R.drawable.menu3d_place,
+        R.drawable.menu3d_printer_send, R.drawable.menu3d_quick_slice, R.drawable.menu3d_rotate,
+        R.drawable.menu3d_scale, R.drawable.menu3d_smart_slice, R.drawable.menu3d_split,
+        R.drawable.menu3d_tools, R.drawable.menu3d_tune, R.drawable.menu3d_prime_tower,
+        R.drawable.menu3d_purge_volume, R.drawable.menu3d_spool, R.drawable.menu3d_printer -> true
+        else -> false
+    }
     Box(
         modifier = modifier
             .size(size)
             .clip(RoundedCornerShape(size * 0.32f))
-            .background(Brush.linearGradient(listOf(start, end)))
+            .then(if (isometricAsset) Modifier.background(Color(0xFF202B42))
+                else Modifier.background(Brush.linearGradient(listOf(start, end))))
             .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -67,7 +79,8 @@ fun OrkanIconBadge(
             modifier = Modifier.size(size * 0.52f),
             // Dark, section-specific line art keeps at least 4.5:1 contrast against
             // the saturated accent badge on both light and dark app themes.
-            tint = if (section == OrkanSection.DEFAULT) MaterialTheme.colorScheme.onPrimary
+            tint = if (isometricAsset) Color.Unspecified
+                else if (section == OrkanSection.DEFAULT) MaterialTheme.colorScheme.onPrimary
                 else section.iconAccent,
         )
         Box(

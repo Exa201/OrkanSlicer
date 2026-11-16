@@ -51,6 +51,31 @@ class QuickSliceProfileTransactionTest {
     }
 
     @Test
+    fun customBrimWidthIsWrittenToTheQuickProfileAndTemporaryProjectSettings() {
+        val config = sampleConfig()
+        val result = QuickSliceProfileTransaction.apply(
+            config,
+            QuickSliceProfileTransaction.Values("0.16", "22", supports = false, brim = true, brimWidth = "3.5"),
+        ) { true }
+
+        assertEquals(QuickSliceProfileTransaction.Result.SAVED, result)
+        assertEquals("3.5", config.findPrint(QuickSliceProfileTransaction.PROFILE_NAME)?.get("brim_width"))
+
+        TemporaryProjectSettings.activate(ThreeMfProjectSettings("project.3mf", mapOf("brim_width" to "5"), emptyList(), emptyMap()))
+        try {
+            QuickSliceProfileTransaction.apply(
+                config,
+                QuickSliceProfileTransaction.Values("0.16", "22", supports = false, brim = true, brimWidth = "3.5"),
+            ) { error("Temporary project settings must not be persisted") }
+            val effective = ConfigObject()
+            TemporaryProjectSettings.applyTo(effective)
+            assertEquals("3.5", effective["brim_width"])
+        } finally {
+            TemporaryProjectSettings.clear()
+        }
+    }
+
+    @Test
     fun failedSaveRestoresExistingQuickProfileAndActivePrintSelection() {
         val config = sampleConfig().apply {
             printConfigs.add(ConfigObject(QuickSliceProfileTransaction.PROFILE_NAME).apply {

@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -79,7 +81,10 @@ internal fun VariableLayerHeightPanel(
     }
 
     LaunchedEffect(glView) { refreshStatus() }
-    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(
+        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         Text(stringResource(R.string.VariableLayerTitle), style = MaterialTheme.typography.titleMedium)
         Text(stringResource(R.string.VariableLayerStatus))
         Text(stringResource(status), color = MaterialTheme.colorScheme.primary)

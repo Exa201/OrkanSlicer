@@ -909,8 +909,13 @@ object SliceUploadController {
                     return@request
                 }
                 try {
+                    val sceneBitmap = cropPrinterPreviewToScene(bitmap)
                     val stream = ByteArrayOutputStream()
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                    try {
+                        sceneBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                    } finally {
+                        if (sceneBitmap !== bitmap) sceneBitmap.recycle()
+                    }
                     finish(stream.toByteArray())
                 } catch (error: Exception) {
                     Log.w("SliceMenu", "Could not encode the printer preview image", error)
@@ -1014,23 +1019,17 @@ object SliceUploadController {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val png = ByteArrayOutputStream()
         try {
-            val targetRatio = width.toFloat() / height.toFloat()
-            val sourceRatio = source.width.toFloat() / source.height.toFloat()
-            val sourceRect = if (sourceRatio > targetRatio) {
-                val cropWidth = (source.height * targetRatio).toInt().coerceIn(1, source.width)
-                val left = (source.width - cropWidth) / 2
-                Rect(left, 0, left + cropWidth, source.height)
-            } else {
-                val cropHeight = (source.width / targetRatio).toInt().coerceIn(1, source.height)
-                val top = (source.height - cropHeight) / 2
-                Rect(0, top, source.width, top + cropHeight)
-            }
             val canvas = Canvas(bitmap)
             canvas.drawColor(Color.rgb(35, 39, 45))
+            val scale = minOf(width.toFloat() / source.width, height.toFloat() / source.height)
+            val scaledWidth = (source.width * scale).toInt().coerceAtLeast(1)
+            val scaledHeight = (source.height * scale).toInt().coerceAtLeast(1)
+            val left = (width - scaledWidth) / 2
+            val top = (height - scaledHeight) / 2
             canvas.drawBitmap(
                 source,
-                sourceRect,
-                Rect(0, 0, width, height),
+                null,
+                Rect(left, top, left + scaledWidth, top + scaledHeight),
                 Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG or Paint.DITHER_FLAG),
             )
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, png)
@@ -1039,5 +1038,50 @@ object SliceUploadController {
         }
         val encoded = Base64.encodeToString(png.toByteArray(), Base64.NO_WRAP)
         return AnycubicGCodeProcessor.formatThumbnailBlock(width, height, encoded, isTop)
+    }
+
+    /** Crops only the blank GL viewport around the plate; model and plate pixels are never center-cropped. */
+    internal fun cropPrinterPreviewToScene(source: Bitmap): Bitmap {
+        if (source.width < 3 || source.height < 3) return source
+        val corners = intArrayOf(
+            source.getPixel(0, 0),
+            source.getPixel(source.width - 1, 0),
+            source.getPixel(0, source.height - 1),
+            source.getPixel(source.width - 1, source.height - 1),
+        )
+        val background = intArrayOf(
+            corners.map(android.graphics.Color::red).sorted()[2],
+            corners.map(android.graphics.Color::green).sorted()[2],
+            corners.map(android.graphics.Color::blue).sorted()[2],
+        )
+        var left = source.width
+        var top = source.height
+        var right = -1
+        var bottom = -1
+        val row = IntArray(source.width)
+        for (y in 0 until source.height) {
+            source.getPixels(row, 0, source.width, 0, y, source.width, 1)
+            for (x in row.indices) {
+                val color = row[x]
+                val difference = kotlin.math.abs(android.graphics.Color.red(color) - background[0]) +
+                    kotlin.math.abs(android.graphics.Color.green(color) - background[1]) +
+                    kotlin.math.abs(android.graphics.Color.blue(color) - background[2])
+                if (difference >= 54) {
+                    left = minOf(left, x)
+                    top = minOf(top, y)
+                    right = maxOf(right, x)
+                    bottom = maxOf(bottom, y)
+                }
+            }
+        }
+        if (right <= left || bottom <= top) return source
+        val paddingX = ((right - left + 1) * 0.06f).toInt().coerceAtLeast(3)
+        val paddingY = ((bottom - top + 1) * 0.06f).toInt().coerceAtLeast(3)
+        left = (left - paddingX).coerceAtLeast(0)
+        top = (top - paddingY).coerceAtLeast(0)
+        right = (right + paddingX + 1).coerceAtMost(source.width)
+        bottom = (bottom + paddingY + 1).coerceAtMost(source.height)
+        return if (left == 0 && top == 0 && right == source.width && bottom == source.height) source
+        else Bitmap.createBitmap(source, left, top, right - left, bottom - top)
     }
 }

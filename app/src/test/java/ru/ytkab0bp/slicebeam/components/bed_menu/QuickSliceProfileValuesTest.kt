@@ -47,4 +47,13 @@ class QuickSliceProfileValuesTest {
         assertFalse(bounds.invalidInfill)
         assertEquals("100", bounds.settings?.infillPercent)
     }
+
+    @Test
+    fun brimWidthIsEditableCanonicalizedAndRangeChecked() {
+        val custom = QuickSliceProfileValues.resolve(1, "0.20", "0.20", "15", false, true, "3,50")
+        assertEquals("3.5", custom.settings?.brimWidth)
+        assertTrue(QuickSliceProfileValues.resolve(1, "0.20", "0.20", "15", false, true, "0").invalidBrimWidth)
+        assertTrue(QuickSliceProfileValues.resolve(1, "0.20", "0.20", "15", false, true, "51").invalidBrimWidth)
+        assertFalse(QuickSliceProfileValues.resolve(1, "0.20", "0.20", "15", false, false, "0").invalidBrimWidth)
+    }
 }

@@ -341,6 +341,8 @@ class Native {
     @JvmStatic
     external fun model_get_triangle_count(ptr: Long, i: Int): Int
     @JvmStatic
+    external fun model_get_object_preview_mesh(ptr: Long, objectIndex: Int, maxTriangles: Int): FloatArray
+    @JvmStatic
     external fun model_simplify(ptr: Long, i: Int, keepRatio: Float): Int
     @JvmStatic
     external fun model_smooth_mesh(ptr: Long, i: Int): Int
@@ -362,6 +364,8 @@ class Native {
     external fun model_mirror(ptr: Long, objectIndex: Int, axis: Int): Unit
     @JvmStatic
     external fun model_get_rotation(ptr: Long, objectIndex: Int): DoubleArray
+    @JvmStatic
+    external fun model_get_instance_rotation(ptr: Long, objectIndex: Int, instanceIndex: Int): DoubleArray
     @JvmStatic
     external fun model_get_bounding_box_exact(ptr: Long, i: Int): DoubleArray
     @JvmStatic

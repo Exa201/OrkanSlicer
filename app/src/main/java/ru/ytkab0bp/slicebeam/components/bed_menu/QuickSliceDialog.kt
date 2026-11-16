@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -67,6 +68,7 @@ object QuickSliceDialog {
             infill = currentPrint?.get("fill_density")?.replace("%", "") ?: "15",
             supports = currentPrint?.get("support_material") == "1",
             brim = (currentPrint?.get("brim_width")?.toDoubleOrNull() ?: 0.0) > 0.0,
+            brimWidth = currentPrint?.get("brim_width")?.takeIf { (it.toDoubleOrNull() ?: 0.0) > 0.0 } ?: "5",
         )
         fragment.showWorkspaceComposeDialog { dismiss ->
             QuickSliceDialogContent(
@@ -89,6 +91,7 @@ object QuickSliceDialog {
                             infillPercent = settings.infillPercent,
                             supports = settings.supports,
                             brim = settings.brim,
+                            brimWidth = settings.brimWidth,
                         ),
                         SliceBeam::saveConfig,
                     )) {
@@ -125,6 +128,7 @@ internal data class QuickSliceDialogOptions(
     val infill: String,
     val supports: Boolean,
     val brim: Boolean,
+    val brimWidth: String = "5",
 )
 
 @Composable
@@ -140,8 +144,10 @@ internal fun QuickSliceDialogContent(
     var infill by remember(options) { mutableStateOf(options.infill) }
     var supports by remember(options) { mutableStateOf(options.supports) }
     var brim by remember(options) { mutableStateOf(options.brim) }
+    var brimWidth by remember(options) { mutableStateOf(options.brimWidth) }
     var invalidLayerHeight by remember(options) { mutableStateOf(false) }
     var invalidInfill by remember(options) { mutableStateOf(false) }
+    var invalidBrimWidth by remember(options) { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -166,8 +172,11 @@ internal fun QuickSliceDialogContent(
                 onSupportsChanged = { supports = it },
                 brim = brim,
                 onBrimChanged = { brim = it },
+                brimWidth = brimWidth,
+                onBrimWidthChanged = { brimWidth = it; invalidBrimWidth = false },
                 invalidLayerHeight = invalidLayerHeight,
                 invalidInfill = invalidInfill,
+                invalidBrimWidth = invalidBrimWidth,
             )
         },
         confirmButton = {
@@ -180,9 +189,11 @@ internal fun QuickSliceDialogContent(
                         enteredInfill = infill,
                         supports = supports,
                         brim = brim,
+                        brimWidth = brimWidth,
                     )
                     invalidLayerHeight = result.invalidLayerHeight
                     invalidInfill = result.invalidInfill
+                    invalidBrimWidth = result.invalidBrimWidth
                     result.settings?.let { onStart(selectedPrinter, selectedFilament, it) }
                 },
                 modifier = Modifier.heightIn(min = 48.dp),
@@ -216,8 +227,11 @@ private fun QuickSliceContent(
     onSupportsChanged: (Boolean) -> Unit,
     brim: Boolean,
     onBrimChanged: (Boolean) -> Unit,
+    brimWidth: String,
+    onBrimWidthChanged: (String) -> Unit,
     invalidLayerHeight: Boolean,
     invalidInfill: Boolean,
+    invalidBrimWidth: Boolean,
 ) {
     val maxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.76f
     Column(
@@ -261,17 +275,32 @@ private fun QuickSliceContent(
         )
         QuickSliceToggle(stringResource(R.string.QuickSliceSupport), supports, onSupportsChanged)
         QuickSliceToggle(stringResource(R.string.QuickSliceBrim), brim, onBrimChanged)
+        if (brim) OutlinedTextField(
+            value = brimWidth,
+            onValueChange = onBrimWidthChanged,
+            modifier = Modifier.fillMaxWidth().testTag("quick-slice-brim-width"),
+            label = { Text(stringResource(R.string.QuickSliceBrimWidth)) },
+            supportingText = if (invalidBrimWidth) ({ Text(stringResource(R.string.QuickSliceInvalidBrimWidth)) }) else null,
+            isError = invalidBrimWidth,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        )
     }
 }
 
 @Composable
 private fun QuickSliceToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+            .clickable { onCheckedChange(!checked) },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.testTag(if (label == stringResource(R.string.QuickSliceBrim)) "quick-slice-brim-toggle" else "quick-slice-support-toggle"),
+        )
         Text(label, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp)
     }
 }
@@ -281,12 +310,14 @@ internal data class QuickSliceProfileSettings(
     val infillPercent: String,
     val supports: Boolean,
     val brim: Boolean,
+    val brimWidth: String = "5",
 )
 
 internal data class QuickSliceProfileResolution(
     val settings: QuickSliceProfileSettings?,
     val invalidLayerHeight: Boolean,
     val invalidInfill: Boolean,
+    val invalidBrimWidth: Boolean = false,
 )
 
 /** Pure validation keeps quick-slice UI values safe before they are written into Orca profiles. */
@@ -298,6 +329,7 @@ internal object QuickSliceProfileValues {
         enteredInfill: String,
         supports: Boolean,
         brim: Boolean,
+        brimWidth: String = "5",
     ): QuickSliceProfileResolution {
         val qualityDefault = when (qualityIndex) {
             0 -> "0.28"
@@ -313,15 +345,21 @@ internal object QuickSliceProfileValues {
         val rawInfill = enteredInfill.trim().replace(',', '.').ifEmpty { "15" }
         val infillNumber = rawInfill.toBigDecimalOrNull()
         val infill = infillNumber?.takeIf { it >= BigDecimal.ZERO && it <= BigDecimal("100") }?.canonical()
+        val rawBrim = brimWidth.trim().replace(',', '.').ifEmpty { "5" }
+        val brimNumber = rawBrim.toBigDecimalOrNull()
+        val validBrim = !brim || brimNumber != null && brimNumber > BigDecimal.ZERO && brimNumber <= BigDecimal("50")
+        val normalizedBrim = brimNumber?.takeIf { validBrim }?.canonical() ?: "5"
         val invalidLayer = layer == null
         val invalidInfill = infill == null
-        val settings = if (invalidLayer || invalidInfill) null else QuickSliceProfileSettings(
+        val invalidBrim = !validBrim
+        val settings = if (invalidLayer || invalidInfill || invalidBrim) null else QuickSliceProfileSettings(
             layerHeight = layer!!,
             infillPercent = infill!!,
             supports = supports,
             brim = brim,
+            brimWidth = normalizedBrim,
         )
-        return QuickSliceProfileResolution(settings, invalidLayer, invalidInfill)
+        return QuickSliceProfileResolution(settings, invalidLayer, invalidInfill, invalidBrim)
     }
 
     private fun BigDecimal.canonical(): String = stripTrailingZeros().toPlainString()

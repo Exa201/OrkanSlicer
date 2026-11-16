@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,18 +27,22 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import kotlin.math.ceil
 import androidx.compose.ui.platform.testTag
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
@@ -70,8 +75,8 @@ internal fun WorkspaceShell(
     projectSettingsContent: @Composable () -> Unit,
     profileStatusContent: @Composable () -> Unit,
     filamentButtonContent: @Composable () -> Unit,
+    dashboardPrintToolsContent: @Composable () -> Unit = {},
     platePickerContent: @Composable () -> Unit,
-    viewCubeContent: @Composable () -> Unit,
     printerWebButtonContent: @Composable () -> Unit,
     modePanelContent: (@Composable () -> Unit)?,
     modePanelSize: WorkspacePanelSize?,
@@ -81,6 +86,8 @@ internal fun WorkspaceShell(
     transientPanelContent: (@Composable () -> Unit)?,
     snackbarController: WorkspaceSnackbarController,
 ) {
+    var visibleMenuHeightDp by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
     val toolPanelHeightDp = WorkspaceToolPanelPolicy.menuHeightDp(
         toolPanelNeedsTwoRows,
         LocalBeamLayoutFontScale.current,
@@ -96,7 +103,15 @@ internal fun WorkspaceShell(
         LocalBeamLayoutFontScale.current,
         portrait,
     )
-    val headerActionWeight = if (LocalConfiguration.current.screenWidthDp <= 320) 2f else 1.45f
+    val headerWidthDp = LocalConfiguration.current.screenWidthDp
+    // Two extra 48-dp print actions must never overlap the printer/profile status.
+    // On narrow phones the filament shortcut remains available from the top Filament tab.
+    val showHeaderFilamentShortcut = headerWidthDp >= 480
+    val headerActionWeight = when {
+        headerWidthDp < 360 -> 1.85f
+        headerWidthDp < 480 -> 1.4f
+        else -> 1.15f
+    }
     val navigationItems = WorkspaceDestination.visibleNavigationDestinations.map { destination ->
         val compactTitle = when (destination) {
             WorkspaceDestination.PROJECT -> ru.ytkab0bp.slicebeam.R.string.MenuFileCompact
@@ -129,36 +144,41 @@ internal fun WorkspaceShell(
             modifier = modifier
             .fillMaxWidth()
                 .testTag("workspace-header")
-                // Keep the usual compact header height, but let long localized/profile
-                // text grow it when needed. A fixed height clipped wrapped profile names
-                // at large accessibility text sizes.
-                .heightIn(min = WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(LocalBeamLayoutFontScale.current).dp)
+                // Keep the renderer viewport stationary while app/system text zoom
+                // changes. The concise model label wraps within a fixed-height row;
+                // TalkBack receives the complete selected profile description.
+                .height(WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp().dp)
                 .padding(horizontal = 6.dp, vertical = 4.dp),
         ) {
             Box(
-                modifier = Modifier.weight(1f).widthIn(min = 0.dp).heightIn(min = OrkanUiTokens.touchTarget),
+                modifier = Modifier.weight(1f).widthIn(min = 0.dp)
+                    .heightIn(min = OrkanUiTokens.touchTarget)
+                    .testTag("workspace-header-profile-status"),
             ) { profileStatusContent() }
             Row(
-                // Reserve enough finite width for all four 48 dp targets at 320 dp
-                // and 360 dp phone widths. The printer card yields width first; the
-                // weighted constraint also keeps this scroller safe in landscape.
-                modifier = Modifier.weight(headerActionWeight).horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(OrkanUiTokens.compactGap),
+                // Spread the compact controls through the available dashboard header
+                // instead of leaving a large unused strip after the last icon.
+                // Their fixed touch targets still fit the smallest supported width.
+                modifier = Modifier.weight(headerActionWeight).fillMaxWidth()
+                    .testTag("workspace-header-actions"),
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 // Active tools own their relevant controls and may render their own
                 // filament selector (color paint does). Suppress the global shortcut
                 // for docked and modal hosts, so both presentations cannot expose two
                 // competing filament rows during tool activation or dismissal.
-                if (modePanelContent == null) {
-                    WorkspaceActionControl(filamentButtonContent)
+                if (modePanelContent == null && showHeaderFilamentShortcut) {
+                    WorkspaceActionControl(filamentButtonContent, testTag = "workspace-header-filament-action")
+                }
+                if (modePanelContent == null && transientPanelContent == null) {
+                    dashboardPrintToolsContent()
                 }
                 WorkspaceActionControl(
                     platePickerContent,
-                    allowVerticalGrowth = true,
                     targetWidth = OrkanUiTokens.plateCounterWidth,
+                    testTag = "workspace-header-plate-action",
                 )
-                WorkspaceActionControl(viewCubeContent)
-                WorkspaceActionControl(printerWebButtonContent)
+                WorkspaceActionControl(printerWebButtonContent, testTag = "workspace-header-printer-action")
             }
         }
     }
@@ -191,9 +211,18 @@ internal fun WorkspaceShell(
                                 slot = activeMenuSlot,
                                 composeContentForSlot = menuComposeContentForSlot,
                                 modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                                    .height(overlayHeightDp.dp)
+                                    .heightIn(max = overlayHeightDp.dp)
+                                    .wrapContentHeight(align = Alignment.Bottom)
                                     .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
                                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f))
+                                    .onGloballyPositioned { coordinates ->
+                                        val measuredHeight = with(density) {
+                                            coordinates.size.height.toDp().value.toInt()
+                                        }
+                                        if (measuredHeight != visibleMenuHeightDp) {
+                                            visibleMenuHeightDp = measuredHeight
+                                        }
+                                    }
                                     .testTag("workspace-menu-panel"),
                             )
                         }
@@ -310,7 +339,9 @@ internal fun WorkspaceShell(
           controller = snackbarController,
           portrait = portrait,
           toolPanelExpanded = toolPanelExpanded,
-          toolPanelHeightDp = toolPanelHeightDp,
+          // Use the measured visible rows, not the maximum two-row reservation. This
+          // brings progress snackbars lower while keeping them clear of menu actions.
+          toolPanelHeightDp = visibleMenuHeightDp.takeIf { it > 0 } ?: toolPanelHeightDp,
           navigationHeightDp = navigationHeightDp,
           startInsetDp = if (portrait) 8 else
               AdaptiveNavigationPolicy.navigationRailWidthDp(LocalBeamLayoutFontScale.current) + menuWidthDp + 8,
@@ -326,11 +357,10 @@ private fun WorkspaceMenuHost(
 ) {
     AnimatedContent(
         targetState = slot,
-        // The portrait menu floats above the GL viewport. Claim otherwise-unhandled
-        // gestures in its empty padding/gaps so they cannot fall through and rotate,
-        // pick, or paint the model underneath. Clickable/scrollable menu children
-        // consume their own events before this host sees them and keep working normally.
-        modifier = modifier.consumeUnclaimedPointerEvents(),
+        // Keep the full panel in Compose's hit-test chain so empty padding cannot start a
+        // GL gesture. The observer below deliberately never consumes; Lazy grids and tile
+        // click/long-press gestures must arbitrate touch normally, as in the regular app.
+        modifier = modifier.observeMenuPointerEvents(),
         transitionSpec = {
             val direction = if (targetState > initialState) 1 else -1
             (slideInHorizontally(tween(220)) { direction * it / 3 } + fadeIn(tween(180))) togetherWith
@@ -344,17 +374,11 @@ private fun WorkspaceMenuHost(
     }
 }
 
-/** Stops pointer events in transparent menu padding from reaching the renderer below. */
-internal fun Modifier.consumeUnclaimedPointerEvents(): Modifier = pointerInput(Unit) {
+/** Keeps this overlay in the hit-test chain without claiming any gesture from its children. */
+internal fun Modifier.observeMenuPointerEvents(): Modifier = pointerInput(Unit) {
     awaitPointerEventScope {
         while (true) {
-            // Main dispatches from the deepest child back to this host. That lets
-            // a clicked button or scroll container consume first; only empty gaps
-            // remain unconsumed when this parent shields the event.
-            val event = awaitPointerEvent(PointerEventPass.Main)
-            event.changes.forEach { change ->
-                if (!change.isConsumed) change.consume()
-            }
+            awaitPointerEvent(PointerEventPass.Final)
         }
     }
 }
@@ -364,6 +388,7 @@ internal fun WorkspaceActionControl(
     content: @Composable () -> Unit,
     allowVerticalGrowth: Boolean = false,
     targetWidth: androidx.compose.ui.unit.Dp = OrkanUiTokens.touchTarget,
+    testTag: String? = null,
 ) {
     Box(
         // Preserve the compact target at normal text sizes while allowing content such
@@ -371,7 +396,7 @@ internal fun WorkspaceActionControl(
         modifier = Modifier.width(targetWidth).then(
             if (allowVerticalGrowth) Modifier.heightIn(min = OrkanUiTokens.touchTarget)
             else Modifier.height(OrkanUiTokens.touchTarget),
-        ),
+        ).then(testTag?.let(Modifier::testTag) ?: Modifier),
         contentAlignment = androidx.compose.ui.Alignment.Center,
     ) { content() }
 }
@@ -379,17 +404,11 @@ internal fun WorkspaceActionControl(
 /** Measurable policy for the portion of a compact workspace reserved for the actual build plate. */
 internal object WorkspaceShellLayoutPolicy {
     const val MIN_LANDSCAPE_SIDE_PANEL_WIDTH_DP = 360
-    private const val MAX_APP_TEXT_SCALE = 1.5f
+    private const val WORKSPACE_HEADER_HEIGHT_DP = 80
 
-    /** Stable header geometry with room for its two profile lines at the app zoom maximum. */
+    /** Fixed workspace geometry sized to keep the profile text readable at maximum zoom. */
     @JvmStatic
-    fun workspaceHeaderHeightDp(systemFontScale: Float): Int {
-        val stableScale = (systemFontScale.takeIf { it.isFinite() && it > 0f } ?: 1f) * MAX_APP_TEXT_SCALE
-        // 18sp title line plus a 12sp summary with a small font-metric safety margin,
-        // then the fixed vertical padding around the header row.
-        val contentHeight = ceil(33f * stableScale).toInt().coerceAtLeast(48)
-        return contentHeight + 8
-    }
+    fun workspaceHeaderHeightDp(): Int = WORKSPACE_HEADER_HEIGHT_DP
 
     /** Keeps the renderer at full viewport size while fitting the expanded action menu over it. */
     @JvmStatic

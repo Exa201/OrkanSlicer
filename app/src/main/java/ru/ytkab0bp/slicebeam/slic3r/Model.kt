@@ -342,6 +342,11 @@ open class Model private constructor(@JvmField var pointer: Long) {
     open fun getTriangleCount(i: Int): Int =
         if (!hasObject(i)) 0 else Native.model_get_triangle_count(pointer, i)
 
+    /** A bounded triangle sample for small object-list thumbnails; large meshes use a bounds preview. */
+    open fun getObjectPreviewMesh(i: Int, maxTriangles: Int = 96): FloatArray =
+        if (!hasObject(i) || maxTriangles !in 4..256 || getTriangleCount(i) > 5_000) FloatArray(0)
+        else Native.model_get_object_preview_mesh(pointer, i, maxTriangles)
+
     open fun simplify(i: Int, keepRatio: Float): Int {
         if (!hasObject(i) || !keepRatio.isFinite() || keepRatio <= 0f || keepRatio > 1f) return 0
         val result = Native.model_simplify(pointer, i, keepRatio)
@@ -478,6 +483,12 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     open fun getRotation(i: Int, vec: Vec3d) {
         val rotation = Native.model_get_rotation(pointer, i)
+        vec.set(rotation[0], rotation[1], rotation[2])
+    }
+
+    /** Returns the arranged transform rotation of one object instance in radians. */
+    open fun getInstanceRotation(i: Int, instanceIndex: Int, vec: Vec3d) {
+        val rotation = Native.model_get_instance_rotation(pointer, i, instanceIndex)
         vec.set(rotation[0], rotation[1], rotation[2])
     }
 

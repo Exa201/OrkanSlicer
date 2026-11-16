@@ -86,7 +86,7 @@ fun ComposeProfileCategoryRow(
             Icon(
                 painter = painterResource(iconResource),
                 contentDescription = null,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(30.dp),
                 tint = iconTint,
             )
         } else {

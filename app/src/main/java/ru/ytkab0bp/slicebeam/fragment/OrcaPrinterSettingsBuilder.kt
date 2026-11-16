@@ -6,6 +6,7 @@ import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rLocalization
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaPrinterSettingsCatalog
+import ru.ytkab0bp.slicebeam.ui.settings.ProfileCategoryAssets
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaSettingsCategory
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaSettingsSection
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
@@ -25,7 +26,7 @@ object OrcaPrinterSettingsBuilder {
         repeat(extruderCount) { index ->
             val optionIndex = if (extruderCount == 1) -1 else index
             val title = String.format(Slic3rLocalization.getString("Extruder %d"), index + 1)
-            items.add(ProfileOptionElement(R.drawable.hashtag_outline_28, title))
+            items.add(ProfileOptionElement(R.drawable.menu3d_prime_tower, title).apply { noTint = true })
             OrcaPrinterSettingsCatalog.extruderSections().forEach { section ->
                 addSection(fragment, definition, items, section, optionIndex)
             }
@@ -43,7 +44,10 @@ object OrcaPrinterSettingsBuilder {
         items: MutableList<ProfileOptionElement>,
         category: OrcaSettingsCategory,
     ) {
-        items.add(ProfileOptionElement(category.iconResId, Slic3rLocalization.getString(category.title)))
+        val categoryIcon = ProfileCategoryAssets.iconFor(category.title, category.iconResId)
+        items.add(ProfileOptionElement(categoryIcon, Slic3rLocalization.getString(category.title)).apply {
+            noTint = categoryIcon != category.iconResId
+        })
         category.sections.forEach { section ->
             addSection(fragment, definition, items, section, -1)
         }

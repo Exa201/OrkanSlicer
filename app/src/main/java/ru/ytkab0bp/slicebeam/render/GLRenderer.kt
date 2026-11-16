@@ -93,14 +93,6 @@ private var primeTowerWidth = -1.0
 private var primeTowerDepth = -1.0
 private var primeTowerHeight = 14.0
 private val primeTowerBedHits = ArrayList<GLModel.HitResult>()
-// Inactive plates of a multi-plate project. Each Model is bed-local; offsets are the plate's
- // grid position relative to the active plate (which always renders at the origin). Models are
- // owned by BedFragment; only the GLModels here are owned by the renderer.
- private val inactivePlateModels = ArrayList<Model>()
-private val inactivePlateGlModels = ArrayList<MutableList<GLModel>>()
-private val inactivePlateOffsets = ArrayList<DoubleArray>()
-private var inactivePlateSimplePreview: Boolean? = null
-private val plateViewMatrix = DoubleArray(16)
 var gcodeResult: GCodeProcessorResult? = null
 var viewer: GCodeViewer? = null
 internal var isViewerEnabled:Boolean = false
@@ -1098,15 +1090,11 @@ if (result !== this.gcodeResult)
 {
 if (result != null) {
     // Retain the editable model, but release its rebuildable GPU meshes before
-    // allocating the G-code viewer. Inactive-plate metadata stays available.
+    // allocating the G-code viewer.
     clearModifierPreviews()
     clearAllCommittedOverlays()
     for (mesh in glModels) mesh.release()
     glModels.clear()
-    for (meshes in inactivePlateGlModels) {
-        for (mesh in meshes) mesh.release()
-        meshes.clear()
-    }
 }
 if (viewer != null)
 {
@@ -1129,18 +1117,35 @@ fun beginPrinterThumbnailCapture(): Boolean {
     printerThumbnailCaptureMode = true
     val centerX = (min.x + max.x) * 0.5
     val centerY = (min.y + max.y) * 0.5
-    val span = maxOf(max.x - min.x, max.y - min.y, 100.0)
+    val plateWidth = max.x - min.x
+    val plateDepth = max.y - min.y
+    val span = maxOf(plateWidth, plateDepth, 100.0)
+    var modelHeight = 0.0
+    val activeModel = model
+    if (activeModel != null) {
+        val lower = Vec3d()
+        val upper = Vec3d()
+        for (objectIndex in 0 until activeModel.objectsCount) {
+            activeModel.getBoundingBoxApprox(objectIndex, lower, upper)
+            modelHeight = maxOf(modelHeight, upper.z - min.z)
+        }
+    }
     camera.origin.set(centerX, centerY, min.z)
-    camera.position.set(centerX, centerY, max.z + span + 1.0)
-    camera.up.set(0.0, 1.0, 0.0)
+    // Match the useful isometric workbench view instead of a top-down silhouette. The
+    // thumbnail cropper below removes the tall phone viewport's empty background.
+    camera.position.set(centerX - span * 0.78, centerY - span * 0.78,
+        max.z + span * 0.95 + modelHeight * 0.25)
+    camera.up.set(0.0, 0.0, 1.0)
     camera.zoom = 1f
     camera.invalidate()
     updateProjection()
     val aspect = viewportWidth.coerceAtLeast(1).toDouble() / viewportHeight.coerceAtLeast(1).toDouble()
-    val plateHalfWidth = (max.x - min.x) * 0.5
-    val plateHalfHeight = (max.y - min.y) * 0.5
-    val halfHeight = maxOf(plateHalfHeight, plateHalfWidth / aspect) * 1.05
-    val halfWidth = halfHeight * aspect
+    // A square crop centered on the viewport is used by most printer screens. Fit the
+    // projected bed and the model height into that safe area before PixelCopy runs.
+    val projectedBedSpan = (plateWidth + plateDepth) * 0.5 / kotlin.math.sqrt(2.0)
+    val projectedModelSpan = projectedBedSpan * 0.78 + modelHeight * 0.72
+    val halfWidth = maxOf(projectedBedSpan, projectedModelSpan, 100.0) * 0.62
+    val halfHeight = halfWidth / aspect
     DoubleMatrix.orthoM(projectionMatrix, 0, -halfWidth, halfWidth, -halfHeight, halfHeight,
         NEAR_PLANE.toDouble(), FAR_PLANE.toDouble())
     glView?.requestRender()
@@ -1390,40 +1395,6 @@ initObjectPreview(glModel, i)
 clearModifierPreviews()
 for (glModel in glModels) glModel.release()
 glModels.clear()
-for (plateModels in inactivePlateGlModels)
-{
-for (glModel in plateModels) glModel.release()
-plateModels.clear()
-}
-// Keep plate references and offsets: returning from a picker must rebuild the
-// cheap GPU meshes without losing the other plates from the viewport.
-}
-/**
- * Replace the set of inactive plates shown around the active one. Must be called on the
- * GL thread. Pass empty lists (or null) to clear. GLModels are built lazily during draw.
- */
- fun setInactivePlates(models:List<Model>, offsets:List<DoubleArray>) {
-for (list in inactivePlateGlModels)
-{
-for (gm in list) gm.release()
-}
-inactivePlateGlModels.clear()
-inactivePlateModels.clear()
-inactivePlateOffsets.clear()
-inactivePlateSimplePreview = null
-if (models == null || offsets == null) return
-var p = 0
-while (p < models.size && p < offsets.size)
-{
-if (models.get(p) == null) {
-p++
-continue
-}
-inactivePlateModels.add(models.get(p))
-inactivePlateOffsets.add(offsets.get(p))
-inactivePlateGlModels.add(ArrayList())
-p++
-}
 }
 fun invalidateFlattenMode():Boolean {
 if (isInFlattenMode)
@@ -1482,17 +1453,6 @@ configureBed()
 if (bed!!.isValid())
 {
 bed!!.render(shadersManager!!, bottom, viewMatrix, projectionMatrix, 1f / camera.zoom)
-// Multi-plate grid: draw the other plates' beds at their offsets (edit mode only).
- if (viewer == null && !isViewerEnabled)
-{
-for (p in 0 until inactivePlateOffsets.size)
-{
-val off = inactivePlateOffsets.get(p)
-System.arraycopy(viewMatrix, 0, plateViewMatrix, 0, 16)
-DoubleMatrix.translateM(plateViewMatrix, 0, (off[0]).toDouble(), (off[1]).toDouble(), (0).toDouble())
-bed!!.render(shadersManager!!, bottom, plateViewMatrix, projectionMatrix, 1f / camera.zoom, false)
-}
-}
 }
 if (!printerThumbnailCaptureMode) {
     drawPrimeTowerPreview(viewMatrix)
@@ -1508,56 +1468,6 @@ if (viewer != null)
 {
 viewer!!.render(viewMatrix, projectionMatrix)
 }
-}
-// Models on inactive plates: plain dimmed render, no selection/paint/gizmo handling.
- if (viewer == null && !isViewerEnabled && !inactivePlateModels.isEmpty())
-{
-val simplePreview = DevicePerformancePolicy.useSimpleInactivePlatePreview(
-    Prefs.isPerformanceModeEnabled(), Prefs.isLowRamDevice(),
-    !Prefs.isLowRamDevice() && Prefs.isLowPerformancePreviewDevice(),
-)
-if (inactivePlateSimplePreview != simplePreview) {
-    for (models in inactivePlateGlModels) {
-        for (mesh in models) mesh.release()
-        models.clear()
-    }
-    inactivePlateSimplePreview = simplePreview
-}
-shader = shadersManager!!.get(GLShadersManager.SHADER_GOURAUD_LIGHT)
-shader.startUsing()
-shader.setUniform("emission_factor", 0.05f)
-shader.setUniformMatrix4fv("projection_matrix", projectionMatrix)
-val palette = if (isPaintMode) paintPalette else Prefs.getFilamentPalette()
-val inactiveColor = ColorUtils.blendARGB(if (palette.size > 0) palette[0] else cachedAccentColor, Color.GRAY, 0.45f)
-for (p in 0 until inactivePlateModels.size)
-{
-val m = inactivePlateModels.get(p)
-val off = inactivePlateOffsets.get(p)
-val list = inactivePlateGlModels.get(p)
-System.arraycopy(viewMatrix, 0, plateViewMatrix, 0, 16)
-DoubleMatrix.translateM(plateViewMatrix, 0, (off[0]).toDouble(), (off[1]).toDouble(), (0).toDouble())
-shader.setUniformMatrix4fv("view_model_matrix", plateViewMatrix)
-DoubleMatrix.setIdentityM(modelMatrix, 0)
-Slic3rUtils.calcViewNormalMatrix(plateViewMatrix, modelMatrix, normalMatrix)
-shader.setUniformMatrix3fv("view_normal_matrix", normalMatrix)
-for (i in 0 until m.objectsCount)
-{
-val left = m.isLeftHanded(i)
-if (left) glFrontFace(GL_CW)
-shader.setUniform("volume_mirrored", left)
-while (list.size <= i)
-{
-val gm = GLModel()
-if (simplePreview) gm.initBoundingBox(m, list.size) else gm.initFrom(m, list.size)
-list.add(gm)
-}
-val gm = list.get(i)
-gm.setColor(inactiveColor)
-gm.render()
-if (left) glFrontFace(GL_CCW)
-}
-}
-shader.stopUsing()
 }
 if ((viewer == null || printerThumbnailCaptureMode) && this.model != null)
 {

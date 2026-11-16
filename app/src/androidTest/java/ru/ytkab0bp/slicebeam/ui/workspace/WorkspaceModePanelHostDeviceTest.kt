@@ -40,14 +40,124 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Assert.assertTrue
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
+import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
 
 @RunWith(AndroidJUnit4::class)
 class WorkspaceModePanelHostDeviceTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun dashboardHeaderDistributesStatusActionsAcrossAvailableWidth() {
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalConfiguration provides Configuration().apply {
+                    screenWidthDp = 480
+                    screenHeightDp = 800
+                },
+            ) {
+                BeamComposeTheme {
+                    Box(Modifier.requiredSize(480.dp, 800.dp)) {
+                        WorkspaceShell(
+                            portrait = true,
+                            toolPanelExpanded = false,
+                            toolPanelNeedsTwoRows = false,
+                            navigationItemCount = WorkspaceDestination.visibleNavigationDestinations.size,
+                            menuWidthDp = 220,
+                            rendererView = android.view.View(LocalContext.current),
+                            selectedNavigationSlot = WorkspaceDestination.PROJECT.ordinal,
+                            toolsExpanded = false,
+                            onNavigationSelected = {},
+                            activeMenuSlot = WorkspaceDestination.PROJECT.ordinal,
+                            menuComposeContentForSlot = {},
+                            onMenuTransitionSettled = {},
+                            projectSettingsContent = {},
+                            profileStatusContent = { Text("Printer profile") },
+                            filamentButtonContent = { Text("Filament") },
+                            platePickerContent = { Text("Plate") },
+                            printerWebButtonContent = { Text("Connection") },
+                            modePanelContent = null,
+                            modePanelSize = null,
+                            modePanelDocked = false,
+                            modePanelAllowsBackgroundInteraction = false,
+                            onModePanelDismiss = {},
+                            transientPanelContent = null,
+                            snackbarController = WorkspaceSnackbarController(),
+                        )
+                    }
+                }
+            }
+        }
+
+        val actionArea = compose.onNodeWithTag("workspace-header-actions")
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val plate = compose.onNodeWithTag("workspace-header-plate-action")
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val connection = compose.onNodeWithTag("workspace-header-printer-action")
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertTrue("connection control should reach the right side of the dashboard header", connection.right >= actionArea.right - 1f)
+        assertTrue("the space between plate and connection controls should be visible", connection.left > plate.right)
+    }
+
+    @Test
+    fun importProgressUsesVisibleMenuHeightInsteadOfTwoRowReservation() {
+        val snackbars = WorkspaceSnackbarController().apply {
+            show(SnackbarsLayout.Snackbar(SnackbarsLayout.Type.LOADING, "Import in progress").tag("import"))
+        }
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalConfiguration provides Configuration().apply {
+                    screenWidthDp = 480
+                    screenHeightDp = 800
+                },
+            ) {
+                BeamComposeTheme {
+                    Box(Modifier.requiredSize(480.dp, 800.dp)) {
+                        WorkspaceShell(
+                            portrait = true,
+                            toolPanelExpanded = true,
+                            toolPanelNeedsTwoRows = true,
+                            navigationItemCount = WorkspaceDestination.visibleNavigationDestinations.size,
+                            menuWidthDp = 220,
+                            rendererView = android.view.View(LocalContext.current),
+                            selectedNavigationSlot = WorkspaceDestination.PROJECT.ordinal,
+                            toolsExpanded = true,
+                            onNavigationSelected = {},
+                            activeMenuSlot = WorkspaceDestination.PROJECT.ordinal,
+                            menuComposeContentForSlot = {
+                                Box(Modifier.requiredSize(480.dp, 80.dp).testTag("visible-menu-actions"))
+                            },
+                            onMenuTransitionSettled = {},
+                            projectSettingsContent = {},
+                            profileStatusContent = { Text("Printer profile") },
+                            filamentButtonContent = {},
+                            platePickerContent = {},
+                            printerWebButtonContent = {},
+                            modePanelContent = null,
+                            modePanelSize = null,
+                            modePanelDocked = false,
+                            modePanelAllowsBackgroundInteraction = false,
+                            onModePanelDismiss = {},
+                            transientPanelContent = null,
+                            snackbarController = snackbars,
+                        )
+                    }
+                }
+            }
+        }
+
+        val menu = compose.onNodeWithTag("workspace-menu-panel")
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val progress = compose.onNodeWithText("Import in progress")
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val gap = menu.top - progress.bottom
+        assertTrue("progress should stay above menu actions", gap >= 0f)
+        assertTrue("progress should sit close to the visible actions, not far above the reserved panel", gap < 100f)
+    }
 
     @Test
     fun dockedPaintPanelHidesGlobalFilamentShortcutToPreventDuplicateRows() {
@@ -84,7 +194,6 @@ class WorkspaceModePanelHostDeviceTest {
                             Text("Global filament shortcut", Modifier.testTag("global-filament-shortcut"))
                         },
                         platePickerContent = {},
-                        viewCubeContent = {},
                         printerWebButtonContent = {},
                         modePanelContent = controller.activeToolPanelContent,
                         modePanelSize = controller.activeToolPanelSize,
@@ -181,7 +290,6 @@ class WorkspaceModePanelHostDeviceTest {
                     },
                     filamentButtonContent = {},
                     platePickerContent = {},
-                    viewCubeContent = {},
                     printerWebButtonContent = {},
                     modePanelContent = controller.activeToolPanelContent,
                     modePanelSize = controller.activeToolPanelSize,

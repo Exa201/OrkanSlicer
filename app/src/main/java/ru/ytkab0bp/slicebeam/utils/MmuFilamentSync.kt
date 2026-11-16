@@ -1,5 +1,7 @@
 package ru.ytkab0bp.slicebeam.utils
 
+import android.os.Handler
+import android.os.Looper
 import android.text.TextUtils
 import com.loopj.android.http.AsyncHttpClient
 import com.loopj.android.http.AsyncHttpResponseHandler
@@ -29,6 +31,7 @@ class MmuFilamentSync private constructor() {
         private const val CHOICE_GATES = "mmu_choice_gates"
         private const val PALETTE_PRINTER = "mmu_palette_printer"
         private const val PALETTE_GATES = "mmu_palette_gates"
+        private val mainHandler by lazy(LazyThreadSafetyMode.SYNCHRONIZED) { Handler(Looper.getMainLooper()) }
 
         @JvmStatic
         fun synchronize(printer: ConfigObject, callback: Callback) {
@@ -87,6 +90,14 @@ class MmuFilamentSync private constructor() {
             externalSpoolStatus?.equals("ready", ignoreCase = true) == true && hasAceHubState && aceHubsAreNull
 
         private fun synchronizeInternal(printer: ConfigObject, replacePalette: Boolean, callback: Callback) {
+            // LoopJ's AsyncHttpResponseHandler captures the current looper in its constructor.
+            // Upload preflight invokes MMU synchronization from IO_POOL, where no looper exists.
+            // Construct all handlers and start the request on main; LoopJ performs network I/O
+            // asynchronously and dispatches callbacks on this same handler.
+            if (Looper.myLooper() !== Looper.getMainLooper()) {
+                mainHandler.post { synchronizeInternal(printer, replacePalette, callback) }
+                return
+            }
             var host = printer.get("print_host")?.trim() ?: ""
             if (TextUtils.isEmpty(host)) {
                 callback.onResult(0, message(R.string.PrinterWebHostMissing))

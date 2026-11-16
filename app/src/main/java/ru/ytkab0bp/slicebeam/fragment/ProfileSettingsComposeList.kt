@@ -386,12 +386,10 @@ private fun ProfileSettingsRow(
     categoryRowsUpdater: ProfileCategoryRowsUpdater,
     onEditorStateChanged: (Boolean) -> Unit,
 ) {
-    val accentColor = decoration.accentColor.takeIf { it != 0 }?.let(ThemesRepo::getColor)
-    val sectionAccent = ru.ytkab0bp.slicebeam.ui.LocalOrkanSection.current.let { section ->
-        if (section == ru.ytkab0bp.slicebeam.ui.OrkanSection.DEFAULT) MaterialTheme.colorScheme.primary
-        else section.accent
-    }
-    val backgroundColor = (accentColor?.let(::Color) ?: sectionAccent).copy(alpha = 0.10f)
+    // Keep profile pages on the shared navy palette. Section hues remain in
+    // their icons and values; broad tinted panels made print/printer pages look
+    // like different themes and reduced text contrast.
+    val backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     val shape = RoundedCornerShape(
         topStart = if (decoration.startsSection) 18.dp else 0.dp,
         topEnd = if (decoration.startsSection) 18.dp else 0.dp,
