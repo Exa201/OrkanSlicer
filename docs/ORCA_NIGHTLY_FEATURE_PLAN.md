@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 Kandidat; Batch 19: 10/10 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Batch 19: 10/10 geprüft — 2026-11-16
 
 ### Batch 19, Punkt 10/10 — Arachne überspringt unreparierbare Voronoi-Diagramme — 2026-11-16
 
@@ -10,7 +10,11 @@
 
 ### Batch-19-Abschluss und Release 0.8.483
 
-Release-Prüfungen stehen noch aus; nach erfolgreichem Gate werden APK-SHA-256, Commit und Nightly-Tag hier protokolliert.
+- Vollständige JVM-Regressionen: Debug **798/798**, SliceTest **798/798**, jeweils ohne Fehler, Errors oder Skips. `verifyNightlyChangelog`, ARM64-Release-Build und `git diff --check` erfolgreich.
+- Signierte APK `OrkanSlicerNightly25_0.8.483_signed.apk`, **239.813.562 Byte**, SHA-256 `04AC07E3759D6B37F9CF7C1457D1642384C67C6A0A5CBF0818D2C12D24EC3B9B`; historische Signatur geprüft. GitHub-Asset-Digest stimmt überein.
+- Installation und Start auf API-36-Emulator erfolgreich; Prozess blieb aktiv, im kurzen Logcat-Fenster kein FATAL EXCEPTION, SIGSEGV oder ANR. Xiaomi-Installation wurde vor Testbeginn mit `INSTALL_FAILED_USER_RESTRICTED` abgebrochen; kein Xiaomi-Nachweis.
+- GitHub-Prerelease `v0.8.483-nightly.1`: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.483-nightly.1. Der Nightly-Puffer enthält nun die fünf neuesten Releases; `v0.8.459-nightly.1` und `v0.8.458-nightly.1` wurden entfernt.
+- Codecommit `a8794b5c618b4fb10296dd30389460bd6edab7a9` wurde auf `nightly25/codex/ui-2.1-redesign` gepusht. Die abschließende Release-Dokumentation folgt im nächsten Commit.
 
 ### Batch 19, Punkt 9/10 — Painted Modifier im klassischen 3MF erhalten — 2026-11-16
 

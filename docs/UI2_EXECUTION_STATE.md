@@ -1,4 +1,4 @@
-# Nightly 0.8.483 — Release-Kandidat — 2026-11-16
+# Nightly 0.8.483 — Release- und Teststand — 2026-11-16
 
 ## Orca Batch 19, Punkt 10/10 — Arachne-Absturz bei ungültigem Voronoi-Diagramm
 
@@ -6,7 +6,11 @@
 - In `SkeletalTrapezoidation::constructFromPolygons` wird ein ungültiges Diagramm jetzt protokolliert und die betreffende Kontur ohne Werkzeugwege übersprungen. Die neue Regression ruft den Produktionsgenerator mit Orcas konkreter Sliver-Geometrie auf.
 - API-36-AVD: `NativeSliceDeviceTest#arachneSkipsToolpathsForUnrepairableVoronoiInsteadOfCrashing` **1/1 bestanden**. ARM64-SliceTest-Native-Build, Test-APK-Build und `git diff --check` erfolgreich.
 - Der Xiaomi-Installationsversuch wurde vom Gerät vor dem Start (`INSTALL_FAILED_USER_RESTRICTED`) abgelehnt; auf Xiaomi lief kein Test. Emulatorverifikation ist erfolgreich.
-- Batch 19 steht bei **10/10**; 0.8.483 ist Release-Kandidat. Vollständige Unit-Suiten, signierter Release-Build und Veröffentlichung stehen noch aus.
+- Debug JVM **798/798**, SliceTest JVM **798/798**, 0 Fehler/Errors/Skips. `verifyNightlyChangelog`, Release-Build und `git diff --check` bestanden.
+- Signierte APK `OrkanSlicerNightly25_0.8.483_signed.apk`, **239.813.562 Byte**, SHA-256 `04AC07E3759D6B37F9CF7C1457D1642384C67C6A0A5CBF0818D2C12D24EC3B9B`; Signatur-Fingerprint `6254b703f8440e375448b8ec213ef2dc63ebd6c4094ae83eb25f39c2cf426d12`. GitHub-Asset-Digest stimmt mit der lokalen APK überein.
+- Installation und Start auf API-36-Emulator erfolgreich; PID 16588 blieb aktiv und im erfassten Logcat-Ausschnitt kein Crash/ANR. Der Xiaomi-Test scheiterte vor Testbeginn an `INSTALL_FAILED_USER_RESTRICTED`.
+- GitHub Nightly-Pre-Release: [v0.8.483-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.483-nightly.1). Fünf neueste Nightly-Releases behalten; Versionen 0.8.459 und 0.8.458 gelöscht.
+- Codecommit `a8794b5c618b4fb10296dd30389460bd6edab7a9` auf `nightly25/codex/ui-2.1-redesign` gepusht. Kein Merge oder offizielles Stable-Release.
 
 ## 0.8.482 — Release- und Teststand — 2026-11-16
 ## Rotationsvorschau — 2026-11-16
