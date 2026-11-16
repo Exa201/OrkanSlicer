@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 6/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 7/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -31,6 +31,12 @@
 
 - Orca `8b8d573a85` hält Außenwände bei der Kühlungsverlangsamung aus dem Druckerprofil definierten Resonanzbereich heraus. Der Nightly-Test slicet dieselbe schmale Geometrie jeweils mit deaktivierter und aktivierter Resonanzvermeidung und prüft die tatsächlichen Extrusions-Feedrates im G-Code.
 - Android 16/API-36-Emulator: `NativeSliceDeviceTest#layerCoolingKeepsOuterWallsOutsideResonanceAvoidanceRange` **1/1 bestanden**. Ohne Resonanzschutz trifft die Fixture den konfigurierten Bereich; mit Schutz liegt kein Außenwand-Feedrate darin.
+- APK-Gate bleibt bei 100/100.
+
+### Schritt 7/100 — Multiline-Grid-Infill verbindet Pfade sicher
+
+- Orca `6268535d2f` optimiert mehrzeiliges Rectilinear-Infill. Der Nightly-Test slicet ein Rechteck mit dreifachem Grid-Infill, prüft den exakten Extrusionspfad-Fingerabdruck (7.547 Bewegungen) und validiert, dass alle XY-Pfade innerhalb der Objektgrenzen bleiben.
+- Android 16/API-36-Emulator: `NativeSliceDeviceTest#multilineGridInfillUsesMiterJoinsAndPreservesGeometry` **1/1 bestanden**.
 - APK-Gate bleibt bei 100/100.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung

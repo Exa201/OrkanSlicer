@@ -1,6 +1,6 @@
 # Nightly 0.8.483 — Release- und Teststand — 2026-11-16
 
-## Orca Nightly Upgrade-Zyklus — Schritt 6/100 — 2026-11-16
+## Orca Nightly Upgrade-Zyklus — Schritt 7/100 — 2026-11-16
 
 - Basisstand: Nightly **0.8.483**, Branch `codex/ui-2.1-redesign`, HEAD `07cec538e8`; zuletzt geprüfter Upstream `4b161be15085f578638752dc891b2795ee6861d3`.
 - Schritt 2 prüft die Anker-Maschinenprofile: neuer Unit-Test validiert alle 12 Profile auf den Gesamtzeit-Platzhalter `print_time_total_sec`. Gezielte Debug-Unit **1/1**, SliceTest-Unit **1/1**; vollständige Debug-Unit **799/799**, SliceTest-Unit **799/799**, jeweils ohne Fehler/Skips.
@@ -8,6 +8,7 @@
 - Schritt 4 verifiziert die beschleunigungsbewusste Layer-Kühlung mit echtem Slice auf API-36-Emulator: **1/1**.
 - Schritt 5 verifiziert Type-2-Priming mit genau einem benutzten Filament gegen Orca `0e8e95d516`: echter Android-16-Slice **1/1**, G-Code enthält Extrusion und vollständige Layer-Tabelle.
 - Schritt 6 verifiziert Orca `8b8d573a85`: Layer-Kühlung hält Außenwand-Feedrates aus der Resonanzzone; Vergleichsslice mit Schutz aus/ein auf API 36 **1/1**.
+- Schritt 7 verifiziert Orca `6268535d2f`: Multiline-Grid-Infill auf API 36 **1/1**, 7.547 Extrusionsbewegungen und XY-Pfade vollständig innerhalb des Modells.
 - Ein neuer APK/Release wird nach **100/100** einzeln nachgewiesenen Upgrade-Schritten erstellt. Historische 10-Punkte-Batches unten bleiben nur als alte Release-Historie erhalten.
 - Frischer Upstream-Stand enthält zuletzt `4b161be150` (Wayland-AMS-Popupgröße, Android nicht anwendbar); weitere aktuelle Android-Core-Fixes sind bereits vorhanden. `verifyNightlyChangelog` und `git diff --check` bestanden. Nächste Aktion: einen noch ungetesteten Android-relevanten Core-Fall aus Orcas Upstream-Regressionssuite auswählen. Noch kein APK/Release für diesen Zyklus.
 
