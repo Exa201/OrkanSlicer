@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 10/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 11/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -56,6 +56,12 @@
 - Orca `2c50d15451` überspringt den finalen Tower-Unload, wenn ein Toolchanger-Purge-Turm vor der letzten Modelllage endet. Der Nightly-JNI-Test ruft dafür den produktiven Purge-Gate-Helper auf und prüft fünf Fälle, darunter SEMM, kurze Toolchanger-Türme und Tower bis zur letzten Lage.
 - Android 16/API-36-Emulator: `NativeSliceDeviceTest#toolchangerSkipsFinalWipeTowerUnloadWhenTheTowerStopsBelowTheModel` **1/1 bestanden**, erwartete fünf Gate-Entscheidungen stimmen exakt.
 - Die ersten zehn Schritte des neuen Upgrade-Zyklus sind vollständig verifiziert; APK/Prerelase bleibt bis **100/100** gesperrt.
+
+### Schritt 11/100 — Ramming-Ausnahme bei kurzem Purge-Turm
+
+- Orca `163b95f93d` erhält den finalen Entladevorgang für rammende Toolchanger, selbst wenn der Tower vor der letzten Modelllage endet. Das ist die gezielte Ausnahme zum vorherigen Schritt, der bei normalen Toolchangern den überflüssigen Vorgang auslässt.
+- `NativeSliceDeviceTest#rammingToolChangerRunsFinalUnloadAtTheTopWhenItsTowerStopsEarly` erzeugt einen echten Type-2-Slice mit Ramming und prüft Tower-Ausgabe und Ramming-Extrusion oberhalb des kurzen Towers. Android 16/API-36-Emulator: **1/1 bestanden**.
+- APK-Gate bleibt bei 100/100.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
 

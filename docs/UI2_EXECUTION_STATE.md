@@ -1,6 +1,6 @@
 # Nightly 0.8.483 — Release- und Teststand — 2026-11-16
 
-## Orca Nightly Upgrade-Zyklus — Schritt 10/100 — 2026-11-16
+## Orca Nightly Upgrade-Zyklus — Schritt 11/100 — 2026-11-16
 
 - Basisstand: Nightly **0.8.483**, Branch `codex/ui-2.1-redesign`, HEAD `07cec538e8`; zuletzt geprüfter Upstream `4b161be15085f578638752dc891b2795ee6861d3`.
 - Schritt 2 prüft die Anker-Maschinenprofile: neuer Unit-Test validiert alle 12 Profile auf den Gesamtzeit-Platzhalter `print_time_total_sec`. Gezielte Debug-Unit **1/1**, SliceTest-Unit **1/1**; vollständige Debug-Unit **799/799**, SliceTest-Unit **799/799**, jeweils ohne Fehler/Skips.
@@ -12,6 +12,7 @@
 - Schritt 8 verifiziert Orca `82135af6ff`: Retraktion nach Außenwänden; Vergleichsslices mit Option aus/ein auf API 36 **1/1**, zusätzliche Rückzüge im aktivierten Modus.
 - Schritt 9 verifiziert Orca `36815b4f03`: Layer-Kühlung bleibt bei relativem/absolutem E bewegungsäquivalent. API-36-Slice **1/1**, Feedrates stimmen mit maximal unter 1 mm/min Abweichung überein.
 - Schritt 10 verifiziert Orca `2c50d15451`: kurzer Prime-Tower löst keinen finalen Entladevorgang oberhalb der Modellhöhe aus. Fünf Gate-Fälle auf API 36 **1/1**, alle erwarteten Entscheidungen stimmen.
+- Schritt 11 verifiziert die Orca-Ausnahme `163b95f93d`: Ramming-Toolchanger behalten den finalen Entladevorgang am Modellende, obwohl der Type-2-Tower kürzer ist. Echter Slice auf API 36 **1/1**.
 - Ein neuer APK/Release wird nach **100/100** einzeln nachgewiesenen Upgrade-Schritten erstellt. Historische 10-Punkte-Batches unten bleiben nur als alte Release-Historie erhalten.
 - Frischer Upstream-Stand enthält zuletzt `4b161be150` (Wayland-AMS-Popupgröße, Android nicht anwendbar); weitere aktuelle Android-Core-Fixes sind bereits vorhanden. `verifyNightlyChangelog` und `git diff --check` bestanden. Nächste Aktion: einen noch ungetesteten Android-relevanten Core-Fall aus Orcas Upstream-Regressionssuite auswählen. Noch kein APK/Release für diesen Zyklus.
 
