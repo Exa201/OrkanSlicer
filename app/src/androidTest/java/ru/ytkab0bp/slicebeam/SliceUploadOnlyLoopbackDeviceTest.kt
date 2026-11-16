@@ -4,12 +4,15 @@ import android.app.Application
 import android.graphics.BitmapFactory
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.swipeUp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.json.JSONObject
@@ -174,7 +177,9 @@ class SliceUploadOnlyLoopbackDeviceTest {
             val unslicedPixels = decodePixels(unslicedThumbnail)
 
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuSlice)).assertIsDisplayed().performClick()
-            compose.onNodeWithText(activity.getString(R.string.MenuSliceCurrentSettings)).assertIsDisplayed().performClick()
+            revealMenuAction(activity, R.string.MenuSliceCurrentSettings)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuSliceCurrentSettings))
+                .assertIsDisplayed().performClick()
             compose.onNodeWithTag("pre-slice-confirm").assertIsDisplayed().performClick()
             val mismatchContinue = compose.onAllNodesWithText(activity.getString(R.string.PreSliceMaterialMismatchContinue))
             if (mismatchContinue.fetchSemanticsNodes().isNotEmpty()) mismatchContinue.get(0).performClick()
@@ -282,6 +287,20 @@ class SliceUploadOnlyLoopbackDeviceTest {
             if (next != '\r'.code) bytes.write(next)
         }
         return bytes.toString("US-ASCII")
+    }
+
+    /** The compact workspace menu virtualizes off-screen actions; scroll it into composition first. */
+    private fun revealMenuAction(activity: MainActivity, titleRes: Int) {
+        val title = activity.getString(titleRes)
+        repeat(12) {
+            val actions = compose.onAllNodesWithContentDescription(title)
+            if (actions.fetchSemanticsNodes().isNotEmpty() &&
+                runCatching { actions.get(0).assertIsDisplayed() }.isSuccess) return
+            compose.onNodeWithTag("workspace-mode-panel")
+                .performTouchInput { swipeUp(startY = height * 0.82f, endY = height * 0.30f) }
+            compose.waitForIdle()
+        }
+        compose.onNodeWithContentDescription(title).assertIsDisplayed()
     }
 
     private fun captureThumbnail(bed: BedFragment): ByteArray {
