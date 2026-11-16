@@ -405,12 +405,12 @@ class ThreeMfMulticolorDeviceTest {
             val configColors = configFile.useLines { lines ->
                 lines.lastOrNull { it.startsWith("filament_colour = ") }?.substringAfter("filament_colour = ")
             }
-            val expectedPreviewColors = ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver.resolve(
+            val expectedPreviewColors = ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver.previewColorsWithAlpha(
                 configColors, model.requiredFilamentCount, ru.ytkab0bp.slicebeam.utils.Prefs.getFilamentPalette(),
             )
             result = model.slice(configFile.absolutePath, destination.absolutePath, null)
             assertArrayEquals(
-                "G-code tool preview must retain the exact palette passed to native slicing",
+                "G-code tool preview must preserve the effective palette in libvgcode RGBA format",
                 expectedPreviewColors,
                 result.previewToolColors,
             )

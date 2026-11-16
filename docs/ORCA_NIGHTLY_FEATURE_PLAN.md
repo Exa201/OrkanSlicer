@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 24/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 25/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -142,6 +142,13 @@
 - Das gebündelte Drei-Objekt-3MF wurde so zugeordnet, dass jedes Teil denselben weißen Slicer-Slot verwendet. Der produktive native Slice prüft, dass der G-Code den gemeinsamen Slot als T1 ausgibt und weder T0, T2 noch T3 auswählt.
 - `ThreeMfMulticolorDeviceTest#separateObjectsAssignedToOneSharedWhiteSlotSliceOnlyThatTool`: Android 16/API-36-Emulator **1/1 bestanden**; nicht leerer G-Code und vollständige Testkonfiguration bestätigt.
 - APK-Gate bleibt bei 100/100. Nächster Schritt: eine Mehrfarben-3MF-Variante mit unterschiedlichen Zielslots bis zur Druckvorbereitung/Upload-Umschreibung verfolgen.
+
+### Schritt 25/100 — Einzelne 3MF-Objekte behalten unterschiedliche Filamentzuordnungen
+
+- Das gebündelte Mehrfarben-3MF wurde mit individuellen Objektzuordnungen zu T3, T0 und T1 gesliced. Der Lauf prüft sowohl die wirkliche native G-Code-Ausgabe als auch die Vorschaupalette der geladenen 3MF-Konfiguration.
+- `ThreeMfMulticolorDeviceTest#individuallyAssignedObjectsSliceWithTheirSelectedSlotsAndPalette`: Android 16/API-36-Emulator **1/1 bestanden**. G-Code verwendet die drei gewählten Tools, lässt das nicht zugewiesene T2 aus und die Vorschaufarben stimmen mit den konfigurierten RGBA-Werten überein.
+- Der erste Testlauf schlug nur wegen einer veralteten Testerwartung fehl: RGB wurde mit dem RGBA-Vorschauwert verglichen. Der Farbwert selbst war gleich; nach Anpassung der Erwartung an das tatsächliche Vorschauformat bestand der gleiche Instrumentierungstest.
+- APK-Gate bleibt bei 100/100. Nächster Schritt: die individuellen Mehrfarbenzuordnungen durch den Anycubic-Druckvorbereitungs- und Upload-Umschreibungspfad verfolgen.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
 
