@@ -1,6 +1,6 @@
 # Nightly 0.8.483 — Release- und Teststand — 2026-11-16
 
-## Orca Nightly Upgrade-Zyklus — Schritt 13/100 — 2026-11-16
+## Orca Nightly Upgrade-Zyklus — Schritt 14/100 — 2026-11-16
 
 - Basisstand: Nightly **0.8.483**, Branch `codex/ui-2.1-redesign`, Codebasis HEAD `7464f271b1`, aktueller Doku-HEAD `e326f57dd1`; zuletzt geprüfter Upstream `4b161be15085f578638752dc891b2795ee6861d3`.
 - Schritt 2 prüft die Anker-Maschinenprofile: neuer Unit-Test validiert alle 12 Profile auf den Gesamtzeit-Platzhalter `print_time_total_sec`. Gezielte Debug-Unit **1/1**, SliceTest-Unit **1/1**; vollständige Debug-Unit **799/799**, SliceTest-Unit **799/799**, jeweils ohne Fehler/Skips.
@@ -15,8 +15,9 @@
 - Schritt 11 verifiziert die Orca-Ausnahme `163b95f93d`: Ramming-Toolchanger behalten den finalen Entladevorgang am Modellende, obwohl der Type-2-Tower kürzer ist. Echter Slice auf API 36 **1/1**.
 - Schritt 12 verifiziert Orca `97bf1f4d1d`: Seam-Marker überhängender Außenwände bleiben in generiertem und erneut geöffnetem G-Code erhalten; Vergleich zweier Seam-Slope-Modi und unmarkierter Referenz. API 36 **1/1**, 0 Fehler/Skips.
 - Schritt 13 verifiziert Orca `d7534d7fb9`: getrennte Druckbereiche zweier Toolchanger-Düsen mit Prime Tower liefern statt Crash die Meldung zum fehlenden gemeinsamen Bereich. API 36 **1/1**, 0 Fehler/Skips.
+- Schritt 14 verifiziert Orca `6d312b0441`: zwei kopierte Modelle mit geteiltem Mesh aber unterschiedlichen Höhenbereich-Overrides verwenden getrennte Slice-Regionen. API 36 **1/1**, 0 Fehler/Skips.
 - Ein neuer APK/Release wird nach **100/100** einzeln nachgewiesenen Upgrade-Schritten erstellt. Historische 10-Punkte-Batches unten bleiben nur als alte Release-Historie erhalten.
-- Frischer Upstream-Stand enthält zuletzt `4b161be150` (Wayland-AMS-Popupgröße, Android nicht anwendbar); weitere aktuelle Android-Core-Fixes sind bereits vorhanden. Seam-Vorschau- und Toolchanger-Validierungstest liefen auf API 36 erfolgreich; vollständige Suiten wurden in diesen Schritten nicht erneut ausgeführt. `verifyNightlyChangelog` und `git diff --check` bestanden. Nächste Aktion: einen noch ungetesteten Android-relevanten Core-Fall aus Orcas Upstream-Regressionssuite auswählen. Noch kein APK/Release für diesen Zyklus.
+- Frischer Upstream-Stand enthält zuletzt `4b161be150` (Wayland-AMS-Popupgröße, Android nicht anwendbar); weitere aktuelle Android-Core-Fixes sind bereits vorhanden. Die drei jüngsten API-36-Regressionen für Vorschau-Marker, Toolchanger-Bereiche und Slice-Cache-Isolation bestanden; vollständige Suiten wurden in diesen Schritten nicht erneut ausgeführt. `verifyNightlyChangelog` und `git diff --check` bestanden. Nächste Aktion: einen noch ungetesteten Android-relevanten Core-Fall aus Orcas Upstream-Regressionssuite auswählen. Noch kein APK/Release für diesen Zyklus.
 
 ## Orca Batch 20, Punkt 1/10 — Arachne-Konturvereinfachung gegen Integer-Überlauf
 
