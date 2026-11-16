@@ -7201,10 +7201,43 @@ extern "C" {
             const int host_matches = loaded_host != nullptr && !loaded_host->is_painted_modifier() ? 1 : 0;
             const int depth_matches = std::abs(loaded_modifier->painted_modifier_depth - 2.5f) < 0.001f ? 1 : 0;
             const int config_matches = loaded_modifier->config.has("wall_loops") && loaded_modifier->config.opt_int("wall_loops") == 5 ? 1 : 0;
+
+            const std::string classic_path = path + ".classic.3mf";
+            if (!store_3mf(classic_path.c_str(), &model, &config, false, nullptr, false))
+                throw std::runtime_error("Painted modifier classic 3MF fixture could not be written");
+            Model classic_loaded;
+            DynamicPrintConfig classic_config = DynamicPrintConfig::full_print_config();
+            ConfigSubstitutionContext classic_substitutions{ForwardCompatibilitySubstitutionRule::Disable};
+            const bool classic_loaded_ok = load_3mf(classic_path.c_str(), classic_config, classic_substitutions, &classic_loaded, false);
+            ModelVolume* classic_modifier = nullptr;
+            ModelObject* classic_object = classic_loaded.objects.empty() ? nullptr : classic_loaded.objects.front();
+            if (classic_loaded_ok && classic_object != nullptr)
+                for (ModelVolume* volume : classic_object->volumes)
+                    if (volume->is_painted_modifier()) { classic_modifier = volume; break; }
+            if (classic_modifier == nullptr) {
+                std::string diagnostic = "Classic 3MF painted modifier missing: loaded=" + std::to_string(classic_loaded_ok) +
+                    " objects=" + std::to_string(classic_loaded.objects.size());
+                if (classic_object != nullptr) {
+                    diagnostic += " volumes=" + std::to_string(classic_object->volumes.size());
+                    for (const ModelVolume* volume : classic_object->volumes)
+                        diagnostic += " [type=" + std::to_string(static_cast<int>(volume->type())) + ",name=" + volume->name + "]";
+                }
+                throw std::runtime_error(diagnostic);
+            }
+            const int classic_type_matches = classic_modifier != nullptr ? 1 : 0;
+            const int classic_paint_matches = classic_modifier != nullptr &&
+                classic_modifier->painted_modifier_facets.equals(modifier->painted_modifier_facets) ? 1 : 0;
+            const int classic_host_matches = classic_modifier != nullptr &&
+                classic_object->painted_modifier_host(*classic_modifier) != nullptr ? 1 : 0;
+            const int classic_depth_matches = classic_modifier != nullptr &&
+                std::abs(classic_modifier->painted_modifier_depth - 2.5f) < 0.001f ? 1 : 0;
+            const int classic_config_matches = classic_modifier != nullptr && classic_modifier->config.has("wall_loops") &&
+                classic_modifier->config.opt_int("wall_loops") == 5 ? 1 : 0;
             const jint values[] = {
                 painted_facets, facet_count, paint_matches, host_matches, depth_matches, config_matches,
                 clone_host_matches ? 1 : 0, clone_paint_matches ? 1 : 0,
                 synced_mesh_matches ? 1 : 0, synced_painted_facets,
+                classic_type_matches, classic_paint_matches, classic_host_matches, classic_depth_matches, classic_config_matches,
             };
             release_PlateData_list(loaded_plates);
             jintArray result = env->NewIntArray(static_cast<jsize>(std::size(values)));

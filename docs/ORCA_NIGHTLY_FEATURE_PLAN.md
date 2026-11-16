@@ -1,4 +1,11 @@
-# Aktueller Stand — Nightly 0.8.481; Batch 19: 8/10 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.481; Batch 19: 9/10 geprüft — 2026-11-16
+
+### Batch 19, Punkt 9/10 — Painted Modifier im klassischen 3MF erhalten — 2026-11-16
+
+- Im Orca-3MF-Importer filterte die Volumen-Metadaten-Allowlist die Nightly-eigenen Felder `painted_modifier_depth`, `painted_modifier_host` und `painted_modifier_config:*` heraus. Ein klassischer 3MF-Export/Reimport wandelte den Painted Modifier dadurch in einen gewöhnlichen Parameter-Modifier um und verlor Bemalung/Zuordnung.
+- Der Filter akzeptiert nun genau diese drei Painted-Modifier-Metadatenfamilien. Die Android-16/API-36-Regressionsprüfung erweitert den echten Rundlauf auf BBS- und klassisches 3MF und validiert Typ, Facettenmaske, Host, Tiefe und `wall_loops`-Konfiguration.
+- `NativeSliceDeviceTest#paintedModifierBbs3mfRoundtripPreservesTypePaintAndSettings`: **1/1 bestanden** nach der Korrektur; der neue klassische Fall schlug vorher reproduzierbar beim Modifier-Typ fehl. ARM64-Native-Build und Instrumentierungs-APK erfolgreich.
+- Orca-Upstream aktuell `d6ec712c2e`; die Änderungen seit `191760b5cb` betreffen weiterhin Windows-Plugin-Update-Löschung und Desktop-Paketierung, nicht Android. Build 0.8.415 bleibt bereits entfernt/nicht vorhanden. Batch 19: **9/10**; Release-Gate bleibt bis Punkt 10 offen.
 
 ### Batch 19, Punkt 8/10 — Orca-Minzip 3.1.2 und 3MF-Rundlauf — 2026-11-16
 
@@ -10,7 +17,7 @@
 
 ### Upstream-Abgleich am 2026-11-16
 
-- `orcaslicer-upstream/main` wurde frisch von GitHub aktualisiert und steht auf `191760b5cb6d9a8e6e4d553afe5e176d52edf978` (2026-11-16).
+- `orcaslicer-upstream/main` wurde frisch von GitHub aktualisiert und steht auf `d6ec712c2e` (2026-11-16).
 - Seit dem zuvor dokumentierten Upstream-Stand `ff93256eff` kamen `cbf282e6b3` (Windows-Binärsignierung) und `191760b5cb` (Linux-Preset-Caches vor dem AppImage-Paketieren) hinzu. Beides ist für Android nicht anwendbar und wird nicht als Android-Port gezählt.
 - Die zusätzlich geprüften Kandidaten `7c76be2ebc` (CLI-Fehler bei fehlendem Filamentdurchmesser) und `6839c9d344` (AMS-Inventar invalidiert Filamentgruppierung) sind nicht als vollständige Produktports zu zählen: die CLI existiert in der Android-App nicht, und der Android-Aufrufpfad übergibt Tray-Inventar derzeit nicht an `Print::set_extruder_filament_info`. Der fehlende Inventartransport bleibt ein eigener offener Integrationspunkt.
 - Die relevanten Kernänderungen `0e8e95d516`, `8b8d573a85`, `8a1cef365e`, `3bfabc9831`, `6268535d2f`, `82135af6ff`, `36815b4f03`, `d7534d7fb9`, `ea80024735` und `3538f239c2` sind im Android-Kern bereits vorhanden. Dazu gehören unter anderem Layer-Cooling, Prime-Tower-Schutz, mehrfarbige Brücken, geteilte Extruder-Bettflächen und T-Befehle vor Filament-Start-G-Code.

@@ -1,4 +1,12 @@
 # Nightly 0.8.481 — Release- und Teststand — 2026-11-16
+## Orca 3MF-Rundlauf — klassischer Painted-Modifier-Fix — 2026-11-16
+
+- Fortsetzung ausschließlich auf `codex/ui-2.1-redesign`, Ausgangs-HEAD `254af6c95e`; Build 0.8.415 wurde geprüft und ist bereits weder Release, APK noch lokales Tag. Die vorhandenen fünf Nightly-Releases blieben unberührt.
+- Frischer Orca-Upstream-HEAD `d6ec712c2e`. Die zwei jüngsten Commits nach der vorherigen Prüfung sind Windows-Plugin-Update- und Linux-AppImage-/Desktop-Paketänderungen; keine davon betrifft Android. Ein gezielter Orca-3MF-Metadatenfehler aus dem vorigen Durchgang war hingegen im Android-Aufrufpfad aktiv.
+- Der klassische 3MF-Importer ließ Painted-Modifier-Metadaten an seiner Volumen-Allowlist abprallen. Nach Aufnahme von Tiefe, Host und Modifier-Konfiguration stellt der Rundlauf Painted-Typ, Facetten, Host, Tiefe und `wall_loops` wieder her.
+- Regression: `NativeSliceDeviceTest#paintedModifierBbs3mfRoundtripPreservesTypePaintAndSettings` auf API 36 **1/1 bestanden**; derselbe Test reproduzierte vor dem Fix `ParameterModifier` statt `PAINTED_MODIFIER`. ARM64-Native-Build, SliceTest-Instrumentierungsbuild und Installation erfolgreich. `git diff --check` sauber.
+- Orca-Port-Batch 19 steht jetzt auf **9/10**. APK und GitHub-Prerelease bleiben bis zum zehnten geprüften Punkt offen. Nächster Schritt: den nächsten tatsächlich Android-erreichbaren Orca-Kernpunkt identifizieren, portieren und gezielt testen.
+
 ## Nightly-only Fortsetzung — Orca-Minzip und painted-modifier Sync — 2026-11-16
 
 - Batch 19 steht bei 8/10; die Miniz-3.1.2-Portierung und API-36-3MF-Rundläufe sind in `docs/ORCA_NIGHTLY_FEATURE_PLAN.md` protokolliert. Keine APK oder Veröffentlichung in diesem Zwischenschritt.
