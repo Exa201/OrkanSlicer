@@ -50,7 +50,7 @@ import ru.ytkab0bp.slicebeam.utils.QidiGCode3mfPackager
 import ru.ytkab0bp.slicebeam.utils.AnycubicAceRoutingPolicy
 
 internal sealed interface PrintPreparationWarning {
-    data class UnavailableTool(val tool: Int, val gate: Int) : PrintPreparationWarning
+    data class UnavailableTool(val tool: Int, val gate: Int?) : PrintPreparationWarning
     data class SharedAceGate(val tool: Int) : PrintPreparationWarning
     data class MaterialMismatch(val tool: Int, val source: String, val slot: Int, val loaded: String) : PrintPreparationWarning
     data class EmptyAceSlots(val slots: List<Int>) : PrintPreparationWarning
@@ -71,6 +71,12 @@ object SlicePrintPreparationDialog {
     @JvmStatic
     fun isAnycubicKobra(printer: ConfigObject?): Boolean =
         SlicePreparationTools.isAnycubicKobra3Model(printer?.get("printer_model"))
+
+    /** An out-of-range tool can appear in a malformed G-code file; never index the route blindly. */
+    internal fun unavailableToolWarning(routing: AnycubicAceRoutingPolicy.Routing): PrintPreparationWarning.UnavailableTool? {
+        val tool = routing.unavailableTool ?: return null
+        return PrintPreparationWarning.UnavailableTool(tool, routing.gates.getOrNull(tool))
+    }
 
     @JvmStatic
     internal fun show(
@@ -112,10 +118,7 @@ object SlicePrintPreparationDialog {
                     MmuFilamentSync.toolToGateMap(title),
                     MmuFilamentSync.getSelectedGates(title, gcodeToolCount),
                 )
-                val invalidTool = routing.unavailableTool
-                if (invalidTool != null) {
-                    return PrintPreparationWarning.UnavailableTool(invalidTool, routing.gates[invalidTool])
-                }
+                unavailableToolWarning(routing)?.let { return it }
                 val profile = SliceBeam.buildCurrentConfigObject(gcodeToolCount)
                 AnycubicAceRoutingPolicy.firstIncompatibleSharedGateTool(
                     activeTools,
@@ -439,9 +442,9 @@ internal fun PrintPreparationWarningDialog(
         is PrintPreparationWarning.ExternalSpoolMultiTool -> R.string.MmuExternalSpoolTitle
     }
     val message = when (warning) {
-        is PrintPreparationWarning.UnavailableTool -> stringResource(
-            R.string.MmuDirectSlotUnavailable, warning.tool, warning.gate + 1,
-        )
+        is PrintPreparationWarning.UnavailableTool -> warning.gate?.let { gate ->
+            stringResource(R.string.MmuDirectSlotUnavailable, warning.tool, gate + 1)
+        } ?: stringResource(R.string.MmuDirectToolUnavailable, warning.tool)
         is PrintPreparationWarning.SharedAceGate -> pluralStringResource(
             R.plurals.MmuAssignmentSharedAceGate, warning.tool + 1, warning.tool + 1,
         )

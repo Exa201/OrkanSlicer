@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 28/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 29/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -1384,3 +1384,11 @@ Der weitere Vergleich am 2026-11-04 prüfte Orca `5fd0edf5cc` (Z-Schrumpfung von
 - Verifikation: kompletter `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` nach `--rerun-tasks` erfolgreich, jeweils **774/774**, 0 Fehler/Errors/Skips; `verifyNightlyChangelog` und `git diff --check` erfolgreich.
 - Die Werte sind auf Profilebene getestet. Native By-Object-Kollisions-/Arrange-Laufzeitprüfung auf dem Xiaomi bleibt wegen `INSTALL_FAILED_USER_RESTRICTED` offen. Diese Änderung wird deshalb nicht als vollständig abgenommener Batch-Punkt gezählt; Batch 18 bleibt **5/10 verifiziert**.
 - Nächster Schritt: instrumentierten U1-By-Object-Clearance-Test am Xiaomi nach Freigabe der Testinstallation laufen lassen; danach die installierten Orca-Funktionen weiter nach Android-Aufrufpfad triagieren.
+
+
+### Schritt 29/100 — Ungültiges Anycubic-G-Code-Werkzeug sicher melden
+
+- Die Druckvorbereitung indizierte `routing.gates[tool]` ohne Bereichsprüfung. Bei einem G-Code-Werkzeug außerhalb der Filamentpalette konnte dadurch die Druckvorbereitungsansicht abstürzen, statt die ungültige Zuordnung zu melden.
+- Der Warnungspfad nutzt jetzt `getOrNull`; fehlt für ein ungültiges Werkzeug ein ACE-Fach, erscheint eine gezielte Meldung mit dem betroffenen T-Werkzeug. Gültige aber nicht erreichbare Werkzeuge behalten die bisherige ACE-Fachmeldung.
+- Regression `SlicePrintPreparationRoutingTest`: außerhalb des Bereichs, nicht erreichbares gültiges Werkzeug und gültige Route getestet. Debug **3/3**, SliceTest **3/3**, keine Fehler/Skips; `verifyNightlyChangelog`, Kotlin-Kompilierung und `git diff --check` erfolgreich.
+- Kein Gerätetest und kein APK-Build in diesem Schritt. APK-Gate bleibt **100/100**. Nächster Schritt: Orca-Upstream und Android-Aufrufpfade erneut abgleichen und einen weiteren reproduzierbaren Fehler-/Featurefall wählen.

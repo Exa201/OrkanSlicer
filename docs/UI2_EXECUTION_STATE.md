@@ -5490,3 +5490,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Verifikation: `:app:testDebugUnitTest` **791/791**, `:app:compileSliceTestAndroidTestKotlin` und `:app:assembleDebug` erfolgreich. Neueste Honor-Prüfung ohne FATAL, ANR oder OutOfMemoryError in den letzten 2.500 Logcat-Zeilen.
 - Debug-APK **0.8.475 / versionCode 510**, 253,105,119 Byte, SHA-256 `40330732EFA0A0118342D1D56251816E6A016876B8B6813F9FCF65CCF9A2B01A`; auf Honor installiert und gestartet. Screenshot-Belege: `docs/images/ui21/honor-nightly-0.8.475-tools.png`, `docs/images/ui21/honor-nightly-0.8.475-model.png` und `docs/images/ui21/honor-nightly-0.8.475-final.png`.
 - Kein GitHub-Upload oder Release in diesem Schritt angefordert; Änderungen bleiben uncommitted auf `codex/ui-2.1-redesign` zusammen mit der bestehenden Arbeitskopie.
+
+
+## Nightly Fortsetzung — Druckvorbereitungs-Routing sicher
+
+- Datum: 2026-11-16. Fix: ungültige G-Code-T-Werkzeuge konnten vor der Druck-/Sendeansicht beim ungeprüften Zugriff auf die ACE-Gate-Liste abstürzen. Der Zugriff ist begrenzt; ohne vorhandenes Gate zeigt die Oberfläche nun eine passende T-Werkzeug-Warnung.
+- Geprüft: Regression für außerhalb des Bereichs liegendes Werkzeug, erreichbares ACE-Werkzeug und gültige Route. Debug **3/3**, SliceTest **3/3**; `verifyNightlyChangelog`, Kotlin-Kompilierung und `git diff --check` erfolgreich.
+- Offen: Gerätetest auf Honor/Xiaomi und voller Integrationstest durch Senden; in dieser Fortsetzung kein APK-Build/Upload.
+- Nightly-Arbeitsbranch `codex/ui-2.1-redesign`; tatsächlicher HEAD zu Beginn `ea715a2fa36dc5f945ff374dc3d973b89da1bb62`.
+- Nächste konkrete Aktion: Orca-Upstream erneut abgleichen und den nächsten überprüfbaren Nightly-Aufrufpfad auswählen.
