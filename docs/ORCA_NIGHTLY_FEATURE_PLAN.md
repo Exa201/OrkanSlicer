@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 21/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 22/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -124,6 +124,12 @@
 - Die Routing-Regression läuft für T0–T15 über eine vollständige Umkehrzuordnung auf 16 physische Slots. Sie prüft die Gate-Liste, jeden ausgegebenen zweistelligen bzw. einstelligen Tool-Befehl, Erhalt der Kommentarzeichenfolge und unveränderte Nicht-Tool-Befehle.
 - `MmuColorAssignmentPolicyTest#allSixteenLogicalToolsRouteToTheirSelectedPhysicalSlots`: gezielte Debug-Unit **1/1** und SliceTest-Unit **1/1** bestanden. Changelog-Prüfung erfolgreich; keine Fehler.
 - APK-Gate bleibt bei 100/100. Nächster Schritt: weiteren Mehrfarben- oder Slicingpfad mit einem konkreten Android-Aufrufnachweis absichern.
+
+### Schritt 22/100 — Anycubic-Upload erhält die vollständige 16-Slot-Zuordnung
+
+- `SinglePhysicalSlotOutputTest#sixteenToolUploadPreservesEveryPhysicalSelectionAndGateMapping` prüft nicht nur den Mapper, sondern den fertigen Anycubic-G-Code-Upload: Alle Eingabe-Tools T0–T15 und die Filament-Gate-Liste werden auf die umgekehrten 16 physischen Slots umgeschrieben.
+- Debug-Unit **1/1** und SliceTest-Unit **1/1** bestanden; Upload-Test bestätigt alle Slotselektoren und Gate-Metadaten. Changelog-Prüfung bleibt erfolgreich.
+- APK-Gate bleibt bei 100/100. Nächster Schritt: einen weiteren Mehrfarbenpfad bis zum erzeugten Upload-G-Code verifizieren.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
 

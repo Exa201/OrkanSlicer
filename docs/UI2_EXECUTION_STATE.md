@@ -1,6 +1,6 @@
 # Nightly 0.8.483 — Release- und Teststand — 2026-11-16
 
-## Orca Nightly Upgrade-Zyklus — Schritt 21/100 — 2026-11-16
+## Orca Nightly Upgrade-Zyklus — Schritt 22/100 — 2026-11-16
 
 - Basisstand: Nightly **0.8.483**, Branch `codex/ui-2.1-redesign`, Codebasis HEAD `7464f271b1`, aktueller Doku-HEAD `e326f57dd1`; zuletzt geprüfter Upstream `4b161be15085f578638752dc891b2795ee6861d3`.
 - Schritt 2 prüft die Anker-Maschinenprofile: neuer Unit-Test validiert alle 12 Profile auf den Gesamtzeit-Platzhalter `print_time_total_sec`. Gezielte Debug-Unit **1/1**, SliceTest-Unit **1/1**; vollständige Debug-Unit **799/799**, SliceTest-Unit **799/799**, jeweils ohne Fehler/Skips.
@@ -23,8 +23,9 @@
 - Schritt 19 prüft den Compose-/GL-Menüpfad „Alle anordnen“ mit vier weit außerhalb des Betts verschobenen Objekten. Neu anordnen erzeugt keine Kopien, bewahrt Filamentzuordnung und unterstützt Undo/Redo; der resultierende Workspace wird gesliced. API-36-Emulator **1/1**, 0 Fehler/Skips.
 - Schritt 20 prüft ein 197-mm-Modell plus 1-mm-Brim auf einem 200-mm-Bett. Der Packer nutzt den verfügbaren Platz, hält das Modell auf der Platte und reduziert nur die äußere Reserve. API-36-Emulator **1/1**, 0 Fehler/Errors/Skips.
 - Schritt 21 prüft Filamentrouting für alle logischen Tools T0–T15 auf 16 physische Slots, inklusive zweistelliger T-Befehle und unveränderter Nicht-Tool-Befehle. Gezielte Debug-Unit **1/1** und SliceTest-Unit **1/1** bestanden.
+- Schritt 22 prüft die Anycubic-Upload-Umschreibung für die vollständige Zuordnung T0–T15 auf 16 physische Slots. Der erzeugte G-Code enthält alle umgeschriebenen Toolselektoren und die passende Gate-Liste; Debug-Unit **1/1**, SliceTest-Unit **1/1** bestanden.
 - Ein neuer APK/Release wird nach **100/100** einzeln nachgewiesenen Upgrade-Schritten erstellt. Historische 10-Punkte-Batches unten bleiben nur als alte Release-Historie erhalten.
-- Frischer Upstream-Stand enthält zuletzt `59acdedd06`; dies ist eine Boost-/Header-Buildoptimierung, ohne Android-Runtime-Auswirkung. Die gezielten API-36-Regressionen für Orca-Kernpfade, Mehrmodell-Anordnung und knappe Bettbelegung sowie die Routing-Tests für T0–T15 bestanden; vollständige JVM-Suiten wurden in diesen Schritten nicht erneut ausgeführt. `verifyNightlyChangelog` und `git diff --check` bestanden. Nächste Aktion: einen noch ungeprüften Android-relevanten Core-Fall aus Orcas Upstream-Regressionssuite auswählen. Noch kein APK/Release für diesen Zyklus.
+- Frischer Upstream-Stand enthält zuletzt `59acdedd06`; dies ist eine Boost-/Header-Buildoptimierung, ohne Android-Runtime-Auswirkung. Die gezielten API-36-Regressionen für Orca-Kernpfade, Mehrmodell-Anordnung und knappe Bettbelegung sowie Routing-/Upload-Tests für T0–T15 bestanden; vollständige JVM-Suiten wurden in diesen Schritten nicht erneut ausgeführt. `verifyNightlyChangelog` und `git diff --check` bestanden. Nächste Aktion: einen noch ungeprüften Android-relevanten Core-Fall aus Orcas Upstream-Regressionssuite auswählen. Noch kein APK/Release für diesen Zyklus.
 
 ## Orca Batch 20, Punkt 1/10 — Arachne-Konturvereinfachung gegen Integer-Überlauf
 

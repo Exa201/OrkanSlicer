@@ -6,6 +6,37 @@ import org.junit.Test
 import ru.ytkab0bp.slicebeam.utils.AnycubicGCodeProcessor
 
 class SinglePhysicalSlotOutputTest {
+    @Test fun sixteenToolUploadPreservesEveryPhysicalSelectionAndGateMapping() {
+        val source = File.createTempFile("sixteen-tool-source", ".gcode")
+        val output = File.createTempFile("sixteen-tool-output", ".gcode")
+        try {
+            val sourceCommands = (0 until 16).joinToString("\n") { "T$it" }
+            source.writeText("; HEADER_BLOCK_START\n; filament: ${(1..16).joinToString(",")}\n; HEADER_BLOCK_END\n$sourceCommands\n")
+            val scan = AnycubicGCodeProcessor.scan(source)
+            assertEquals("scan should detect the highest logical tool", 15, scan.maxTool)
+            val reversedSlots = IntArray(16) { 15 - it }
+            assertTrue(AnycubicGCodeProcessor.rewrite(source, output, scan,
+                AnycubicGCodeProcessor.Options().apply {
+                    remappedTools = reversedSlots
+                    gates = reversedSlots
+                    versionName = "test"
+                }))
+
+            val result = output.readLines()
+            assertTrue("the physical gate metadata must match T0–T15 routing",
+                result.contains("; filament: 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1"))
+            val emittedTools = result.mapNotNull { line ->
+                Regex("^T([0-9]{1,2})$").matchEntire(line)?.groupValues?.get(1)?.toInt()
+            }
+            assertEquals("all 16 remapped physical selectors must be present",
+                (0 until 16).toSet(), emittedTools.toSet())
+            (0 until 16).forEach { logicalTool ->
+                assertTrue("logical T$logicalTool should map to physical T${15 - logicalTool}",
+                    result.contains("T${15 - logicalTool}"))
+            }
+        } finally { source.delete(); output.delete() }
+    }
+
     @Test fun implicitFirstToolIsExplicitlyRoutedToSlotFourWithoutDroppingLayers() {
         val source = File.createTempFile("slot-source", ".gcode")
         val output = File.createTempFile("slot-output", ".gcode")
