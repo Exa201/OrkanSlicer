@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 5/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 6/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -26,6 +26,12 @@
 - Orca `0e8e95d516` verhindert bei einem einzelnen Priming-Werkzeug den Zugriff auf `tools[idx_tool - 1]`; stattdessen wird für den ersten Eintrag ein Purge-Volumen von null verwendet. Der identische Guard ist im Nightly-Produktionscode vorhanden.
 - `NativeSliceDeviceTest#type2PrimeTowerSlicesWithOnlyOneUsedFilament` erzeugt auf Android 16/API 36 einen echten Type-2-Slice mit nur einem benutzten Filament und aktivierter Single-Extruder-Priming-Option. Test **1/1 bestanden**, vollständige Layer-Tabelle und Extrusion im G-Code bestätigt.
 - Dieser Prüffall schützt den konkreten Einzelwerkzeug-Grenzfall vor erneutem Indexfehler. APK-Gate bleibt bei 100/100.
+
+### Schritt 6/100 — Außenwand-Kühlung bleibt außerhalb der Resonanzzone
+
+- Orca `8b8d573a85` hält Außenwände bei der Kühlungsverlangsamung aus dem Druckerprofil definierten Resonanzbereich heraus. Der Nightly-Test slicet dieselbe schmale Geometrie jeweils mit deaktivierter und aktivierter Resonanzvermeidung und prüft die tatsächlichen Extrusions-Feedrates im G-Code.
+- Android 16/API-36-Emulator: `NativeSliceDeviceTest#layerCoolingKeepsOuterWallsOutsideResonanceAvoidanceRange` **1/1 bestanden**. Ohne Resonanzschutz trifft die Fixture den konfigurierten Bereich; mit Schutz liegt kein Außenwand-Feedrate darin.
+- APK-Gate bleibt bei 100/100.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
 
