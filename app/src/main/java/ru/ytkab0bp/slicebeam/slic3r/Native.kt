@@ -121,6 +121,7 @@ class Native {
     /** Slices an Orca Painted Modifier on a cube and reports painted/default region areas and bounds. */
     @JvmStatic
     external fun painted_modifier_slice_regression(): DoubleArray
+    @JvmStatic
     external fun painted_modifier_bbs_roundtrip(path: String): IntArray
     /** Verifies printable-area masks retain the 64th extruder in the post-slice check. */
     @JvmStatic

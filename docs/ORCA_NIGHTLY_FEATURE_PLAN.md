@@ -1,9 +1,17 @@
-# Aktueller Stand — Nightly 0.8.481; Batch 19: 7/10 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.481; Batch 19: 8/10 geprüft — 2026-11-16
+
+### Batch 19, Punkt 8/10 — Orca-Minzip 3.1.2 und 3MF-Rundlauf — 2026-11-16
+
+- Orca-Upstream-HEAD wurde bis `191760b5cb6d9a8e6e4d553afe5e176d52edf978` geprüft. Android-Minzip wurde auf Orcas `af5f6806ac`-Stand (Miniz 3.1.2 samt BBS-Erweiterungen) gebracht; BBS-3MF und PresetBundle reichen Dateisystempfade jetzt als UTF-8 an Miniz durch, während ZIP-internen Pfadnamen ihre bisherige Kodierung behalten.
+- `ModelObject::sync_painted_modifiers()` remappt bemalte Dreiecke nur, wenn sich die Topologie ändert. Bei unveränderten Dreiecksindizes bleiben Farb-/Facettenzuordnungen erhalten, auch wenn Vertex-Koordinaten skaliert werden.
+- API-36-AVD: `paintedModifierBbs3mfRoundtripPreservesTypePaintAndSettings` **1/1** und `textureDisplacementLayersPaintMasksAndImageRoundTripThroughThreeMf` mit Unicode-Dateinamen **1/1**. ARM64-CMake-Build erfolgreich. Debug-Unit **797/797**, SliceTest-Unit **797/797**, jeweils 0 Fehler/Errors/Skips; `git diff --check` sauber.
+- Der BBS-Roundtrip prüft Export, Import, gemalte Facetten, Modifier-Host und Clone-Synchronisierung. Die separate klassische 3MF-Variante stellte den Modifier-Typ beim Wiedereinlesen nicht wieder her; sie wird daher nicht als bestanden gezählt und bleibt ein eigener offener Fehlerpunkt.
+- 0.8.415 ist weder unter den fünf aktuellen GitHub-Nightly-Releases noch als lokale APK vorhanden; ein zugehöriges altes lokales Tag war bereits entfernt. Die historische Build-Statusnotiz bleibt als Archiv bestehen. Kein APK/Release vor Batch 19 10/10.
 
 ### Upstream-Abgleich am 2026-11-16
 
-- `orcaslicer-upstream/main` wurde frisch von GitHub aktualisiert und steht auf `ff93256eff8e6fb3fc274c6c483f69db9367a0c9` (2026-11-16).
-- Seit den bereits geprüften Batch-19-Kernports sind die neuesten Commits `87fb987668` (Assembly-Parallel-Gizmo), `b4a9565dee` (Rundung der gemischten Filamentzeilen), `f5305fa542` (Build-Rezept für ungenutzte NanoSVG-Abhängigkeit) und `ff93256eff` (desktopseitige `LabeledCheckBox`-Klasse). Das sind desktop-/GUI-/Build-System-Änderungen ohne gleichwertigen Android-Aufrufpfad und werden nicht als Android-Ports gezählt.
+- `orcaslicer-upstream/main` wurde frisch von GitHub aktualisiert und steht auf `191760b5cb6d9a8e6e4d553afe5e176d52edf978` (2026-11-16).
+- Seit dem zuvor dokumentierten Upstream-Stand `ff93256eff` kamen `cbf282e6b3` (Windows-Binärsignierung) und `191760b5cb` (Linux-Preset-Caches vor dem AppImage-Paketieren) hinzu. Beides ist für Android nicht anwendbar und wird nicht als Android-Port gezählt.
 - Die zusätzlich geprüften Kandidaten `7c76be2ebc` (CLI-Fehler bei fehlendem Filamentdurchmesser) und `6839c9d344` (AMS-Inventar invalidiert Filamentgruppierung) sind nicht als vollständige Produktports zu zählen: die CLI existiert in der Android-App nicht, und der Android-Aufrufpfad übergibt Tray-Inventar derzeit nicht an `Print::set_extruder_filament_info`. Der fehlende Inventartransport bleibt ein eigener offener Integrationspunkt.
 - Die relevanten Kernänderungen `0e8e95d516`, `8b8d573a85`, `8a1cef365e`, `3bfabc9831`, `6268535d2f`, `82135af6ff`, `36815b4f03`, `d7534d7fb9`, `ea80024735` und `3538f239c2` sind im Android-Kern bereits vorhanden. Dazu gehören unter anderem Layer-Cooling, Prime-Tower-Schutz, mehrfarbige Brücken, geteilte Extruder-Bettflächen und T-Befehle vor Filament-Start-G-Code.
 - Revalidierung auf Nightly-HEAD `87da519da16765968f95b2534ad3d07a3b3683e2`: `:app:testDebugUnitTest :app:testSliceTestUnitTest --no-daemon` erfolgreich. Aus den XML-Berichten: Debug **796/796**, SliceTest **796/796**, jeweils 0 Fehler, 0 Errors und 0 Skips. Gradle verwendete dabei vorhandene up-to-date Testergebnisse; keine Hardware- oder Instrumentierungsabnahme ist damit belegt.

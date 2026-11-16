@@ -1345,8 +1345,8 @@ bool ModelObject::sync_painted_modifiers()
         if (volume->mesh_ptr() != host->mesh_ptr()) {
             const indexed_triangle_set &old_mesh = volume->mesh().its;
             const indexed_triangle_set &new_mesh = host->mesh().its;
-            if (!volume->painted_modifier_facets.empty() &&
-                (old_mesh.vertices != new_mesh.vertices || old_mesh.indices != new_mesh.indices)) {
+            const bool same_topology = old_mesh.vertices.size() == new_mesh.vertices.size() && old_mesh.indices == new_mesh.indices;
+            if (!volume->painted_modifier_facets.empty() && !same_topology) {
                 volume->painted_modifier_facets.set_data(TriangleSelector::remap_painting(
                     old_mesh, volume->painted_modifier_facets.get_data(), new_mesh,
                     volume->get_matrix().inverse() * host->get_matrix(), {}));

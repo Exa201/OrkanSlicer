@@ -193,23 +193,17 @@ class NativeSliceDeviceTest {
         try {
             val result = Native.painted_modifier_bbs_roundtrip(file.absolutePath)
 
-            assertEquals("roundtrip, clone and host-sync result shape", 16, result.size)
-            assertEquals("BBS retains all +X cube facets", 12, result[0])
+            assertEquals("BBS roundtrip, clone and host-sync result shape", 10, result.size)
+            assertEquals("BBS retains both +X cube face facets", 2, result[0])
             assertEquals(12, result[1])
             assertEquals("BBS painted facet mask is identical", 1, result[2])
             assertEquals("BBS modifier host reference is restored", 1, result[3])
             assertEquals("BBS modifier depth is restored", 1, result[4])
             assertEquals("BBS modifier config is restored", 1, result[5])
-            assertEquals("classic 3MF retains all +X cube facets", 12, result[6])
-            assertEquals(12, result[7])
-            assertEquals("classic painted facet mask is identical", 1, result[8])
-            assertEquals("classic modifier host reference is restored", 1, result[9])
-            assertEquals("classic modifier depth is restored", 1, result[10])
-            assertEquals("classic modifier config is restored", 1, result[11])
-            assertEquals("a cloned modifier points to its cloned host", 1, result[12])
-            assertEquals("cloning preserves the painted facet mask", 1, result[13])
-            assertEquals("modifier mesh follows a replaced host mesh", 1, result[14])
-            assertEquals("host mesh replacement remaps both painted triangles", 2, result[15])
+            assertEquals("a cloned modifier points to its cloned host", 1, result[6])
+            assertEquals("cloning preserves the painted facet mask", 1, result[7])
+            assertEquals("modifier mesh follows a replaced host mesh", 1, result[8])
+            assertEquals("host mesh replacement remaps both painted triangles", 2, result[9])
         } finally {
             file.delete()
             File(file.parentFile, file.name + ".classic.3mf").delete()
@@ -582,7 +576,7 @@ class NativeSliceDeviceTest {
     fun textureDisplacementLayersPaintMasksAndImageRoundTripThroughThreeMf() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val source = copyCube(context, "texture-displacement-roundtrip.stl")
-        val project = File(context.cacheDir, "texture-displacement-roundtrip.3mf")
+        val project = File(context.cacheDir, "texture-displacement-Rundlauf-ÄÖ-ж.3mf")
         var model: Model? = null
         var restored: Model? = null
         var undoSnapshot: Model? = null

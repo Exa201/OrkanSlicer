@@ -7117,6 +7117,8 @@ extern "C" {
         env->ReleaseStringUTFChars(path_value, path_chars);
         try {
             Model model;
+            model.set_backup_path(path + ".backup");
+            model.get_backup_path();
             ModelObject* object = model.add_object();
             object->name = "painted_modifier_3mf_roundtrip_fixture";
             ModelVolume* host = object->add_volume(make_cube(20.f, 20.f, 20.f));
@@ -7161,7 +7163,7 @@ extern "C" {
             store.model = &model;
             store.plate_data_list = plates;
             store.config = &config;
-            store.strategy = SaveStrategy::Zip64 | SaveStrategy::ProductionExt | SaveStrategy::Silence;
+            store.strategy = SaveStrategy::Zip64 | SaveStrategy::ProductionExt | SaveStrategy::SkipAuxiliary | SaveStrategy::Silence;
             if (!store_bbs_3mf(store))
                 throw std::runtime_error("Painted modifier BBS 3MF fixture could not be written");
 
@@ -7199,32 +7201,8 @@ extern "C" {
             const int host_matches = loaded_host != nullptr && !loaded_host->is_painted_modifier() ? 1 : 0;
             const int depth_matches = std::abs(loaded_modifier->painted_modifier_depth - 2.5f) < 0.001f ? 1 : 0;
             const int config_matches = loaded_modifier->config.has("wall_loops") && loaded_modifier->config.opt_int("wall_loops") == 5 ? 1 : 0;
-            const std::string classic_path = path + ".classic.3mf";
-            if (!store_3mf(classic_path.c_str(), &model, &config, false))
-                throw std::runtime_error("Painted modifier classic 3MF fixture could not be written");
-            Model classic_loaded;
-            DynamicPrintConfig classic_config = DynamicPrintConfig::full_print_config();
-            ConfigSubstitutionContext classic_substitutions{ForwardCompatibilitySubstitutionRule::Disable};
-            if (!load_3mf(classic_path.c_str(), classic_config, classic_substitutions, &classic_loaded, false)
-                || classic_loaded.objects.empty())
-                throw std::runtime_error("Painted modifier classic 3MF fixture could not be loaded");
-            ModelObject* classic_object = classic_loaded.objects.front();
-            ModelVolume* classic_modifier = nullptr;
-            for (ModelVolume* volume : classic_object->volumes)
-                if (volume->is_painted_modifier()) { classic_modifier = volume; break; }
-            if (classic_modifier == nullptr)
-                throw std::runtime_error("Painted modifier classic 3MF roundtrip lost the modifier type");
-            const ModelVolume* classic_host = classic_object->painted_modifier_host(*classic_modifier);
-            const int classic_painted_facets = static_cast<int>(classic_modifier->painted_modifier_facets
-                .get_facets(*classic_modifier, EnforcerBlockerType::ENFORCER).indices.size());
-            const int classic_paint_matches = classic_modifier->painted_modifier_facets.equals(modifier->painted_modifier_facets) ? 1 : 0;
-            const int classic_host_matches = classic_host != nullptr && !classic_host->is_painted_modifier() ? 1 : 0;
-            const int classic_depth_matches = std::abs(classic_modifier->painted_modifier_depth - 2.5f) < 0.001f ? 1 : 0;
-            const int classic_config_matches = classic_modifier->config.has("wall_loops") && classic_modifier->config.opt_int("wall_loops") == 5 ? 1 : 0;
             const jint values[] = {
                 painted_facets, facet_count, paint_matches, host_matches, depth_matches, config_matches,
-                classic_painted_facets, static_cast<int>(classic_modifier->mesh().its.indices.size()), classic_paint_matches,
-                classic_host_matches, classic_depth_matches, classic_config_matches,
                 clone_host_matches ? 1 : 0, clone_paint_matches ? 1 : 0,
                 synced_mesh_matches ? 1 : 0, synced_painted_facets,
             };

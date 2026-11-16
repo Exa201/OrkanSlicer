@@ -1,4 +1,10 @@
 # Nightly 0.8.481 — Release- und Teststand — 2026-11-16
+## Nightly-only Fortsetzung — Orca-Minzip und painted-modifier Sync — 2026-11-16
+
+- Batch 19 steht bei 8/10; die Miniz-3.1.2-Portierung und API-36-3MF-Rundläufe sind in `docs/ORCA_NIGHTLY_FEATURE_PLAN.md` protokolliert. Keine APK oder Veröffentlichung in diesem Zwischenschritt.
+- Verifikation: BBS painted-modifier 3MF 1/1, Unicode-Dateipfad-3MF 1/1, Debug-Unit 797/797, SliceTest-Unit 797/797, ARM64-Native-Build erfolgreich.
+- Noch offen: klassischer 3MF painted-modifier Typ bleibt beim Wiedereinlesen nicht erhalten; der separate klassische Roundtrip ist deshalb ausdrücklich nicht bestanden. Build 0.8.415 ist nicht in den GitHub-Releases oder lokalen APK-Artefakten vorhanden; historische Build-Notiz bleibt erhalten.
+- Nächster konkreter Schritt: zwei weitere aktuelle Android-relevante Orca-Änderungen für Batch 19 identifizieren, selektiv portieren und mit gezielten Tests prüfen. APK-Release erst nach 10/10.
 
 ## Orca-Upstream-Nachprüfung — Type-2-Prime-Tower — 2026-11-16
 
