@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 12/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483 veröffentlicht; Upgrade-Zyklus: 13/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -67,6 +67,12 @@
 
 - Orca `97bf1f4d1d` ergänzt Seam-Marker für überhängende Außenwände in generiertem G-Code. Nightly prüft dies in der Android-G-Code-Verarbeitung: die Seam-Slope-Modi `none` und `all` werden gesliced, anschließend wird die Datei erneut geöffnet und die Markierungsanzahl mit dem nativen Slice-Ergebnis sowie einer unmarkierten Vergleichsdatei abgeglichen.
 - Android 16/API-36-Emulator: `NativeSliceDeviceTest#overhangingOuterWallsKeepTheirSeamMarkersInGeneratedAndReopenedGcode` **1/1 bestanden**, 0 Fehler, 0 übersprungen; Testdauer 6,596 s.
+- APK-Gate bleibt bei 100/100.
+
+### Schritt 13/100 — Nicht überlappende Düsenbereiche liefern eine verständliche Tower-Validierung
+
+- Orca `d7534d7fb9` verhindert einen Crash, wenn die druckbaren Bereiche der Toolchanger-Düsen keine gemeinsame Fläche haben. Der Nightly-Core gibt bei erforderlichem Prime Tower stattdessen den konkreten Validierungsfehler `share no common area` zurück.
+- `NativeSliceDeviceTest#disjointExtruderPrintableAreasReturnPrimeTowerValidationInsteadOfCrashing` slicet zwei Objekte auf getrennten Düsenflächen mit aktiviertem Prime Tower. Android 16/API-36-Emulator: **1/1 bestanden**, 0 Fehler, 0 übersprungen.
 - APK-Gate bleibt bei 100/100.
 
 ### Batch 20, Punkt 1/10 — Arachne verhindert überlaufende Konturvereinfachung
