@@ -1,4 +1,4 @@
-# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 30/100 geprüft — 2026-11-16
+# Aktueller Stand — Nightly 0.8.483; Upgrade-Zyklus: 31/100 geprüft — 2026-11-16
 
 ## Laufender 100-Schritte-Upgrade-Zyklus
 
@@ -14,6 +14,13 @@
 - Verifikation: Debug-Unit **806/806**, SliceTest-Unit **806/806**, Nightly-Changelog-Prüfung erfolgreich. Native Android-Instrumentierung `multilineGridInfillUsesMiterJoinsAndPreservesGeometry`: API-36-Emulator **1/1 bestanden**.
 - Der parallele Xiaomi-Lauf wurde durch `INSTALL_FAILED_USER_RESTRICTED` vor Teststart abgewiesen; er zählt nicht als bestanden. `git diff --check` erfolgreich.
 - APK/Prerelease bleiben bis **100/100** gesperrt.
+
+### Schritt 31/100 — ProjectTask-Header auf den tatsächlich genutzten Dateipfad begrenzt
+
+- Orca `59acdedd065e` entfernt unnötige Boost-Thread- und Stream-Header aus `ProjectTask.hpp`, das dort nur `boost::filesystem::path` deklariert. Beim Port trat dadurch in `bbs_3mf.cpp` eine indirekte Abhängigkeit zutage: der Quelltext verwendet Boost-Mutex/Threads und `filesystem::ifstream`. Diese Includes stehen nun direkt an der Nutzungsstelle.
+- ARM64-NDK-Rebuild nach Korrektur: **66/66 betroffene C++-Einheiten erfolgreich**, `libslic3r.so` gelinkt. Der erste Compileversuch scheiterte erwartungsgemäß an den zuvor indirekten Includes; die Fehler wurden lokalisiert und korrigiert.
+- Verifikation: Debug-Unit **806/806**, SliceTest-Unit **806/806**, `verifyNightlyChangelog` erfolgreich. Native Slice `multilineGridInfillUsesMiterJoinsAndPreservesGeometry`: API-36-Emulator **1/1 bestanden**.
+- Xiaomi-Installation bleibt durch `INSTALL_FAILED_USER_RESTRICTED` blockiert; kein Xiaomi-Testpass behauptet. APK/Prerelease bleibt bis **100/100** gesperrt.
 
 ### Schritt 2/100 — Anker-Gesamtzeitprofil gegen Rückfall absichern
 

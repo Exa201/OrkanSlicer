@@ -5,10 +5,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <boost/thread.hpp>
-#include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
 

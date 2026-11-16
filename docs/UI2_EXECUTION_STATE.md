@@ -5494,6 +5494,15 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Relevante Codebasis zu Beginn dieses Arbeitspakets: `a52c8be375a63d6ac94c4caf4c9105d9a0754654`; Orca-Upstream-Basis: `59acdedd065e5213445163a581947353d3208ccd`.
 - Nächster konkreter Schritt: nächsten Android-relevanten Upstream-Core-Fall auswählen und mit einer nativen Regression absichern; bis 100/100 keine APK/Prerelease.
 
+## Nightly-Fortsetzung – ProjectTask-Includes explizit gemacht (2026-11-16)
+
+- Upgrade-Zyklus: **31/100**. Orca `59acdedd065e` lässt `ProjectTask.hpp` nur den benötigten Boost.Filesystem-Pfad einziehen. Der Nightly-Port entfernt Thread-/Stream-/Voll-Filesystem-Includes und ergänzt deren tatsächliche Nutzer in `bbs_3mf.cpp` explizit.
+- Der erste ARM64-Build fand dabei eine vorher versteckte Abhängigkeit in `bbs_3mf.cpp` (Boost-Mutex/Thread sowie `filesystem::ifstream`); explizite Includes ergänzten sie. Danach ARM64-Rebuild **66/66** und `libslic3r.so` Link erfolgreich.
+- Debug-Unit **806/806**, SliceTest-Unit **806/806**, `verifyNightlyChangelog` bestanden. Native API-36-Emulator Slice-Regression **1/1 bestanden**.
+- Xiaomi-Gerät weiterhin per ADB sichtbar, aber Installationsverwaltung verweigerte die SliceTest-APK mit `INSTALL_FAILED_USER_RESTRICTED`; kein Hardwarepass. Keine APK/Release gebaut.
+- Letzter Codecommit: `2ffd3cbe8c5b700c07b3d955eb5addd0f8e015cd`. Die aktuelle Folgeänderung ist noch nicht committet.
+- Nächster konkreter Schritt: nächsten Android-relevanten Orca-Core-Fall auswählen, isoliert umsetzen und nativen Verhaltenstest ausführen; APK-Gate bleibt 100/100.
+
 - Version 0.8.475 / versionCode 510: Porträt-Menühost misst sich am Inhalt statt an einer festen Overlayhöhe. Ein bis vier Aktionen belegen eine Zeile; fünf bis acht zwei Zeilen. Zusätzliche Aktionen bleiben in der Rasterliste scrollbar.
 - Aktionsicons auf 30 dp vergrößert und auf kontrastierende Theme-Vordergrundfarben umgestellt; Kachelgrößen und Aktionsabstände bleiben unverändert.
 - Honor-Gerätetest `portraitMenuGridUsesRowsAndFirstVerticalSwipeWorksInModelAndEdit`: **1/1 bestanden** (Android 16, 1280×2800, 426-dpi-Override ≈480 dp, Systemschrift 150 %). Er prüft die Panelhöhe, höchstens 8 dp Leerraum unter der letzten Reihe in Tools/Modell/Ändern und drei Auf-/Abwärts-Wischzyklen in Modell und Ändern.
